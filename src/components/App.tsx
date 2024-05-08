@@ -1,5 +1,5 @@
 import React from "react";
-import StoreFront from "./components/StoreFront.tsx";
+import StoreFront from "./StoreFront.tsx";
 
 export default function App() {
     return <StoreFront />;
