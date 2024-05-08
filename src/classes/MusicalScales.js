@@ -1,29 +1,24 @@
 import CircularDoublyLinkedList from "./CircularDoublyLinkedList.js";
 
-class MusicalScales extends CircularDoublyLinkedList {
+export default class MusicalScales extends CircularDoublyLinkedList {
     constructor(key = "C") {
         super();
         this.key = key;
         this.majorScaleSteps = MusicalScales.getScaleSteps("major");
         this.minorScaleSteps = MusicalScales.getScaleSteps("minor");
-    }
+        this.majorScale = undefined;
+        this.minorScale = undefined;
 
-    updateKey(keyNew) {
-        let temp = this.start;
-
-        while (temp.value != keyNew && temp.next != this.start) {
-            temp = temp.next;
-        }
-
-        this.start = temp;
-        this.current = this.start;
-        this.key = keyNew;
+        this.majorChordIntervals = MusicalScales.getChordIntervals("major");
+        this.minorChordIntervals = MusicalScales.getChordIntervals("minor");
+        this.majorChord = undefined;
+        this.minorChord = undefined;
     }
 
     static getScaleInterval(scaleType) {
         const scaleInterval = {
             major: ["W", "W", "H", "W", "W", "W", "H"],
-            minor: ["W", "W", "H", "W", "W", "W", "H"],
+            minor: ["W", "H", "W", "W", "H", "W", "W"],
         };
 
         return scaleInterval[scaleType] ?? undefined;
@@ -46,30 +41,42 @@ class MusicalScales extends CircularDoublyLinkedList {
         return steps;
     }
 
-    displayMajorScale() {
-        return this.displaySteps(this.majorScaleSteps);
+    static getChordIntervals(scaleType) {
+        const scaleInterval = {
+            major: [1, 3, 5],
+            minor: [1, 3, 5],
+        };
+
+        return scaleInterval[scaleType] ?? undefined;
+    }
+
+    updateKey(keyNew) {
+        let temp = this.start;
+
+        while (temp.value != keyNew && temp.next != this.start) {
+            temp = temp.next;
+        }
+
+        this.start = temp;
+        this.current = this.start;
+        this.key = keyNew;
+
+        this.generateScales();
+        this.generateChords();
+    }
+
+    generateScales() {
+        this.majorScale = this.displaySteps(this.majorScaleSteps);
+        this.minorScale = this.displaySteps(this.minorScaleSteps);
+    }
+
+    generateChords() {
+        this.majorChord = this.majorChordIntervals.map((index) => {
+            return this.majorScale[index - 1];
+        });
+
+        this.minorChord = this.minorChordIntervals.map((index) => {
+            return this.minorScale[index - 1];
+        });
     }
 }
-
-function generateChromaticScale() {
-    const chromaticScale = new MusicalScales();
-
-    chromaticScale.insert("C");
-    chromaticScale.insert("C#");
-    chromaticScale.insert("D");
-    chromaticScale.insert("D#");
-    chromaticScale.insert("E");
-    chromaticScale.insert("F");
-    chromaticScale.insert("F#");
-    chromaticScale.insert("G");
-    chromaticScale.insert("G#");
-    chromaticScale.insert("A");
-    chromaticScale.insert("A#");
-    chromaticScale.insert("B");
-
-    return chromaticScale;
-}
-
-const chromaticScale = generateChromaticScale();
-chromaticScale.updateKey("C");
-console.log(chromaticScale.displayMajorScale());

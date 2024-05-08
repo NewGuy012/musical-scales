@@ -21,8 +21,14 @@ export default function Product(props) {
     return (
         <div className="product">
             <div className="product-info">
-                <h2>{details.name}</h2>
-                <p>{details.description}</p>
+                <h2>Key of {details.name}</h2>
+                <p>
+                    Description: {details.description}
+                    <br></br>
+                    Major Scale: {details.majorScale}
+                    <br></br>
+                    Major Chord: {details.majorChord}
+                </p>
             </div>
             <div className="product-buttons">
                 <button

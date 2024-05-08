@@ -1,5 +1,6 @@
 import { React, useState } from "react";
 import Product from "./Product.tsx";
+import generateChromaticScale from "../classes/ChromaticScale.js";
 
 export default function StoreFront() {
     const [products, setProducts] = useState([]);
@@ -11,11 +12,17 @@ export default function StoreFront() {
         event.preventDefault();
 
         if (!name) {
-            setValidation("Please enter a name");
+            setValidation("Please enter a key");
             return;
         }
-        if (!description) {
-            setValidation("Please enter a description");
+
+        const chromaticScale = generateChromaticScale();
+        chromaticScale.updateKey(name);
+
+        const validNotes = chromaticScale.display();
+
+        if (!validNotes.includes(name)) {
+            setValidation("Please enter a valid key");
             return;
         }
 
@@ -24,6 +31,8 @@ export default function StoreFront() {
             id: id,
             name: name,
             description: description,
+            majorScale: chromaticScale.majorScale,
+            majorChord: chromaticScale.majorChord,
         };
 
         setProducts([...products, product]);
@@ -40,11 +49,11 @@ export default function StoreFront() {
         <>
             <form onSubmit={handleOnSubmit}>
                 <div>
-                    <label htmlFor="enter-name">Name</label>
+                    <label htmlFor="enter-name">Key</label>
                     <input
                         id="enter-name"
                         type="text"
-                        placeholder="Enter the name"
+                        placeholder="Enter the key"
                         className="textfield"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
@@ -66,11 +75,11 @@ export default function StoreFront() {
                     <input
                         type="submit"
                         className="btn btn-primary"
-                        value="Add product"
+                        value="Generate"
                     />
                 </div>
             </form>
-            <div>{products.length === 0 && <p>Add your first product</p>}</div>
+            <div>{products.length === 0 && <p>Add your first scale</p>}</div>
             <ul className="store-front">
                 {products.map((product, index) => (
                     <li key={product.id}>
