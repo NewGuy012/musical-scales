@@ -1,4 +1,14 @@
-# Made with Deno + TypeScript + React + Deno
+# Made with :heart: with JavaScript + TypeScript + React + Deno
+
+## Musical Scales
+
+Musical scales generates the scale and common chords based on a user given key.
+
+## To Do
+
+-   Add in extended and 7th chords
+-   Add in circle of fifths
+-   Improve UI
 
 ## Running Online
 
