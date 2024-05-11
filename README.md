@@ -1,8 +1,8 @@
-# Made with :heart: with JavaScript + TypeScript + React + Deno
-
-## Musical Scales
+# Musical Scales
 
 Musical scales generates the scale and common chords based on a user given key.
+
+Made with :heart: with JavaScript + TypeScript + React + Deno
 
 ## To Do
 
