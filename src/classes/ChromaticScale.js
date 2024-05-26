@@ -1,23 +1,20 @@
 import MusicalScales from "./MusicalScales.js";
 
 export default function generateChromaticScale() {
-    const chromaticScale = new MusicalScales();
+    const ChromaticScale = new MusicalScales();
 
-    chromaticScale.insert("C");
-    chromaticScale.insert("C#");
-    chromaticScale.insert("D");
-    chromaticScale.insert("D#");
-    chromaticScale.insert("E");
-    chromaticScale.insert("F");
-    chromaticScale.insert("F#");
-    chromaticScale.insert("G");
-    chromaticScale.insert("G#");
-    chromaticScale.insert("A");
-    chromaticScale.insert("A#");
-    chromaticScale.insert("B");
+    ChromaticScale.insert("C");
+    ChromaticScale.insert("C#");
+    ChromaticScale.insert("D");
+    ChromaticScale.insert("D#");
+    ChromaticScale.insert("E");
+    ChromaticScale.insert("F");
+    ChromaticScale.insert("F#");
+    ChromaticScale.insert("G");
+    ChromaticScale.insert("G#");
+    ChromaticScale.insert("A");
+    ChromaticScale.insert("A#");
+    ChromaticScale.insert("B");
 
-    chromaticScale.generateScales();
-    chromaticScale.generateChords();
-
-    return chromaticScale;
+    return ChromaticScale;
 }

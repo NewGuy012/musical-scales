@@ -61,7 +61,6 @@ export default class CircularDoublyLinkedList {
     displayStep() {
         const A = [];
 
-        // console.log(this.current.value);
         A.push(this.current.value);
 
         this.current = this.current.next;
@@ -72,7 +71,6 @@ export default class CircularDoublyLinkedList {
     displaySteps(steps) {
         const A = [];
 
-        // console.log(this.current.value);
         A.push(this.current.value);
 
         steps.forEach((step) => {
@@ -80,7 +78,6 @@ export default class CircularDoublyLinkedList {
                 this.current = this.current.next;
             }
 
-            // console.log(this.current.value);
             A.push(this.current.value);
         });
 
