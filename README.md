@@ -12,11 +12,11 @@ Made with :heart: with JavaScript + TypeScript + React + Deno
 
 ## Running Online
 
-https://musical-scales.deno.dev/
+https://musical-scales.yirehtechsolutions.deno.net/
 
 ## Running Locally
 
-You need to have Deno v1.28.0 or later installed to run this repo.
+You locally using deno
 
 Start a dev server:
 
