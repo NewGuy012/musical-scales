@@ -33,6 +33,7 @@ import {
 import {
 	GuitarChordKind,
 	GuitarVoicing,
+	createPitchClassNameResolver,
 	getGuitarVoicings,
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
@@ -301,11 +302,19 @@ export function App() {
 
 	const activeNoteNamesByMidi = useMemo(() => {
 		const map: Record<number, string> = {};
+		const resolvePitchName = createPitchClassNameResolver(
+			activeVoicing.notes,
+			analysis.scaleNotes,
+			preferFlats,
+		);
+		for (let m = 60; m <= 83; m++) {
+			map[m] = resolvePitchName(mod12(m));
+		}
 		activeVoicing.midi.forEach((m, i) => {
 			if (activeVoicing.notes[i]) map[m] = activeVoicing.notes[i];
 		});
 		return map;
-	}, [activeVoicing]);
+	}, [activeVoicing, analysis.scaleNotes, preferFlats]);
 
 	const scalePitchClasses = useMemo(
 		() => analysis.scaleNotes.map(noteToPitchClass),
@@ -1420,6 +1429,11 @@ export function App() {
 									activeSongMidi={
 										playingSongId !== null || cuedSongId !== null
 											? (activeSongEvent?.midi ?? null)
+											: null
+									}
+									activeSongStops={
+										playingSongId !== null || cuedSongId !== null
+											? (activeSongEvent?.guitarStops ?? null)
 											: null
 									}
 									scalePitchClasses={scalePitchClasses}

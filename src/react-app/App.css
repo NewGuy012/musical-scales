@@ -1831,8 +1831,20 @@
 	pointer-events: none;
 }
 
+.song-hit-harmonic {
+	fill: rgba(250, 204, 21, 0.16);
+	stroke: #f59e0b;
+	stroke-width: 2.2;
+	pointer-events: none;
+}
+
 .fret-dot-primary.is-song-hit .fret-dot-bg {
 	filter: brightness(1.16);
+}
+
+.fret-dot-primary.is-song-hit.is-harmonic .fret-dot-bg {
+	stroke: #f59e0b;
+	stroke-width: 2;
 }
 
 .piano-key.is-song-hit.piano-white .piano-key-rect {

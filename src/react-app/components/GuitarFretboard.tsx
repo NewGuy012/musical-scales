@@ -14,6 +14,7 @@ import {
 	createPitchClassNameResolver,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
+import type { GuitarSongStop } from "../theory/songExamples";
 
 export type FretboardOverlayMode = "voicing" | "chordTones" | "scale";
 export type FretboardLabelMode = "notes" | "intervals";
@@ -26,6 +27,7 @@ interface GuitarFretboardProps {
 	voicings: GuitarVoicing[];
 	selectedVoicing: GuitarVoicing | null;
 	activeSongMidi?: number[] | null;
+	activeSongStops?: GuitarSongStop[] | null;
 	scalePitchClasses: number[];
 	scaleNoteNames: string[];
 	preferFlats: boolean;
@@ -46,6 +48,7 @@ export function GuitarFretboard({
 	voicings,
 	selectedVoicing,
 	activeSongMidi = null,
+	activeSongStops = null,
 	scalePitchClasses,
 	scaleNoteNames,
 	preferFlats,
@@ -68,7 +71,23 @@ export function GuitarFretboard({
 		preferFlats,
 	);
 	const songHitKeys = new Set<string>();
-	if (activeSongMidi && activeSongMidi.length > 0) {
+	const harmonicKeys = new Set<string>();
+	if (activeSongStops && activeSongStops.length > 0) {
+		for (const stop of activeSongStops) {
+			if (
+				stop.stringIndex >= 0 &&
+				stop.stringIndex < STANDARD_TUNING.length &&
+				stop.fret >= 0 &&
+				stop.fret <= MAX_GUITAR_FRET
+			) {
+				const key = `${stop.stringIndex}-${stop.fret}`;
+				songHitKeys.add(key);
+				if (stop.technique === "harmonic") {
+					harmonicKeys.add(key);
+				}
+			}
+		}
+	} else if (activeSongMidi && activeSongMidi.length > 0) {
 		for (const midi of activeSongMidi) {
 			let matchedVoiced = false;
 			if (selectedVoicing) {
@@ -357,7 +376,9 @@ export function GuitarFretboard({
 											? intervalName
 											: noteName;
 
-									const isSongHit = songHitKeys.has(`${stringIdx}-${fret}`);
+									const cellKey = `${stringIdx}-${fret}`;
+									const isSongHit = songHitKeys.has(cellKey);
+									const isHarmonicHit = harmonicKeys.has(cellKey);
 									let dotState: "primary" | "ghost-chord" | "scale" | "none" =
 										"none";
 									if (isSongHit) {
@@ -407,21 +428,31 @@ export function GuitarFretboard({
 													className={
 														dotState === "primary"
 															? `fret-dot-primary ${qualityClass}${
-																	isSongHit ? " is-song-hit" : ""
+																	isSongHit
+																		? isHarmonicHit
+																			? " is-song-hit is-harmonic"
+																			: " is-song-hit"
+																		: ""
 																}`
 															: dotState === "ghost-chord"
 																? `fret-dot-ghost ${qualityClass}`
 																: "fret-dot-scale"
 													}
 												>
-													{isSongHit && (
-														<circle
-															cx={cx}
-															cy={y}
-															r={14}
-															className="song-hit-halo"
-														/>
-													)}
+													{isSongHit &&
+														(isHarmonicHit ? (
+															<polygon
+																points={`${cx},${y - 15} ${cx + 15},${y} ${cx},${y + 15} ${cx - 15},${y}`}
+																className="song-hit-harmonic"
+															/>
+														) : (
+															<circle
+																cx={cx}
+																cy={y}
+																r={14}
+																className="song-hit-halo"
+															/>
+														))}
 													<circle
 														cx={cx}
 														cy={y}

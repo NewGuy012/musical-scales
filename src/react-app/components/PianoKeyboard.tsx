@@ -82,7 +82,13 @@ export function PianoKeyboard({
 
 	const totalWidth = whiteKeys.length * whiteKeyWidth;
 	const activeSet = new Set(activeMidiNotes);
-	const songMidiSet = new Set(activeSongMidi ?? []);
+	const rawSongMidi = activeSongMidi ?? [];
+	const hasInRangeSongNote = rawSongMidi.some((m) => m >= 60 && m <= 83);
+	const songMidiSet = new Set(
+		hasInRangeSongNote
+			? rawSongMidi
+			: rawSongMidi.map((m) => (m >= 84 ? 72 : 60) + mod12(m)),
+	);
 	const scaleSet = new Set(scalePitchClasses);
 	const qualityClass = getPianoBadgeClass(activeQuality);
 

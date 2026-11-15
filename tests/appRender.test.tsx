@@ -32,7 +32,7 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Instrument");
 		expect(html).toContain("Grand Piano");
 		expect(html).toContain("Learn from Real Songs");
-		expect(html).toContain("Do-Re-Mi (from The Sound of Music)");
+		expect(html).toContain("Clair de lune");
 		expect(html).not.toContain("Cello Suite No. 1");
 		expect(html).not.toContain("Amazing Grace");
 	});
@@ -223,8 +223,9 @@ describe("Circle of Fifths UI rendering", () => {
 			/>,
 		);
 		expect(guitarHtml).toContain("Amazing Grace");
-		expect(guitarHtml).toContain("Em");
-		expect(guitarHtml).toContain("D7");
+		expect(guitarHtml).toContain("Tommy Emmanuel");
+		expect(guitarHtml).toContain("B7");
+		expect(guitarHtml).toContain("C♯m7");
 		expect(guitarHtml).not.toContain("Cello Suite No. 1");
 
 		const celloSongs = getSongsForInstrument("cello");

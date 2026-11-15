@@ -11,7 +11,7 @@ describe("songExamples", () => {
 		const guitarSongs = getSongsForInstrument("guitar");
 		const celloSongs = getSongsForInstrument("cello");
 
-		expect(pianoSongs.map((s) => s.id)).toEqual(["sound-of-music-doremi"]);
+		expect(pianoSongs.map((s) => s.id)).toEqual(["debussy-clair-de-lune"]);
 		expect(guitarSongs.map((s) => s.id)).toEqual(["amazing-grace-guitar"]);
 		expect(celloSongs.map((s) => s.id)).toEqual(["bach-cello-suite-1"]);
 
@@ -79,5 +79,46 @@ describe("songExamples", () => {
 				expect(stop.finger).toBeLessThanOrEqual(4);
 			}
 		}
+	});
+});
+
+describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
+	test("Clair de lune includes all 72 bars in D♭ Major (9/8) with modulated C♯m7 section", () => {
+		const [clair] = getSongsForInstrument("piano");
+		expect(clair).toBeDefined();
+		expect(clair.id).toBe("debussy-clair-de-lune");
+		expect(clair.title).toBe("Clair de lune");
+		expect(clair.keyLabel).toBe("D♭ Major");
+		expect(clair.keySlot).toBe(7);
+		expect(clair.timeSignature).toBe("9/8");
+		expect(clair.steps).toHaveLength(72);
+
+		const flat = flattenSongPlaybackSteps(clair);
+		expect(flat.events).toHaveLength(763);
+		expect(flat.totalDurationMs).toBeGreaterThan(220000);
+		expect(
+			clair.steps.some(
+				(s) => s.chordSymbol.includes("C♯m") && s.circleSlotIndex === 4,
+			),
+		).toBe(true);
+	});
+
+	test("Tommy Emmanuel Amazing Grace spans Intro, Verse 1 & 2, and Harp Harmonic Outro in E Major", () => {
+		const [grace] = getSongsForInstrument("guitar");
+		expect(grace).toBeDefined();
+		expect(grace.id).toBe("amazing-grace-guitar");
+		expect(grace.composerOrSource).toContain("Tommy Emmanuel");
+		expect(grace.keyLabel).toBe("E Major");
+		expect(grace.keySlot).toBe(4);
+		expect(grace.timeSignature).toBe("3/4");
+		expect(grace.steps).toHaveLength(34);
+
+		const allStops = grace.steps.flatMap((s) =>
+			s.events.flatMap((e) => e.guitarStops ?? []),
+		);
+		expect(allStops.length).toBeGreaterThan(200);
+		expect(allStops.some((st) => st.technique === "harmonic")).toBe(true);
+		expect(allStops.some((st) => st.technique === "hammer")).toBe(true);
+		expect(allStops.some((st) => st.technique === "slide")).toBe(true);
 	});
 });

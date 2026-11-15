@@ -7,7 +7,11 @@ import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
-import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import {
+	MAX_GUITAR_FRET,
+	STANDARD_TUNING,
+	getGuitarVoicings,
+} from "../src/react-app/theory/guitarFretboard";
 import {
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
@@ -281,6 +285,89 @@ describe("songPlayback helpers and synchronized UI", () => {
 				delete (globalThis as { window?: unknown }).window;
 			} else {
 				(globalThis as { window: unknown }).window = prevWindow;
+			}
+		}
+	});
+
+	test("PianoKeyboard folds sub-C4 arpeggio events only when no key in C4..B5 is struck and preserves flat labels", () => {
+		const dbMajor = analyzeKey(7, "major");
+		const bassOnlyHtml = renderToStaticMarkup(
+			<PianoKeyboard
+				activeMidiNotes={[]}
+				activeSongMidi={[49, 56]}
+				activeQuality="major"
+				scalePitchClasses={dbMajor.scaleNotes.map(() => 0)}
+				activeNoteNamesByMidi={{ 61: "D♭", 68: "A♭" }}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(bassOnlyHtml).toContain("is-song-hit");
+		expect(bassOnlyHtml).toContain(">D♭</text>");
+		expect(bassOnlyHtml).toContain(">A♭</text>");
+
+		// When an in-range RH note (68) is present alongside bass 49, do not fold 49 -> 61.
+		const mixedHtml = renderToStaticMarkup(
+			<PianoKeyboard
+				activeMidiNotes={[]}
+				activeSongMidi={[49, 68]}
+				activeQuality="major"
+				scalePitchClasses={[]}
+				activeNoteNamesByMidi={{ 61: "D♭", 68: "A♭" }}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(mixedHtml).toContain(">A♭</text>");
+		expect(mixedHtml).not.toContain(">D♭</text>");
+	});
+
+	test("GuitarFretboard renders explicit activeSongStops including diamond harmonic markers, and Tommy Emmanuel stops match standard tuning physics", () => {
+		const eMajor = analyzeKey(4, "major");
+		const voicings = getGuitarVoicings("E", "major", ["E", "G♯", "B"], false);
+		const harmonicHtml = renderToStaticMarkup(
+			<GuitarFretboard
+				activeLabel="E (I)"
+				activeQuality="major"
+				chordNotes={["E", "G♯", "B"]}
+				chordKind="major"
+				voicings={voicings}
+				selectedVoicing={voicings[0] ?? null}
+				activeSongMidi={[40, 76]}
+				activeSongStops={[
+					{ stringIndex: 0, fret: 0 },
+					{ stringIndex: 5, fret: 12, technique: "harmonic" },
+				]}
+				scalePitchClasses={[4, 6, 8, 9, 11, 1, 3]}
+				scaleNoteNames={eMajor.scaleNotes}
+				preferFlats={false}
+				onSelectVoicing={() => {}}
+				onStrumVoicing={() => {}}
+				onPlayFretNote={() => {}}
+			/>,
+		);
+		expect(harmonicHtml).toContain("song-hit-halo");
+		expect(harmonicHtml).toContain("is-harmonic");
+		expect(harmonicHtml).toContain("song-hit-harmonic");
+
+		const grace = getSongsForInstrument("guitar")[0];
+		for (const step of grace.steps) {
+			for (const evt of step.events) {
+				expect(evt.guitarStops?.length).toBeGreaterThan(0);
+				expect(evt.guitarStops?.length).toBe(evt.midi.length);
+				evt.guitarStops?.forEach((stop, idx) => {
+					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
+					expect(stop.fret).toBeGreaterThanOrEqual(0);
+					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
+					const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
+					let expectedMidi = openMidi + stop.fret;
+					if (stop.technique === "harmonic") {
+						if (stop.fret === 12) expectedMidi = openMidi + 12;
+						else if (stop.fret === 7) expectedMidi = openMidi + 19;
+						else if (stop.fret === 5) expectedMidi = openMidi + 24;
+						else expectedMidi = openMidi + stop.fret;
+					}
+					expect(evt.midi[idx]).toBe(expectedMidi);
+				});
 			}
 		}
 	});
