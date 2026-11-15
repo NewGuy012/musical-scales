@@ -9,7 +9,7 @@
 - **Frontend**: React 19, TypeScript, custom SVG visualizers, CSS variables (dark/light themes)
 - **Audio**: Native browser Web Audio API (zero external sample files)
 - **Edge Runtime**: Cloudflare Workers + Hono (`src/worker/index.ts`)
-- **Build & Tooling**: Vite 7, Wrangler, ESLint 9, Bun (`bun test`)
+- **Build & Tooling**: Vite 8, Wrangler, ESLint 10, Bun (`bun test`)
 
 ---
 
