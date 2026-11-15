@@ -10,6 +10,7 @@ interface AudioEngine {
 let sharedEngine: AudioEngine | null = null;
 const guitarBufferCache = new Map<string, AudioBuffer>();
 const activeVoiceGains = new Set<GainNode>();
+const activeVoiceSources = new Set<AudioScheduledSourceNode>();
 const MAX_GUITAR_CACHE_SIZE = 72;
 
 function getAudioEngine(): AudioEngine | null {
@@ -93,8 +94,10 @@ function registerVoiceCleanup(
 	noteGain: GainNode,
 ): void {
 	activeVoiceGains.add(noteGain);
+	activeVoiceSources.add(primarySource);
 	primarySource.onended = () => {
 		activeVoiceGains.delete(noteGain);
+		activeVoiceSources.delete(primarySource);
 		try {
 			noteGain.disconnect();
 		} catch {
@@ -103,8 +106,20 @@ function registerVoiceCleanup(
 	};
 }
 
+function registerAuxSource(source: AudioScheduledSourceNode): void {
+	activeVoiceSources.add(source);
+	source.onended = () => {
+		activeVoiceSources.delete(source);
+	};
+}
+
 export function stopAllAudio(): void {
-	if (!sharedEngine || activeVoiceGains.size === 0) return;
+	if (
+		!sharedEngine ||
+		(activeVoiceGains.size === 0 && activeVoiceSources.size === 0)
+	) {
+		return;
+	}
 	const now = sharedEngine.ctx.currentTime;
 	for (const gainNode of activeVoiceGains) {
 		try {
@@ -115,7 +130,15 @@ export function stopAllAudio(): void {
 			// Ignore if node was already released
 		}
 	}
+	for (const source of activeVoiceSources) {
+		try {
+			source.stop(now + 0.035);
+		} catch {
+			// Ignore if source already stopped or unavailable
+		}
+	}
 	activeVoiceGains.clear();
+	activeVoiceSources.clear();
 }
 
 function createSeededRandom(seed: number): () => number {
@@ -350,6 +373,7 @@ function schedulePianoVoice(
 		osc.start(startTime);
 		osc.stop(stopTime + 0.03);
 		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+		else registerAuxSource(osc);
 	});
 
 	const hammerSrc = ctx.createBufferSource();
@@ -370,6 +394,7 @@ function schedulePianoVoice(
 
 	hammerSrc.start(startTime, ((midi * 17) % 100) * 0.002, 0.03);
 	hammerSrc.stop(startTime + 0.035);
+	registerAuxSource(hammerSrc);
 }
 
 function scheduleGuitarVoice(
@@ -407,6 +432,9 @@ function scheduleGuitarVoice(
 
 	const noteGain = ctx.createGain();
 	const ksGain = peakGain * 1.48;
+	if (startTime > ctx.currentTime) {
+		noteGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+	}
 	noteGain.gain.setValueAtTime(ksGain, startTime);
 	noteGain.gain.setValueAtTime(ksGain * 0.9, startTime + duration);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
@@ -482,6 +510,7 @@ function scheduleCelloVoice(
 		osc.start(startTime);
 		osc.stop(stopTime + 0.04);
 		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+		else registerAuxSource(osc);
 	});
 
 	const bowNoise = ctx.createBufferSource();
@@ -522,6 +551,8 @@ function scheduleCelloVoice(
 	bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
 	vibratoLfo.stop(stopTime + 0.04);
 	bowNoise.stop(startTime + noiseDur + 0.02);
+	registerAuxSource(vibratoLfo);
+	registerAuxSource(bowNoise);
 }
 
 function schedulePadVoice(
@@ -561,6 +592,7 @@ function schedulePadVoice(
 		osc.start(startTime);
 		osc.stop(stopTime + 0.05);
 		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+		else registerAuxSource(osc);
 	});
 
 	chainNodes(filter, noteGain, master);
@@ -683,13 +715,53 @@ export function playStepSequence(
 	});
 }
 
+const LOOKAHEAD_SEC = 0.13;
+const SCHEDULER_INTERVAL_MS = 25;
+const AUDIO_LEAD_SEC = 0.015;
+
+function scheduleStepAtCtxTime(
+	engine: AudioEngine,
+	step: TimedSequenceStep,
+	atCtxTime: number,
+	preset: InstrumentVoice,
+	arpeggiate: boolean,
+): void {
+	const validNotes = step.midi.filter(isValidMidi);
+	if (validNotes.length === 0) return;
+	if (validNotes.length === 1) {
+		scheduleVoice(
+			engine,
+			validNotes[0],
+			atCtxTime,
+			step.durationSec,
+			0.24,
+			preset,
+		);
+		return;
+	}
+	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
+	const spread = step.spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
+	validNotes.forEach((midi, idx) => {
+		scheduleVoice(
+			engine,
+			midi,
+			atCtxTime + idx * spread,
+			step.durationSec,
+			perNoteGain,
+			preset,
+		);
+	});
+}
+
 export function playTimedSequence(
 	steps: TimedSequenceStep[],
 	options: {
 		preset?: SoundPreset;
 		arpeggiate?: boolean;
 		totalDurationMs?: number;
+		startOffsetMs?: number;
 		onStep?: (index: number) => void;
+		onProgress?: (elapsedMs: number) => void;
 		onDone?: () => void;
 	},
 ): () => void {
@@ -697,50 +769,200 @@ export function playTimedSequence(
 		preset = "piano",
 		arpeggiate = false,
 		totalDurationMs,
+		startOffsetMs: rawStartOffsetMs = 0,
 		onStep,
+		onProgress,
 		onDone,
 	} = options;
 	if (typeof window === "undefined") {
 		return () => {};
 	}
-	let cancelled = false;
-	const timers: number[] = [];
 
-	steps.forEach((step, idx) => {
-		const timerId = window.setTimeout(() => {
-			if (cancelled) return;
-			onStep?.(idx);
-			if (step.midi.length === 1) {
-				playSingleNote(step.midi[0], preset, step.durationSec);
-			} else {
-				playChordNotes(step.midi, {
-					preset,
-					duration: step.durationSec,
-					arpeggiate,
-					spreadSec: step.spreadSec,
-				});
-			}
-		}, step.atMs);
-		timers.push(timerId);
-	});
-
-	const endDelayMs =
+	const computedEndMs =
 		totalDurationMs ??
 		steps.reduce(
 			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
 			0,
 		);
-	timers.push(
-		window.setTimeout(() => {
-			if (!cancelled) onDone?.();
-		}, endDelayMs),
-	);
+	const startOffsetMs = Math.max(0, Math.min(rawStartOffsetMs, computedEndMs));
+
+	let cancelled = false;
+	let finished = false;
+	let rafId: number | null = null;
+	let schedulerTimerId: number | null = null;
+	let endTimerId: number | null = null;
+	let initialTimerId: number | null = null;
+
+	const cleanupTimers = () => {
+		if (initialTimerId !== null) {
+			window.clearTimeout(initialTimerId);
+			initialTimerId = null;
+		}
+		if (schedulerTimerId !== null) {
+			window.clearInterval(schedulerTimerId);
+			schedulerTimerId = null;
+		}
+		if (endTimerId !== null) {
+			window.clearTimeout(endTimerId);
+			endTimerId = null;
+		}
+		if (rafId !== null && typeof window.cancelAnimationFrame === "function") {
+			window.cancelAnimationFrame(rafId);
+			rafId = null;
+		}
+	};
+
+	if (steps.length === 0 || startOffsetMs >= computedEndMs) {
+		initialTimerId = window.setTimeout(() => {
+			if (cancelled || finished) return;
+			finished = true;
+			onProgress?.(computedEndMs);
+			onDone?.();
+		}, 0);
+		return () => {
+			cancelled = true;
+			cleanupTimers();
+			stopAllAudio();
+		};
+	}
+
+	const engine = preset === "muted" ? null : getAudioEngine();
+	const nowPerf = () =>
+		typeof performance !== "undefined" ? performance.now() : Date.now();
+	const wallStartMs = nowPerf();
+	const initialCtxTime = engine ? engine.ctx.currentTime : 0;
+	const scheduledZeroCtxSec = engine
+		? initialCtxTime + AUDIO_LEAD_SEC - startOffsetMs / 1000
+		: 0;
+	let audioClockVerified = false;
+
+	let nextVisualIdx = steps.findIndex((s) => s.atMs >= startOffsetMs - 0.5);
+	if (nextVisualIdx < 0) nextVisualIdx = steps.length;
+	const enclosingIdx =
+		nextVisualIdx > 0 && steps[nextVisualIdx - 1].atMs < startOffsetMs
+			? nextVisualIdx - 1
+			: -1;
+	let emittedEnclosing = false;
+
+	let nextAudioIdx = nextVisualIdx;
+	let lastReportedMs = -1;
+
+	const getElapsedSongMs = (): number => {
+		const wallElapsed = nowPerf() - wallStartMs;
+		if (engine && preset !== "muted") {
+			const ctxTime = engine.ctx.currentTime;
+			if (!audioClockVerified && ctxTime > initialCtxTime + 0.001) {
+				audioClockVerified = true;
+			}
+			if (audioClockVerified) {
+				const audioElapsedMs = Math.max(
+					0,
+					(ctxTime - scheduledZeroCtxSec) * 1000 - startOffsetMs,
+				);
+				return Math.min(computedEndMs, startOffsetMs + audioElapsedMs);
+			}
+			// Keep UI anchored at startOffsetMs only during brief AudioContext warmup
+			if (wallElapsed < AUDIO_LEAD_SEC * 1000) {
+				return startOffsetMs;
+			}
+		}
+		return Math.min(computedEndMs, startOffsetMs + wallElapsed);
+	};
+
+	const scheduleAudioLookahead = () => {
+		if (!engine || preset === "muted" || cancelled || finished) return;
+		const nowCtx = engine.ctx.currentTime;
+		while (nextAudioIdx < steps.length) {
+			const step = steps[nextAudioIdx];
+			const targetCtxTime = scheduledZeroCtxSec + step.atMs / 1000;
+			if (targetCtxTime > nowCtx + LOOKAHEAD_SEC) {
+				break;
+			}
+			const scheduledCtxTime = Math.max(nowCtx + 0.004, targetCtxTime);
+			scheduleStepAtCtxTime(engine, step, scheduledCtxTime, preset, arpeggiate);
+			nextAudioIdx++;
+		}
+	};
+
+	const completeSequence = () => {
+		if (cancelled || finished) return;
+		while (nextVisualIdx < steps.length) {
+			onStep?.(nextVisualIdx);
+			nextVisualIdx++;
+		}
+		finished = true;
+		cleanupTimers();
+		onProgress?.(computedEndMs);
+		onDone?.();
+	};
+
+	const syncVisuals = () => {
+		if (cancelled || finished) return;
+		if (!emittedEnclosing && enclosingIdx >= 0) {
+			emittedEnclosing = true;
+			onStep?.(enclosingIdx);
+		}
+		const elapsedMs = getElapsedSongMs();
+		while (
+			nextVisualIdx < steps.length &&
+			steps[nextVisualIdx].atMs <= elapsedMs + 2
+		) {
+			onStep?.(nextVisualIdx);
+			nextVisualIdx++;
+		}
+		if (Math.abs(elapsedMs - lastReportedMs) >= 1) {
+			lastReportedMs = elapsedMs;
+			onProgress?.(elapsedMs);
+		}
+		if (elapsedMs >= computedEndMs) {
+			completeSequence();
+		}
+	};
+
+	const runLoop = () => {
+		if (cancelled || finished) return;
+		scheduleAudioLookahead();
+		syncVisuals();
+		if (
+			!cancelled &&
+			!finished &&
+			typeof window.requestAnimationFrame === "function"
+		) {
+			rafId = window.requestAnimationFrame(runLoop);
+		}
+	};
+
+	initialTimerId = window.setTimeout(() => {
+		if (cancelled || finished) return;
+		scheduleAudioLookahead();
+		syncVisuals();
+		if (cancelled || finished) return;
+		schedulerTimerId = window.setInterval(() => {
+			scheduleAudioLookahead();
+			syncVisuals();
+		}, SCHEDULER_INTERVAL_MS);
+		const scheduleEndCheck = (delayMs: number) => {
+			endTimerId = window.setTimeout(() => {
+				scheduleAudioLookahead();
+				syncVisuals();
+				if (cancelled || finished) return;
+				const currentMs = getElapsedSongMs();
+				if (audioClockVerified && currentMs < computedEndMs - 1) {
+					scheduleEndCheck(Math.max(10, computedEndMs - currentMs + 5));
+				} else {
+					completeSequence();
+				}
+			}, delayMs);
+		};
+		scheduleEndCheck(Math.max(0, computedEndMs - startOffsetMs) + 5);
+		if (typeof window.requestAnimationFrame === "function") {
+			rafId = window.requestAnimationFrame(runLoop);
+		}
+	}, 0);
 
 	return () => {
 		cancelled = true;
-		for (const id of timers) {
-			window.clearTimeout(id);
-		}
+		cleanupTimers();
 		stopAllAudio();
 	};
 }

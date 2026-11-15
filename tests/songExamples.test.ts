@@ -49,11 +49,35 @@ describe("songExamples", () => {
 		expect(bach.keyLabel).toBe("G Major");
 		const bar1Midi = bach.steps[0].events.slice(0, 8).flatMap((e) => e.midi);
 		expect(bar1Midi).toEqual([43, 50, 59, 57, 59, 50, 59, 50]);
-		expect(bach.steps.map((s) => s.chordSymbol)).toEqual([
+		expect(bach.steps.slice(0, 4).map((s) => s.chordSymbol)).toEqual([
 			"G",
 			"C/G",
 			"D7/G",
 			"G",
 		]);
+	});
+
+	test("Bach Cello Suite No. 1 contains the full 42-bar Prelude with valid cello stops and final G chord", () => {
+		const bach = getSongsForInstrument("cello")[0];
+		expect(bach.steps).toHaveLength(42);
+		expect(bach.steps[0].barLabel).toBe("Bar 1");
+		expect(bach.steps[41].barLabel).toBe("Bar 42");
+		expect(bach.steps[41].chordSymbol).toBe("G");
+
+		const flat = flattenSongPlaybackSteps(bach);
+		expect(flat.events.length).toBeGreaterThan(600);
+		expect(flat.totalDurationMs).toBeGreaterThan(95000);
+		for (const ev of flat.events) {
+			expect(ev.celloStops).toBeDefined();
+			expect(ev.celloStops?.length).toBeGreaterThan(0);
+			for (const stop of ev.celloStops ?? []) {
+				expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+				expect(stop.stringIndex).toBeLessThanOrEqual(3);
+				expect(stop.semitone).toBeGreaterThanOrEqual(0);
+				expect(stop.semitone).toBeLessThanOrEqual(14);
+				expect(stop.finger).toBeGreaterThanOrEqual(0);
+				expect(stop.finger).toBeLessThanOrEqual(4);
+			}
+		}
 	});
 });

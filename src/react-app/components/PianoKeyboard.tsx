@@ -7,6 +7,7 @@ import {
 
 interface PianoKeyboardProps {
 	activeMidiNotes: number[];
+	activeSongMidi?: number[] | null;
 	activeLabel?: string;
 	activeQuality?: ChordQuality;
 	scalePitchClasses: number[];
@@ -40,6 +41,7 @@ const FALLBACK_NOTE_NAMES = [
 
 export function PianoKeyboard({
 	activeMidiNotes,
+	activeSongMidi = null,
 	activeLabel,
 	activeQuality = "major",
 	scalePitchClasses,
@@ -80,6 +82,7 @@ export function PianoKeyboard({
 
 	const totalWidth = whiteKeys.length * whiteKeyWidth;
 	const activeSet = new Set(activeMidiNotes);
+	const songMidiSet = new Set(activeSongMidi ?? []);
 	const scaleSet = new Set(scalePitchClasses);
 	const qualityClass = getPianoBadgeClass(activeQuality);
 
@@ -88,6 +91,7 @@ export function PianoKeyboard({
 		isBlack: boolean,
 	) => {
 		const isActive = activeSet.has(key.midi);
+		const isSongHit = songMidiSet.has(key.midi);
 		const inScale = scaleSet.has(key.pc);
 		const label =
 			activeNoteNamesByMidi[key.midi] ?? FALLBACK_NOTE_NAMES[mod12(key.pc)];
@@ -104,7 +108,7 @@ export function PianoKeyboard({
 				aria-label={`Piano key ${label}${key.octave}`}
 				className={`piano-key ${isBlack ? "piano-black" : "piano-white"} ${
 					isActive ? `is-active ${qualityClass}` : ""
-				}`}
+				} ${isSongHit ? `is-song-hit ${qualityClass}` : ""}`}
 				onClick={() => onPlayNote(key.midi)}
 				onKeyDown={(e) => handleSvgButtonKeyDown(e, () => onPlayNote(key.midi))}
 			>
@@ -116,7 +120,7 @@ export function PianoKeyboard({
 					rx={isBlack ? 3 : 4}
 					className="piano-key-rect"
 				/>
-				{isActive ? (
+				{isActive || isSongHit ? (
 					<text
 						x={centerX}
 						y={markerY}
@@ -133,7 +137,7 @@ export function PianoKeyboard({
 						className={`piano-scale-dot${isBlack ? " piano-scale-dot-black" : ""}`}
 					/>
 				) : null}
-				{!isBlack && key.pc === 0 && !isActive && (
+				{!isBlack && key.pc === 0 && !isActive && !isSongHit && (
 					<text
 						x={centerX}
 						y={height - 28}

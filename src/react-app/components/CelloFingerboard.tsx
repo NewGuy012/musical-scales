@@ -17,6 +17,7 @@ import {
 	getIntervalLabel,
 	type GuitarChordKind,
 } from "../theory/guitarFretboard";
+import type { CelloSongStop } from "../theory/songExamples";
 
 export type CelloOverlayMode = "voicing" | "all-tones" | "scale";
 export type CelloLabelMode = "notes" | "intervals" | "fingers";
@@ -32,6 +33,7 @@ export interface CelloFingerboardProps {
 	preferFlats: boolean;
 	voicings: CelloVoicing[];
 	activeVoicing: CelloVoicing | null;
+	activeSongStops?: CelloSongStop[] | null;
 	onSelectVoicing: (voicing: CelloVoicing) => void;
 	onRollVoicing: (voicing: CelloVoicing) => void;
 	onPlayNote: (midi: number, noteName: string) => void;
@@ -72,6 +74,7 @@ export function CelloFingerboard({
 	preferFlats,
 	voicings,
 	activeVoicing,
+	activeSongStops = null,
 	onSelectVoicing,
 	onRollVoicing,
 	onPlayNote,
@@ -351,6 +354,13 @@ export function CelloFingerboard({
 									const isChordTone = chordPcSet.has(pc);
 									const isScaleTone = scalePcSet.has(pc);
 									const isActiveStop = activeForString?.semitone === semi;
+									const songHitStop =
+										activeSongStops?.find(
+											(stop) =>
+												stop.stringIndex === stringIndex &&
+												stop.semitone === semi,
+										) ?? null;
+									const isSongHit = songHitStop !== null;
 
 									const displayNote = resolveNoteName(pc);
 									const interval =
@@ -360,10 +370,12 @@ export function CelloFingerboard({
 										!activeVoicing && overlayMode === "voicing" && isChordTone;
 									const showGhostChord =
 										!isActiveStop &&
+										!isSongHit &&
 										(showSingleNoteHighlight ||
 											(overlayMode === "all-tones" && isChordTone));
 									const showScaleDot =
 										!isActiveStop &&
+										!isSongHit &&
 										overlayMode === "scale" &&
 										(isChordTone || isScaleTone);
 
@@ -373,6 +385,8 @@ export function CelloFingerboard({
 									} else if (labelMode === "fingers") {
 										if (isActiveStop && activeForString.finger !== null) {
 											markerText = String(activeForString.finger);
+										} else if (songHitStop) {
+											markerText = String(songHitStop.finger);
 										} else if (semi === 0) {
 											markerText = "0";
 										} else {
@@ -455,8 +469,20 @@ export function CelloFingerboard({
 												</g>
 											)}
 
-											{isActiveStop && (
-												<g className={`fret-dot-primary ${qualityClass}`}>
+											{(isActiveStop || isSongHit) && (
+												<g
+													className={`fret-dot-primary ${qualityClass}${
+														isSongHit ? " is-song-hit" : ""
+													}`}
+												>
+													{isSongHit && (
+														<circle
+															cx={x}
+															cy={y}
+															r={17}
+															className="song-hit-halo"
+														/>
+													)}
 													<circle
 														cx={x}
 														cy={y}

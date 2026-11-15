@@ -1,7 +1,14 @@
+import { BACH_CELLO_SUITE_1 } from "./bachCelloSuite1";
 import type { ChordQuality, KeyMode } from "./circleOfFifths";
 import type { GuitarChordKind } from "./guitarFretboard";
 
 export type InstrumentTab = "piano" | "guitar" | "cello";
+
+export interface CelloSongStop {
+	stringIndex: number;
+	semitone: number;
+	finger: number;
+}
 
 export interface SongNoteEvent {
 	midi: number[];
@@ -9,6 +16,7 @@ export interface SongNoteEvent {
 	stepDurationMs: number;
 	noteLabel: string;
 	spreadSec?: number;
+	celloStops?: CelloSongStop[];
 }
 
 export interface SongChordStep {
@@ -21,6 +29,7 @@ export interface SongChordStep {
 	chordNotes: string[];
 	displayMidi: number[];
 	circleDegree: number;
+	circleSlotIndex?: number;
 	cue: string;
 	events: SongNoteEvent[];
 }
@@ -48,26 +57,7 @@ export interface FlattenedSongStep {
 	chordStepIndex: number;
 	chordStep: SongChordStep;
 	noteLabel: string;
-}
-
-function buildBachBarEvents(
-	pattern: { midi: number; label: string }[],
-	repeat: number,
-	stepDurationMs = 152,
-): SongNoteEvent[] {
-	const events: SongNoteEvent[] = [];
-	for (let r = 0; r < repeat; r++) {
-		for (const item of pattern) {
-			events.push({
-				midi: [item.midi],
-				durationSec: 0.25,
-				stepDurationMs,
-				noteLabel: item.label,
-				spreadSec: 0,
-			});
-		}
-	}
-	return events;
+	celloStops?: CelloSongStop[];
 }
 
 export const SONG_EXAMPLES: SongExample[] = [
@@ -816,131 +806,7 @@ export const SONG_EXAMPLES: SongExample[] = [
 			},
 		],
 	},
-	{
-		id: "bach-cello-suite-1",
-		title: "Cello Suite No. 1 — Prelude (BWV 1007)",
-		composerOrSource: "J.S. Bach",
-		subtitle: "Bariolage string crossings over an open G2 pedal",
-		instruments: ["cello"],
-		keySlot: 1,
-		keyMode: "major",
-		keyLabel: "G Major",
-		timeSignature: "4/4",
-		bpm: 96,
-		theorySummary:
-			"Outlines I → IV6/4 → V7 → I across open G2 and D3 strings while shifting fingered upper voices (B–C–F♯–G) on D and A strings.",
-		steps: [
-			{
-				id: "bach-bar-1",
-				barLabel: "Bar 1",
-				chordSymbol: "G",
-				roman: "I",
-				quality: "major",
-				guitarKind: "major",
-				chordNotes: ["G", "B", "D"],
-				displayMidi: [67, 71, 74],
-				circleDegree: 1,
-				cue: "Open G2 – D3 – B3 (1st finger) – A3",
-				events: buildBachBarEvents(
-					[
-						{ midi: 43, label: "G2 (Open III)" },
-						{ midi: 50, label: "D3 (Open II)" },
-						{ midi: 59, label: "B3 (I · F1)" },
-						{ midi: 57, label: "A3 (Open I)" },
-						{ midi: 59, label: "B3 (I · F1)" },
-						{ midi: 50, label: "D3 (Open II)" },
-						{ midi: 59, label: "B3 (I · F1)" },
-						{ midi: 50, label: "D3 (Open II)" },
-					],
-					2,
-				),
-			},
-			{
-				id: "bach-bar-2",
-				barLabel: "Bar 2",
-				chordSymbol: "C/G",
-				roman: "IV",
-				quality: "major",
-				guitarKind: "major",
-				chordNotes: ["C", "E", "G"],
-				displayMidi: [60, 64, 67],
-				circleDegree: 4,
-				cue: "G2 pedal – E3 (1st finger) – C4 (2nd finger)",
-				events: buildBachBarEvents(
-					[
-						{ midi: 43, label: "G2 (Open III)" },
-						{ midi: 52, label: "E3 (II · F1)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 59, label: "B3 (I · F1)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 52, label: "E3 (II · F1)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 52, label: "E3 (II · F1)" },
-					],
-					2,
-				),
-			},
-			{
-				id: "bach-bar-3",
-				barLabel: "Bar 3",
-				chordSymbol: "D7/G",
-				roman: "V7",
-				quality: "major",
-				guitarKind: "7",
-				chordNotes: ["D", "F♯", "A", "C"],
-				displayMidi: [62, 66, 69, 72],
-				circleDegree: 5,
-				cue: "G2 pedal – F♯3 (3rd finger) – C4 (2nd finger)",
-				events: buildBachBarEvents(
-					[
-						{ midi: 43, label: "G2 (Open III)" },
-						{ midi: 54, label: "F♯3 (II · F3)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 59, label: "B3 (I · F1)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 54, label: "F♯3 (II · F3)" },
-						{ midi: 60, label: "C4 (I · F2)" },
-						{ midi: 54, label: "F♯3 (II · F3)" },
-					],
-					2,
-				),
-			},
-			{
-				id: "bach-bar-4",
-				barLabel: "Bar 4",
-				chordSymbol: "G",
-				roman: "I",
-				quality: "major",
-				guitarKind: "major",
-				chordNotes: ["G", "B", "D"],
-				displayMidi: [67, 71, 74],
-				circleDegree: 1,
-				cue: "G2 pedal – G3 (4th finger) – B3 – Tonic Cadence",
-				events: [
-					...buildBachBarEvents(
-						[
-							{ midi: 43, label: "G2 (Open III)" },
-							{ midi: 55, label: "G3 (II · F4)" },
-							{ midi: 59, label: "B3 (I · F1)" },
-							{ midi: 57, label: "A3 (Open I)" },
-							{ midi: 59, label: "B3 (I · F1)" },
-							{ midi: 55, label: "G3 (II · F4)" },
-							{ midi: 59, label: "B3 (I · F1)" },
-							{ midi: 55, label: "G3 (II · F4)" },
-						],
-						1,
-					),
-					{
-						midi: [43, 50, 59],
-						durationSec: 1.25,
-						stepDurationMs: 1250,
-						noteLabel: "G2–D3–B3 Bow Roll",
-						spreadSec: 0.08,
-					},
-				],
-			},
-		],
-	},
+	BACH_CELLO_SUITE_1,
 ];
 
 export function getSongsForInstrument(
@@ -966,6 +832,7 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 				chordStepIndex,
 				chordStep,
 				noteLabel: evt.noteLabel,
+				celloStops: evt.celloStops,
 			});
 			currentMs += evt.stepDurationMs;
 		}
@@ -975,4 +842,55 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 		events,
 		totalDurationMs: currentMs,
 	};
+}
+
+export function getSongBarStartTimes(song: SongExample): number[] {
+	const starts: number[] = [];
+	let currentMs = 0;
+
+	for (const step of song.steps) {
+		starts.push(currentMs);
+		for (const evt of step.events) {
+			currentMs += evt.stepDurationMs;
+		}
+	}
+
+	return starts;
+}
+
+export function findPlaybackEventAtTime(
+	events: FlattenedSongStep[],
+	timeMs: number,
+): { eventIndex: number; event: FlattenedSongStep | null } {
+	if (events.length === 0) {
+		return { eventIndex: -1, event: null };
+	}
+
+	const clampedMs = Math.max(0, timeMs);
+	let low = 0;
+	let high = events.length - 1;
+	let bestIndex = 0;
+
+	while (low <= high) {
+		const mid = (low + high) >> 1;
+		if (events[mid].atMs <= clampedMs) {
+			bestIndex = mid;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+
+	return {
+		eventIndex: bestIndex,
+		event: events[bestIndex],
+	};
+}
+
+export function formatSongTime(ms: number): string {
+	if (!Number.isFinite(ms) || ms <= 0) return "0:00";
+	const totalSeconds = Math.floor(ms / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

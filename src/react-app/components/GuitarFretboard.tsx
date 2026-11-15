@@ -25,6 +25,7 @@ interface GuitarFretboardProps {
 	chordKind: GuitarChordKind | null;
 	voicings: GuitarVoicing[];
 	selectedVoicing: GuitarVoicing | null;
+	activeSongMidi?: number[] | null;
 	scalePitchClasses: number[];
 	scaleNoteNames: string[];
 	preferFlats: boolean;
@@ -44,6 +45,7 @@ export function GuitarFretboard({
 	chordKind,
 	voicings,
 	selectedVoicing,
+	activeSongMidi = null,
 	scalePitchClasses,
 	scaleNoteNames,
 	preferFlats,
@@ -65,6 +67,34 @@ export function GuitarFretboard({
 		scaleNoteNames,
 		preferFlats,
 	);
+	const songHitKeys = new Set<string>();
+	if (activeSongMidi && activeSongMidi.length > 0) {
+		for (const midi of activeSongMidi) {
+			let matchedVoiced = false;
+			if (selectedVoicing) {
+				selectedVoicing.notes.forEach((n, idx) => {
+					if (n.midi === midi && n.fret >= 0) {
+						songHitKeys.add(`${idx}-${n.fret}`);
+						matchedVoiced = true;
+					}
+				});
+			}
+			if (!matchedVoiced) {
+				let bestCell: { stringIdx: number; fret: number } | null = null;
+				for (let sIdx = 0; sIdx < STANDARD_TUNING.length; sIdx++) {
+					const fret = midi - STANDARD_TUNING[sIdx].openMidi;
+					if (fret >= 0 && fret <= MAX_GUITAR_FRET) {
+						if (!bestCell || fret < bestCell.fret) {
+							bestCell = { stringIdx: sIdx, fret };
+						}
+					}
+				}
+				if (bestCell) {
+					songHitKeys.add(`${bestCell.stringIdx}-${bestCell.fret}`);
+				}
+			}
+		}
+	}
 
 	const nutX = 64;
 	const fretWidth = 48;
@@ -327,9 +357,12 @@ export function GuitarFretboard({
 											? intervalName
 											: noteName;
 
+									const isSongHit = songHitKeys.has(`${stringIdx}-${fret}`);
 									let dotState: "primary" | "ghost-chord" | "scale" | "none" =
 										"none";
-									if (overlayMode === "voicing" && selectedVoicing) {
+									if (isSongHit) {
+										dotState = "primary";
+									} else if (overlayMode === "voicing" && selectedVoicing) {
 										if (isVoicedHere) {
 											dotState = "primary";
 										} else if (
@@ -373,12 +406,22 @@ export function GuitarFretboard({
 												<g
 													className={
 														dotState === "primary"
-															? `fret-dot-primary ${qualityClass}`
+															? `fret-dot-primary ${qualityClass}${
+																	isSongHit ? " is-song-hit" : ""
+																}`
 															: dotState === "ghost-chord"
 																? `fret-dot-ghost ${qualityClass}`
 																: "fret-dot-scale"
 													}
 												>
+													{isSongHit && (
+														<circle
+															cx={cx}
+															cy={y}
+															r={14}
+															className="song-hit-halo"
+														/>
+													)}
 													<circle
 														cx={cx}
 														cy={y}

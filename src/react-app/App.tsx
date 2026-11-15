@@ -37,10 +37,13 @@ import {
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
 import {
+	FlattenedSongStep,
 	InstrumentTab,
 	SongChordStep,
 	SongExample,
+	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
+	getSongBarStartTimes,
 	getSongsForInstrument,
 } from "./theory/songExamples";
 import "./App.css";
@@ -92,38 +95,59 @@ export function App() {
 		"fourth" | "fifth" | null
 	>(null);
 	const [playingSongId, setPlayingSongId] = useState<string | null>(null);
+	const [cuedSongId, setCuedSongId] = useState<string | null>(null);
+	const [songPositionMs, setSongPositionMs] = useState<number>(0);
 	const [activeSongStepIndex, setActiveSongStepIndex] = useState<number | null>(
 		null,
 	);
 	const [activeSongNoteLabel, setActiveSongNoteLabel] = useState<string | null>(
 		null,
 	);
+	const [activeSongEvent, setActiveSongEvent] =
+		useState<FlattenedSongStep | null>(null);
 	const [selectedSongPreviewId, setSelectedSongPreviewId] = useState<
 		string | null
 	>(null);
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
+	const songPositionMsRef = useRef<number>(0);
+	const lastUiProgressMsRef = useRef<number>(-100);
+
+	const updateSongPosition = useCallback((ms: number) => {
+		songPositionMsRef.current = ms;
+		lastUiProgressMsRef.current = ms;
+		setSongPositionMs(ms);
+	}, []);
 
 	const analysis = useMemo(
 		() => analyzeKey(selectedSlot, mode, preference, slotOverrides),
 		[selectedSlot, mode, preference, slotOverrides],
 	);
 
-	const stopActiveSequence = useCallback(() => {
+	const cancelActivePlaybackEngine = useCallback(() => {
 		if (cancelSequenceRef.current) {
 			cancelSequenceRef.current();
 			cancelSequenceRef.current = null;
 		} else {
 			stopAllAudio();
 		}
+	}, []);
+
+	const stopActiveSequence = useCallback(() => {
+		cancelActivePlaybackEngine();
 		setActiveScaleIndex(null);
 		setActiveProgressionId(null);
 		setWalkingDirection(null);
 		setPlayingSongId(null);
+		setCuedSongId(null);
+		songPositionMsRef.current = 0;
+		setSongPositionMs(0);
+		lastUiProgressMsRef.current = -100;
 		setActiveSongStepIndex(null);
 		setActiveSongNoteLabel(null);
+		setActiveSongEvent(null);
 		setSelectedSongPreviewId(null);
-	}, []);
+	}, [cancelActivePlaybackEngine]);
 
 	useEffect(() => {
 		document.documentElement.setAttribute("data-theme", theme);
@@ -636,35 +660,85 @@ export function App() {
 
 	const applySongStepHighlight = useCallback(
 		(songAnalysis: KeyAnalysis, step: SongChordStep) => {
-			const matchedChord = songAnalysis.chords[step.circleDegree - 1] ?? null;
+			const candidateChord = songAnalysis.chords[step.circleDegree - 1] ?? null;
+			const isDiatonicCardMatch =
+				candidateChord !== null &&
+				candidateChord.quality === step.quality &&
+				(step.circleSlotIndex === undefined ||
+					candidateChord.circleIndex === step.circleSlotIndex) &&
+				noteToPitchClass(candidateChord.triadNotes[0] ?? "") ===
+					noteToPitchClass(step.chordNotes[0] ?? "");
+
+			const wheelChord: DiatonicChord | null = isDiatonicCardMatch
+				? candidateChord
+				: candidateChord && step.circleSlotIndex !== undefined
+					? {
+							...candidateChord,
+							degree: step.circleDegree,
+							roman: step.roman,
+							quality: step.quality,
+							symbol: step.chordSymbol,
+							triadNotes: [
+								step.chordNotes[0] ?? candidateChord.triadNotes[0],
+								step.chordNotes[1] ?? candidateChord.triadNotes[1],
+								step.chordNotes[2] ?? candidateChord.triadNotes[2],
+							],
+							seventhNotes: [
+								step.chordNotes[0] ?? candidateChord.seventhNotes[0],
+								step.chordNotes[1] ?? candidateChord.seventhNotes[1],
+								step.chordNotes[2] ?? candidateChord.seventhNotes[2],
+								step.chordNotes[3] ?? candidateChord.seventhNotes[3],
+							],
+							circleIndex: step.circleSlotIndex,
+						}
+					: candidateChord;
+
 			setAuditionOverride({
-				id: matchedChord ? getChordCardId(matchedChord) : step.id,
+				id: isDiatonicCardMatch ? getChordCardId(candidateChord) : step.id,
 				label: `${step.chordSymbol} (${step.roman})`,
 				quality: step.quality,
 				guitarKind: step.guitarKind,
 				midi: step.displayMidi,
 				notes: step.chordNotes,
-				chord: matchedChord,
+				chord: wheelChord,
 				preserveVoicing: true,
 			});
 		},
 		[],
 	);
 
-	const handleTogglePlaySong = useCallback(
-		(song: SongExample) => {
-			if (playingSongId === song.id) {
-				stopActiveSequence();
-				setAuditionOverride(null);
-				return;
+	const syncSongStateAtTime = useCallback(
+		(
+			song: SongExample,
+			timeMs: number,
+			songAnalysis: KeyAnalysis,
+			plan = flattenSongPlaybackSteps(song),
+		) => {
+			const clampedMs = Math.max(0, Math.min(timeMs, plan.totalDurationMs));
+			const { event } = findPlaybackEventAtTime(plan.events, clampedMs);
+			updateSongPosition(clampedMs);
+			if (event) {
+				setActiveSongStepIndex(event.chordStepIndex);
+				setActiveSongNoteLabel(event.noteLabel);
+				setActiveSongEvent(event);
+				applySongStepHighlight(songAnalysis, event.chordStep);
 			}
-			stopActiveSequence();
+			return clampedMs;
+		},
+		[applySongStepHighlight, updateSongPosition],
+	);
+
+	const startSongPlaybackFrom = useCallback(
+		(song: SongExample, startMs: number) => {
+			cancelActivePlaybackEngine();
+			setActiveScaleIndex(null);
+			setActiveProgressionId(null);
+			setWalkingDirection(null);
 			setSelectedSongPreviewId(null);
 			setSelectedGuitarVoicingId(null);
 			setSelectedCelloVoicingId(null);
 			setSelectedSlot(song.keySlot);
 			setMode(song.keyMode);
-			setPlayingSongId(song.id);
 
 			const songAnalysis = analyzeKey(
 				song.keySlot,
@@ -672,40 +746,244 @@ export function App() {
 				preference,
 				slotOverrides,
 			);
-			const { events, totalDurationMs } = flattenSongPlaybackSteps(song);
-			cancelSequenceRef.current = playTimedSequence(events, {
+			const plan = flattenSongPlaybackSteps(song);
+			const offsetMs =
+				startMs >= plan.totalDurationMs - 25 ? 0 : Math.max(0, startMs);
+
+			syncSongStateAtTime(song, offsetMs, songAnalysis, plan);
+			setCuedSongId(song.id);
+			setPlayingSongId(song.id);
+
+			cancelSequenceRef.current = playTimedSequence(plan.events, {
 				preset: soundPreset,
 				arpeggiate: false,
-				totalDurationMs,
+				totalDurationMs: plan.totalDurationMs,
+				startOffsetMs: offsetMs,
 				onStep: (idx) => {
-					const ev = events[idx];
+					const ev = plan.events[idx];
+					if (!ev) return;
 					setActiveSongStepIndex(ev.chordStepIndex);
 					setActiveSongNoteLabel(ev.noteLabel);
+					setActiveSongEvent(ev);
 					applySongStepHighlight(songAnalysis, ev.chordStep);
 				},
+				onProgress: (elapsedMs) => {
+					if (
+						Math.abs(elapsedMs - lastUiProgressMsRef.current) >= 40 ||
+						elapsedMs >= plan.totalDurationMs
+					) {
+						updateSongPosition(elapsedMs);
+					}
+				},
 				onDone: () => {
+					cancelSequenceRef.current = null;
+					songPositionMsRef.current = 0;
+					lastUiProgressMsRef.current = -100;
 					setPlayingSongId(null);
+					setCuedSongId(null);
+					setSongPositionMs(0);
 					setActiveSongStepIndex(null);
 					setActiveSongNoteLabel(null);
+					setActiveSongEvent(null);
 					setAuditionOverride(null);
-					cancelSequenceRef.current = null;
 				},
 			});
 		},
 		[
-			playingSongId,
-			stopActiveSequence,
+			cancelActivePlaybackEngine,
 			preference,
 			slotOverrides,
+			syncSongStateAtTime,
 			soundPreset,
 			applySongStepHighlight,
+			updateSongPosition,
 		],
+	);
+
+	const handleTogglePlaySong = useCallback(
+		(song: SongExample) => {
+			if (playingSongId === song.id) {
+				cancelActivePlaybackEngine();
+				setPlayingSongId(null);
+				return;
+			}
+			if (cuedSongId === song.id) {
+				startSongPlaybackFrom(song, songPositionMsRef.current);
+				return;
+			}
+			startSongPlaybackFrom(song, 0);
+		},
+		[
+			playingSongId,
+			cuedSongId,
+			cancelActivePlaybackEngine,
+			startSongPlaybackFrom,
+		],
+	);
+
+	const handleStopSong = useCallback(() => {
+		stopActiveSequence();
+		setAuditionOverride(null);
+	}, [stopActiveSequence]);
+
+	const handleBeginScrubSong = useCallback(
+		(song: SongExample) => {
+			cancelActivePlaybackEngine();
+			setActiveScaleIndex(null);
+			setActiveProgressionId(null);
+			setWalkingDirection(null);
+			setSelectedSongPreviewId(null);
+			setPlayingSongId(null);
+			setCuedSongId(song.id);
+			setSelectedSlot(song.keySlot);
+			setMode(song.keyMode);
+		},
+		[cancelActivePlaybackEngine],
+	);
+
+	const handleSeekSong = useCallback(
+		(song: SongExample, timeMs: number, resumePlayback = false) => {
+			if (resumePlayback) {
+				startSongPlaybackFrom(song, timeMs);
+				return;
+			}
+			cancelActivePlaybackEngine();
+			setActiveScaleIndex(null);
+			setActiveProgressionId(null);
+			setWalkingDirection(null);
+			setSelectedSongPreviewId(null);
+			setSelectedGuitarVoicingId(null);
+			setSelectedCelloVoicingId(null);
+			setPlayingSongId(null);
+			setCuedSongId(song.id);
+			setSelectedSlot(song.keySlot);
+			setMode(song.keyMode);
+
+			const songAnalysis = analyzeKey(
+				song.keySlot,
+				song.keyMode,
+				preference,
+				slotOverrides,
+			);
+			syncSongStateAtTime(song, timeMs, songAnalysis);
+		},
+		[
+			startSongPlaybackFrom,
+			cancelActivePlaybackEngine,
+			preference,
+			slotOverrides,
+			syncSongStateAtTime,
+		],
+	);
+
+	const handleSkipSongBar = useCallback(
+		(song: SongExample, deltaBars: number) => {
+			if (song.steps.length === 0) return;
+			const barStarts = getSongBarStartTimes(song);
+			const isSameCuedSong =
+				cuedSongId === song.id || playingSongId === song.id;
+			const currentIdx = isSameCuedSong
+				? (activeSongStepIndex ?? 0)
+				: Math.max(
+						0,
+						song.steps.findIndex((s) => s.id === selectedSongPreviewId),
+					);
+
+			// Standard transport behavior: skipping back mid-bar restarts the current bar first
+			let targetIdx = currentIdx + deltaBars;
+			if (
+				deltaBars < 0 &&
+				playingSongId === song.id &&
+				songPositionMsRef.current - (barStarts[currentIdx] ?? 0) > 700
+			) {
+				targetIdx = currentIdx;
+			}
+			targetIdx = Math.max(0, Math.min(song.steps.length - 1, targetIdx));
+			const targetMs = barStarts[targetIdx] ?? 0;
+
+			if (playingSongId === song.id) {
+				startSongPlaybackFrom(song, targetMs);
+				return;
+			}
+
+			handleSeekSong(song, targetMs, false);
+			const step = song.steps[targetIdx];
+			if (step) {
+				const songAnalysis = analyzeKey(
+					song.keySlot,
+					song.keyMode,
+					preference,
+					slotOverrides,
+				);
+				const pb = resolvePlaybackForInstrument(
+					step.chordNotes,
+					step.guitarKind,
+					step.displayMidi,
+					songAnalysis.accidentalsCount < 0,
+				);
+				playChordNotes(pb.midi, {
+					preset: soundPreset,
+					arpeggiate,
+					spreadSec: pb.spreadSec,
+				});
+			}
+		},
+		[
+			cuedSongId,
+			playingSongId,
+			activeSongStepIndex,
+			selectedSongPreviewId,
+			startSongPlaybackFrom,
+			handleSeekSong,
+			preference,
+			slotOverrides,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+		],
+	);
+
+	const handlePlayFromSongBar = useCallback(
+		(song: SongExample, stepIndex: number) => {
+			const barStarts = getSongBarStartTimes(song);
+			const targetMs = barStarts[stepIndex] ?? 0;
+			startSongPlaybackFrom(song, targetMs);
+		},
+		[startSongPlaybackFrom],
 	);
 
 	const handleSelectSongChordStep = useCallback(
 		(song: SongExample, stepIndex: number) => {
 			const step = song.steps[stepIndex];
 			if (!step) return;
+
+			if (playingSongId === song.id || cuedSongId === song.id) {
+				const barStarts = getSongBarStartTimes(song);
+				const targetMs = barStarts[stepIndex] ?? 0;
+				const shouldPlay = playingSongId === song.id;
+				handleSeekSong(song, targetMs, shouldPlay);
+				if (!shouldPlay) {
+					const songAnalysis = analyzeKey(
+						song.keySlot,
+						song.keyMode,
+						preference,
+						slotOverrides,
+					);
+					const pb = resolvePlaybackForInstrument(
+						step.chordNotes,
+						step.guitarKind,
+						step.displayMidi,
+						songAnalysis.accidentalsCount < 0,
+					);
+					playChordNotes(pb.midi, {
+						preset: soundPreset,
+						arpeggiate,
+						spreadSec: pb.spreadSec,
+					});
+				}
+				return;
+			}
+
 			stopActiveSequence();
 			setSelectedSongPreviewId(step.id);
 			setSelectedGuitarVoicingId(null);
@@ -734,6 +1012,9 @@ export function App() {
 			});
 		},
 		[
+			playingSongId,
+			cuedSongId,
+			handleSeekSong,
 			stopActiveSequence,
 			applySongStepHighlight,
 			preference,
@@ -747,14 +1028,14 @@ export function App() {
 	const handleSelectInstrumentTab = useCallback(
 		(nextTab: InstrumentTab) => {
 			if (nextTab === instrumentView) return;
-			if (playingSongId) {
+			if (playingSongId || cuedSongId) {
 				stopActiveSequence();
 				setAuditionOverride(null);
 			}
 			setSelectedSongPreviewId(null);
 			setInstrumentView(nextTab);
 		},
-		[instrumentView, playingSongId, stopActiveSequence],
+		[instrumentView, playingSongId, cuedSongId, stopActiveSequence],
 	);
 
 	const handleFlipEnharmonic = useCallback(() => {
@@ -1117,6 +1398,11 @@ export function App() {
 							{instrumentView === "piano" ? (
 								<PianoKeyboard
 									activeMidiNotes={activeVoicing.midi}
+									activeSongMidi={
+										playingSongId !== null || cuedSongId !== null
+											? (activeSongEvent?.midi ?? null)
+											: null
+									}
 									activeLabel={activeVoicing.label}
 									activeQuality={activeVoicing.quality}
 									scalePitchClasses={scalePitchClasses}
@@ -1131,6 +1417,11 @@ export function App() {
 									chordKind={activeVoicing.guitarKind}
 									voicings={guitarVoicings}
 									selectedVoicing={activeGuitarVoicing}
+									activeSongMidi={
+										playingSongId !== null || cuedSongId !== null
+											? (activeSongEvent?.midi ?? null)
+											: null
+									}
 									scalePitchClasses={scalePitchClasses}
 									scaleNoteNames={analysis.scaleNotes}
 									preferFlats={preferFlats}
@@ -1156,6 +1447,11 @@ export function App() {
 									preferFlats={preferFlats}
 									voicings={celloVoicings}
 									activeVoicing={activeCelloVoicing}
+									activeSongStops={
+										playingSongId !== null || cuedSongId !== null
+											? (activeSongEvent?.celloStops ?? null)
+											: null
+									}
 									onSelectVoicing={handleSelectCelloVoicing}
 									onRollVoicing={handleRollCelloVoicing}
 									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.85)}
@@ -1167,10 +1463,17 @@ export function App() {
 							instrumentView={instrumentView}
 							songs={songsForInstrument}
 							playingSongId={playingSongId}
+							cuedSongId={cuedSongId}
+							songPositionMs={songPositionMs}
 							activeChordStepIndex={activeSongStepIndex}
 							activeNoteLabel={activeSongNoteLabel}
 							selectedPreviewStepId={selectedSongPreviewId}
 							onTogglePlaySong={handleTogglePlaySong}
+							onStopSong={handleStopSong}
+							onSeekSong={handleSeekSong}
+							onBeginScrubSong={handleBeginScrubSong}
+							onSkipSongBar={handleSkipSongBar}
+							onPlayFromSongBar={handlePlayFromSongBar}
 							onSelectSongChordStep={handleSelectSongChordStep}
 						/>
 
