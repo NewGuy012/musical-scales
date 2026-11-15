@@ -5,12 +5,17 @@ import {
 	playSingleNote,
 	playStepSequence,
 } from "./audio/synth";
+import { CelloFingerboard } from "./components/CelloFingerboard";
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
 import { CircleWheel } from "./components/CircleWheel";
 import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
+import {
+	CelloVoicing,
+	getCelloVoicings,
+} from "./theory/celloFingerboard";
 import {
 	AccidentalPreference,
 	ChordProgression,
@@ -53,13 +58,18 @@ export function App() {
 	>({});
 	const [voicingMode, setVoicingMode] = useState<ChordVoicingMode>("triad");
 	const [arpeggiate, setArpeggiate] = useState<boolean>(false);
-	const [soundPreset, setSoundPreset] = useState<SoundPreset>("keys");
+	const [soundMode, setSoundMode] = useState<"auto" | "pad" | "muted">("auto");
 	const [rotateToSelected, setRotateToSelected] = useState<boolean>(false);
 	const [theme, setTheme] = useState<"dark" | "light">("dark");
-	const [instrumentView, setInstrumentView] = useState<"piano" | "guitar">(
-		"piano",
-	);
+	const [instrumentView, setInstrumentView] = useState<
+		"piano" | "guitar" | "cello"
+	>("piano");
+	const soundPreset: SoundPreset =
+		soundMode === "auto" ? instrumentView : soundMode;
 	const [selectedGuitarVoicingId, setSelectedGuitarVoicingId] = useState<
+		string | null
+	>(null);
+	const [selectedCelloVoicingId, setSelectedCelloVoicingId] = useState<
 		string | null
 	>(null);
 
@@ -190,6 +200,37 @@ export function App() {
 		);
 	}, [guitarVoicings, selectedGuitarVoicingId]);
 
+	const celloVoicings = useMemo(() => {
+		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) {
+			return [];
+		}
+		return getCelloVoicings(
+			activeVoicing.notes[0],
+			activeVoicing.guitarKind,
+			activeVoicing.notes,
+			preferFlats,
+		);
+	}, [activeVoicing.guitarKind, activeVoicing.notes, preferFlats]);
+
+	const activeCelloVoicing = useMemo(() => {
+		if (celloVoicings.length === 0) return null;
+		return (
+			celloVoicings.find((v) => v.id === selectedCelloVoicingId) ??
+			celloVoicings[0]
+		);
+	}, [celloVoicings, selectedCelloVoicingId]);
+
+	const instrumentSpreadSec =
+		instrumentView === "guitar"
+			? arpeggiate
+				? 0.075
+				: 0.032
+			: instrumentView === "cello"
+				? arpeggiate
+					? 0.08
+					: 0.06
+				: undefined;
+
 	const resolvePlaybackForInstrument = useCallback(
 		(
 			notes: string[],
@@ -210,13 +251,34 @@ export function App() {
 				if (chosen) {
 					return {
 						midi: chosen.soundingMidi,
-						spreadSec: arpeggiate ? 0.075 : 0.032,
+						spreadSec: instrumentSpreadSec,
+					};
+				}
+			}
+			if (instrumentView === "cello" && guitarKind && notes.length >= 3) {
+				const voicings = getCelloVoicings(
+					notes[0],
+					guitarKind,
+					notes,
+					flatBias,
+				);
+				const chosen =
+					voicings.find((v) => v.id === selectedCelloVoicingId) ?? voicings[0];
+				if (chosen) {
+					return {
+						midi: chosen.soundingMidi,
+						spreadSec: instrumentSpreadSec,
 					};
 				}
 			}
 			return { midi: pianoMidi };
 		},
-		[instrumentView, selectedGuitarVoicingId, arpeggiate],
+		[
+			instrumentView,
+			selectedGuitarVoicingId,
+			selectedCelloVoicingId,
+			instrumentSpreadSec,
+		],
 	);
 
 	const activeNoteNamesByMidi = useMemo(() => {
@@ -470,12 +532,7 @@ export function App() {
 					preset: soundPreset,
 					stepMs: 680,
 					arpeggiate,
-					spreadSec:
-						instrumentView === "guitar"
-							? arpeggiate
-								? 0.075
-								: 0.032
-							: undefined,
+					spreadSec: instrumentSpreadSec,
 					onStep: (idx) => {
 						const c = cadence[idx];
 						setAuditionOverride({
@@ -511,7 +568,7 @@ export function App() {
 			getChordSymbol,
 			soundPreset,
 			arpeggiate,
-			instrumentView,
+			instrumentSpreadSec,
 		],
 	);
 
@@ -559,12 +616,7 @@ export function App() {
 					preset: soundPreset,
 					stepMs: 780,
 					arpeggiate,
-					spreadSec:
-						instrumentView === "guitar"
-							? arpeggiate
-								? 0.075
-								: 0.032
-							: undefined,
+					spreadSec: instrumentSpreadSec,
 					onStep: (idx) => {
 						const { chord, suffix } = chordSteps[idx];
 						setAuditionOverride({
@@ -602,7 +654,7 @@ export function App() {
 			getChordSymbol,
 			soundPreset,
 			arpeggiate,
-			instrumentView,
+			instrumentSpreadSec,
 		],
 	);
 
@@ -648,12 +700,7 @@ export function App() {
 				preset: soundPreset,
 				stepMs: 650,
 				arpeggiate,
-				spreadSec:
-					instrumentView === "guitar"
-						? arpeggiate
-							? 0.075
-							: 0.032
-						: undefined,
+				spreadSec: instrumentSpreadSec,
 				onStep: (idx) => {
 					setSelectedSlot(steps[idx].slot);
 					setAuditionOverride(null);
@@ -675,7 +722,7 @@ export function App() {
 			resolvePlaybackForInstrument,
 			soundPreset,
 			arpeggiate,
-			instrumentView,
+			instrumentSpreadSec,
 		],
 	);
 
@@ -695,6 +742,27 @@ export function App() {
 			playChordNotes(voicing.soundingMidi, {
 				preset: soundPreset,
 				spreadSec: arpeggiate ? 0.075 : 0.032,
+			});
+		},
+		[soundPreset, arpeggiate],
+	);
+
+	const handleSelectCelloVoicing = useCallback(
+		(voicing: CelloVoicing) => {
+			setSelectedCelloVoicingId(voicing.id);
+			playChordNotes(voicing.soundingMidi, {
+				preset: soundPreset,
+				spreadSec: arpeggiate ? 0.08 : 0.06,
+			});
+		},
+		[soundPreset, arpeggiate],
+	);
+
+	const handleRollCelloVoicing = useCallback(
+		(voicing: CelloVoicing) => {
+			playChordNotes(voicing.soundingMidi, {
+				preset: soundPreset,
+				spreadSec: arpeggiate ? 0.08 : 0.06,
 			});
 		},
 		[soundPreset, arpeggiate],
@@ -828,24 +896,25 @@ export function App() {
 					>
 						<button
 							type="button"
-							className={`seg-btn ${soundPreset === "keys" ? "is-active" : ""}`}
-							onClick={() => setSoundPreset("keys")}
+							className={`seg-btn ${soundMode === "auto" ? "is-active" : ""}`}
+							onClick={() => setSoundMode("auto")}
+							title="Match active instrument sound (Piano, Acoustic Guitar, or Bowed Cello)"
 						>
-							Keys
+							Instrument
 						</button>
 						<button
 							type="button"
-							className={`seg-btn ${soundPreset === "pad" ? "is-active" : ""}`}
-							onClick={() => setSoundPreset("pad")}
+							className={`seg-btn ${soundMode === "pad" ? "is-active" : ""}`}
+							onClick={() => setSoundMode("pad")}
 						>
 							Pad
 						</button>
 						<button
 							type="button"
-							className={`seg-btn ${soundPreset === "muted" ? "is-active" : ""}`}
+							className={`seg-btn ${soundMode === "muted" ? "is-active" : ""}`}
 							onClick={() => {
 								stopActiveSequence();
-								setSoundPreset("muted");
+								setSoundMode("muted");
 							}}
 						>
 							Mute
@@ -1035,7 +1104,7 @@ export function App() {
 						onPlayRootPairChord={handlePlayRootPairChord}
 					/>
 
-					{/* 4. Interactive Instrument View (Piano / Guitar) & Chord Progressions */}
+					{/* 4. Interactive Instrument View (Piano / Guitar / Cello) & Chord Progressions */}
 					<section
 						className="panel-card"
 						aria-label="Instrument view and progressions"
@@ -1072,11 +1141,26 @@ export function App() {
 								>
 									Guitar View
 								</button>
+								<button
+									type="button"
+									role="tab"
+									id="tab-cello"
+									aria-selected={instrumentView === "cello"}
+									aria-controls="panel-instrument"
+									className={`instrument-tab ${
+										instrumentView === "cello" ? "is-active" : ""
+									}`}
+									onClick={() => setInstrumentView("cello")}
+								>
+									Cello View
+								</button>
 							</div>
 							<span className="instrument-tab-meta">
 								{instrumentView === "piano"
-									? "2-Octave Keyboard (C4–B5)"
-									: "Standard Tuning · E A D G B e"}
+									? "Grand Piano · 2-Octave Keyboard (C4–B5)"
+									: instrumentView === "guitar"
+										? "Acoustic Guitar · E A D G B e"
+										: "Bowed Cello · C2–G2–D3–A3 (5ths)"}
 							</span>
 						</div>
 
@@ -1084,7 +1168,11 @@ export function App() {
 							id="panel-instrument"
 							role="tabpanel"
 							aria-labelledby={
-								instrumentView === "piano" ? "tab-piano" : "tab-guitar"
+								instrumentView === "piano"
+									? "tab-piano"
+									: instrumentView === "guitar"
+										? "tab-guitar"
+										: "tab-cello"
 							}
 						>
 							{instrumentView === "piano" ? (
@@ -1094,9 +1182,9 @@ export function App() {
 									activeQuality={activeVoicing.quality}
 									scalePitchClasses={scalePitchClasses}
 									activeNoteNamesByMidi={activeNoteNamesByMidi}
-									onPlayNote={(midi) => playSingleNote(midi, soundPreset)}
+									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.72)}
 								/>
-							) : (
+							) : instrumentView === "guitar" ? (
 								<GuitarFretboard
 									activeLabel={activeVoicing.label}
 									activeQuality={activeVoicing.quality}
@@ -1110,8 +1198,28 @@ export function App() {
 									onSelectVoicing={handleSelectGuitarVoicing}
 									onStrumVoicing={handleStrumGuitarVoicing}
 									onPlayFretNote={(midi) =>
-										playSingleNote(midi, soundPreset, 0.7)
+										playSingleNote(midi, soundPreset, 0.78)
 									}
+								/>
+							) : (
+								<CelloFingerboard
+									chordLabel={activeVoicing.label}
+									chordQuality={activeVoicing.quality}
+									chordKind={activeVoicing.guitarKind}
+									chordRoleLabel={
+										activeVoicing.chord
+											? `${activeVoicing.chord.roman} · ${analysis.shortName}`
+											: analysis.shortName
+									}
+									chordNotes={activeVoicing.notes}
+									scaleNotes={analysis.scaleNotes}
+									keyRootName={analysis.scaleNotes[0]}
+									preferFlats={preferFlats}
+									voicings={celloVoicings}
+									activeVoicing={activeCelloVoicing}
+									onSelectVoicing={handleSelectCelloVoicing}
+									onRollVoicing={handleRollCelloVoicing}
+									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.85)}
 								/>
 							)}
 						</div>

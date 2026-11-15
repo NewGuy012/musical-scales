@@ -1570,6 +1570,165 @@
 	color: var(--text-secondary);
 }
 
+/* Fretless Cello Fingerboard View */
+.cello-panel {
+	margin-bottom: 16px;
+}
+
+.cello-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.cello-chord-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.cello-role-pill {
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: var(--text-secondary);
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--bg-subtle);
+	border: 1px solid var(--border-hairline);
+}
+
+.cello-notes-readout {
+	font-size: 0.78rem;
+	font-weight: 500;
+	color: var(--text-secondary);
+}
+
+.cello-controls-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.cello-roll-btn {
+	font-size: 0.76rem;
+	padding: 5px 10px;
+}
+
+.voicing-pill-meta {
+	font-size: 0.68rem;
+	font-weight: 600;
+	opacity: 0.78;
+}
+
+.cello-neck-scroll {
+	overflow-x: auto;
+	margin-top: 8px;
+	padding-bottom: 4px;
+}
+
+.cello-svg {
+	width: 100%;
+	min-width: 660px;
+	height: auto;
+	display: block;
+	user-select: none;
+}
+
+.cello-hand-frame {
+	fill: var(--cello-frame-fill);
+	stroke: var(--cello-frame-stroke);
+	stroke-width: 1.3;
+	stroke-dasharray: 4 3;
+}
+
+.cello-frame-caption {
+	font-size: 9px;
+	font-weight: 700;
+	fill: var(--color-fifth);
+	pointer-events: none;
+}
+
+.cello-guide-line {
+	stroke: var(--cello-guide);
+	stroke-width: 1;
+	stroke-dasharray: 2 5;
+}
+
+.cello-guide-line.is-major-guide {
+	stroke: var(--cello-guide-major);
+	stroke-width: 1.2;
+	stroke-dasharray: 4 3;
+}
+
+.cello-semi-label {
+	font-size: 9.5px;
+	font-weight: 600;
+	fill: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.cello-semi-label.is-guide {
+	font-weight: 700;
+	fill: var(--text-secondary);
+}
+
+.cello-harmonic-marker {
+	fill: var(--cello-harmonic);
+	pointer-events: none;
+}
+
+.cello-string-label {
+	font-size: 10.5px;
+	font-weight: 700;
+	fill: var(--text-secondary);
+}
+
+.cello-mute-x {
+	font-size: 13px;
+	font-weight: 800;
+	fill: var(--color-dim);
+}
+
+.cello-hit-cell {
+	cursor: pointer;
+	outline: none;
+}
+
+.cello-hit-cell:hover .fret-dot-scale-bg,
+.cello-hit-cell:focus-visible .fret-dot-scale-bg {
+	fill-opacity: 0.9;
+}
+
+.cello-breakdown-wrap {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
+}
+
+.cello-breakdown-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cello-breakdown-hint {
+	font-size: 0.72rem;
+	color: var(--text-muted);
+}
+
+.cello-breakdown-strings {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+}
+
 /* Piano Keyboard */
 .piano-wrap {
 	margin-bottom: 16px;

@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { App } from "../src/react-app/App";
+import { CelloFingerboard } from "../src/react-app/components/CelloFingerboard";
 import { ChordsPanel } from "../src/react-app/components/ChordsPanel";
 import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
+import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 
@@ -24,6 +26,9 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Piano Voicing");
 		expect(html).toContain("Piano View");
 		expect(html).toContain("Guitar View");
+		expect(html).toContain("Cello View");
+		expect(html).toContain("Instrument");
+		expect(html).toContain("Grand Piano");
 	});
 
 	test("renders GuitarFretboard with C major CAGED voicings and 15-fret neck markers", () => {
@@ -60,6 +65,75 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("All Positions");
 		expect(html).toContain("Key Scale");
 		expect(html).toContain("Strings (6 → 1):");
+	});
+
+	test("renders CelloFingerboard with fretless positions, left-hand frame, and minor/7th chords", () => {
+		const cMaj = analyzeKey(0, "major");
+		const tonic = cMaj.chords[0];
+		const cVoicings = getCelloVoicings(
+			tonic.root,
+			"major",
+			tonic.triadNotes,
+			false,
+		);
+		const cHtml = renderToStaticMarkup(
+			<CelloFingerboard
+				chordLabel="C (I)"
+				chordQuality="major"
+				chordKind="major"
+				chordRoleLabel="I · C Major"
+				chordNotes={tonic.triadNotes}
+				scaleNotes={cMaj.scaleNotes}
+				keyRootName="C"
+				preferFlats={false}
+				voicings={cVoicings}
+				activeVoicing={cVoicings[0]}
+				onSelectVoicing={() => {}}
+				onRollVoicing={() => {}}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(cHtml).toContain("Open 4-Str");
+		expect(cHtml).toContain("1st Inv (3rd Bass)");
+		expect(cHtml).toContain("Voicing + Neck");
+		expect(cHtml).toContain("All Positions");
+		expect(cHtml).toContain("Key Scale");
+		expect(cHtml).toContain("Fingers");
+		expect(cHtml).toContain("Bow Roll");
+		expect(cHtml).toContain("Strings IV → I");
+		expect(cHtml).toContain("Open · 0");
+		expect(cHtml).toContain("Semi 2 · F1");
+		expect(cHtml).toContain("Semi 3 · F2");
+
+		const aMin = analyzeKey(0, "minor");
+		const amTonic = aMin.chords[0];
+		const m7Voicings = getCelloVoicings(
+			amTonic.root,
+			"m7",
+			amTonic.seventhNotes,
+			false,
+		);
+		const dmHtml = renderToStaticMarkup(
+			<CelloFingerboard
+				chordLabel="Am7 (i)"
+				chordQuality="minor"
+				chordKind="m7"
+				chordRoleLabel="i · A Minor"
+				chordNotes={amTonic.seventhNotes}
+				scaleNotes={aMin.scaleNotes}
+				keyRootName="A"
+				preferFlats={false}
+				voicings={m7Voicings}
+				activeVoicing={m7Voicings[0]}
+				onSelectVoicing={() => {}}
+				onRollVoicing={() => {}}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(dmHtml).toContain("Am7 (i)");
+		expect(dmHtml).toContain("5th-Bass m7");
+		expect(dmHtml).toContain("Upper Shell (R-♭7-♭3)");
+		expect(dmHtml).toContain("LH Frame");
 	});
 
 	test("renders F♯ Major and E♭ Minor cleanly with proper accidentals and harmonic minor V", () => {
