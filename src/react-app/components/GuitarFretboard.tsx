@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { ChordQuality, mod12, noteToPitchClass } from "../theory/circleOfFifths";
+import {
+	ChordQuality,
+	getGuitarQualityClass,
+	handleSvgButtonKeyDown,
+	mod12,
+	noteToPitchClass,
+} from "../theory/circleOfFifths";
 import {
 	GuitarChordKind,
 	GuitarVoicing,
 	MAX_GUITAR_FRET,
 	STANDARD_TUNING,
-	getChordToneNameMap,
+	createPitchClassNameResolver,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 
@@ -29,6 +35,7 @@ interface GuitarFretboardProps {
 
 const SINGLE_INLAY_FRETS = new Set([3, 5, 7, 9, 15]);
 const FRET_NUMBERS = Array.from({ length: MAX_GUITAR_FRET }, (_, i) => i + 1);
+const VISUAL_ROWS = [5, 4, 3, 2, 1, 0] as const;
 
 export function GuitarFretboard({
 	activeLabel,
@@ -44,35 +51,20 @@ export function GuitarFretboard({
 	onStrumVoicing,
 	onPlayFretNote,
 }: GuitarFretboardProps) {
-	const [overlayMode, setOverlayMode] =
-		useState<FretboardOverlayMode>("voicing");
+	const [overlayMode, setOverlayMode] = useState<FretboardOverlayMode>("voicing");
 	const [labelMode, setLabelMode] = useState<FretboardLabelMode>("notes");
 
-	const qualityClass =
-		activeQuality === "minor"
-			? "guitar-active-minor"
-			: activeQuality === "diminished"
-				? "guitar-active-dim"
-				: "guitar-active-major";
-
+	const qualityClass = getGuitarQualityClass(activeQuality);
 	const rootNote = chordNotes[0] ?? "C";
 	const rootPc = noteToPitchClass(rootNote);
 	const chordPcSet = new Set(chordNotes.map(noteToPitchClass));
 	const scalePcSet = new Set(scalePitchClasses);
+	const resolveFretNoteName = createPitchClassNameResolver(
+		chordNotes,
+		scaleNoteNames,
+		preferFlats,
+	);
 
-	// Resolve spelled note name for any pitch class, preferring chord spelling then scale spelling
-	const chordNameLookup = getChordToneNameMap(chordNotes, preferFlats);
-	const scalePcToName = new Map<number, string>();
-	scaleNoteNames.forEach((n) => {
-		scalePcToName.set(noteToPitchClass(n), n);
-	});
-	const resolveFretNoteName = (pc: number) => {
-		const norm = mod12(pc);
-		if (chordPcSet.has(norm)) return chordNameLookup(norm);
-		return scalePcToName.get(norm) ?? chordNameLookup(norm);
-	};
-
-	// SVG geometry
 	const nutX = 64;
 	const fretWidth = 48;
 	const topY = 22;
@@ -80,9 +72,6 @@ export function GuitarFretboard({
 	const totalWidth = 812;
 	const totalHeight = 178;
 	const bottomY = topY + 5 * stringGap;
-
-	// Visual string order top-to-bottom: 1st string (high e, index 5) -> 6th string (low E, index 0)
-	const visualRows = [5, 4, 3, 2, 1, 0];
 
 	return (
 		<div className="guitar-wrap">
@@ -114,30 +103,22 @@ export function GuitarFretboard({
 						role="group"
 						aria-label="Fretboard display mode"
 					>
-						<button
-							type="button"
-							className={`seg-btn ${overlayMode === "voicing" ? "is-active" : ""}`}
-							onClick={() => setOverlayMode("voicing")}
-							title="Highlight selected chord shape and faintly map all other chord tones"
-						>
-							Voicing + Neck
-						</button>
-						<button
-							type="button"
-							className={`seg-btn ${overlayMode === "chordTones" ? "is-active" : ""}`}
-							onClick={() => setOverlayMode("chordTones")}
-							title="Highlight every occurrence of the chord's notes across frets 0–15"
-						>
-							All Positions
-						</button>
-						<button
-							type="button"
-							className={`seg-btn ${overlayMode === "scale" ? "is-active" : ""}`}
-							onClick={() => setOverlayMode("scale")}
-							title="Show full key scale across the fretboard with chord tones accented"
-						>
-							Key Scale
-						</button>
+						{(
+							[
+								["voicing", "Voicing + Neck"],
+								["chordTones", "All Positions"],
+								["scale", "Key Scale"],
+							] as const
+						).map(([modeKey, label]) => (
+							<button
+								key={modeKey}
+								type="button"
+								className={`seg-btn ${overlayMode === modeKey ? "is-active" : ""}`}
+								onClick={() => setOverlayMode(modeKey)}
+							>
+								{label}
+							</button>
+						))}
 					</div>
 
 					<button
@@ -164,33 +145,28 @@ export function GuitarFretboard({
 				</div>
 			</div>
 
-			{/* Voicing Selector Pills */}
 			{voicings.length > 0 && (
 				<div
 					className="voicing-pills-row"
 					role="group"
 					aria-label="Chord fretboard voicings"
 				>
-					{voicings.map((v) => {
-						const isCurrent = selectedVoicing?.id === v.id;
-						return (
-							<button
-								key={v.id}
-								type="button"
-								className={`voicing-pill ${qualityClass} ${
-									isCurrent ? "is-selected" : ""
-								}`}
-								onClick={() => onSelectVoicing(v)}
-							>
-								<span className="voicing-pill-name">{v.name}</span>
-								<span className="voicing-pill-pos">{v.positionLabel}</span>
-							</button>
-						);
-					})}
+					{voicings.map((v) => (
+						<button
+							key={v.id}
+							type="button"
+							className={`voicing-pill ${qualityClass} ${
+								selectedVoicing?.id === v.id ? "is-selected" : ""
+							}`}
+							onClick={() => onSelectVoicing(v)}
+						>
+							<span className="voicing-pill-name">{v.name}</span>
+							<span className="voicing-pill-pos">{v.positionLabel}</span>
+						</button>
+					))}
 				</div>
 			)}
 
-			{/* Horizontal 0–15 Fretboard SVG */}
 			<div className="fretboard-scroll">
 				<svg
 					viewBox={`0 0 ${totalWidth} ${totalHeight}`}
@@ -198,7 +174,6 @@ export function GuitarFretboard({
 					role="group"
 					aria-label="Interactive 15-fret guitar fretboard in standard tuning E A D G B E"
 				>
-					{/* Fretboard Wood / Neck Surface */}
 					<rect
 						x={nutX}
 						y={topY - 12}
@@ -208,24 +183,13 @@ export function GuitarFretboard({
 						className="fretboard-neck"
 					/>
 
-					{/* Inlay Dots */}
 					{FRET_NUMBERS.map((fret) => {
 						const cx = nutX + (fret - 0.5) * fretWidth;
 						if (fret === 12) {
 							return (
 								<g key={`inlay-${fret}`}>
-									<circle
-										cx={cx}
-										cy={topY + 1.5 * stringGap}
-										r={4.2}
-										className="fret-inlay"
-									/>
-									<circle
-										cx={cx}
-										cy={topY + 3.5 * stringGap}
-										r={4.2}
-										className="fret-inlay"
-									/>
+									<circle cx={cx} cy={topY + 1.5 * stringGap} r={4.2} className="fret-inlay" />
+									<circle cx={cx} cy={topY + 3.5 * stringGap} r={4.2} className="fret-inlay" />
 								</g>
 							);
 						}
@@ -243,7 +207,6 @@ export function GuitarFretboard({
 						return null;
 					})}
 
-					{/* Nut & Fret Wires */}
 					<line
 						x1={nutX}
 						y1={topY - 12}
@@ -265,7 +228,6 @@ export function GuitarFretboard({
 						);
 					})}
 
-					{/* Fret Numbers */}
 					<text
 						x={nutX - 18}
 						y={bottomY + 28}
@@ -290,8 +252,7 @@ export function GuitarFretboard({
 						</text>
 					))}
 
-					{/* Guitar Strings + Interactive Fret Targets */}
-					{visualRows.map((stringIdx, rowIdx) => {
+					{VISUAL_ROWS.map((stringIdx, rowIdx) => {
 						const info = STANDARD_TUNING[stringIdx];
 						const y = topY + rowIdx * stringGap;
 						const strokeW = 1.0 + rowIdx * 0.28;
@@ -301,7 +262,6 @@ export function GuitarFretboard({
 
 						return (
 							<g key={`str-${info.stringNumber}`}>
-								{/* String tuning label */}
 								<text
 									x={14}
 									y={y}
@@ -312,7 +272,6 @@ export function GuitarFretboard({
 									{info.label}
 								</text>
 
-								{/* Muted indicator for selected voicing */}
 								{overlayMode === "voicing" &&
 									selectedVoicing &&
 									voicedFret === -1 && (
@@ -327,7 +286,6 @@ export function GuitarFretboard({
 										</text>
 									)}
 
-								{/* String horizontal line */}
 								<line
 									x1={nutX}
 									y1={y}
@@ -337,159 +295,122 @@ export function GuitarFretboard({
 									className="guitar-string-line"
 								/>
 
-								{/* Clickable Fret Cells 0..15 */}
-								{Array.from(
-									{ length: MAX_GUITAR_FRET + 1 },
-									(_, fret) => {
-										const cx =
-											fret === 0
-												? nutX - 18
-												: nutX + (fret - 0.5) * fretWidth;
-										const midi = info.openMidi + fret;
-										const pc = mod12(info.openPc + fret);
-										const isVoicedHere =
-											selectedVoicing !== null && voicedFret === fret;
-										const isChordTone = chordPcSet.has(pc);
-										const isRoot = pc === rootPc;
-										const isScaleTone = scalePcSet.has(pc);
+								{Array.from({ length: MAX_GUITAR_FRET + 1 }, (_, fret) => {
+									const cx =
+										fret === 0 ? nutX - 18 : nutX + (fret - 0.5) * fretWidth;
+									const midi = info.openMidi + fret;
+									const pc = mod12(info.openPc + fret);
+									const isVoicedHere =
+										selectedVoicing !== null && voicedFret === fret;
+									const isChordTone = chordPcSet.has(pc);
+									const isRoot = pc === rootPc;
+									const isScaleTone = scalePcSet.has(pc);
 
-										const noteName = resolveFretNoteName(pc);
-										const intervalName =
-											chordKind && isChordTone
-												? getIntervalLabel(rootPc, pc, chordKind)
-												: null;
-										const displayLabel =
-											labelMode === "intervals" && intervalName
-												? intervalName
-												: noteName;
+									const noteName = resolveFretNoteName(pc);
+									const intervalName =
+										chordKind && isChordTone
+											? getIntervalLabel(rootPc, pc, chordKind)
+											: null;
+									const displayLabel =
+										labelMode === "intervals" && intervalName
+											? intervalName
+											: noteName;
 
-										// Determine visual prominence
-										let dotState:
-											| "primary"
-											| "ghost-chord"
-											| "scale"
-											| "none" = "none";
-
-										if (overlayMode === "voicing" && selectedVoicing) {
-											if (isVoicedHere) {
-												dotState = "primary";
-											} else if (
-												isChordTone &&
-												!(fret === 0 && voicedFret === -1)
-											) {
-												dotState = "ghost-chord";
-											}
-										} else if (overlayMode === "chordTones") {
-											if (isChordTone) dotState = "primary";
-										} else if (overlayMode === "scale") {
-											if (isChordTone) dotState = "primary";
-											else if (isScaleTone) dotState = "scale";
-										} else if (isChordTone) {
-											// Fallback for single-note scale highlight
+									let dotState: "primary" | "ghost-chord" | "scale" | "none" =
+										"none";
+									if (overlayMode === "voicing" && selectedVoicing) {
+										if (isVoicedHere) {
 											dotState = "primary";
+										} else if (isChordTone && !(fret === 0 && voicedFret === -1)) {
+											dotState = "ghost-chord";
 										}
+									} else if (overlayMode === "chordTones") {
+										if (isChordTone) dotState = "primary";
+									} else if (overlayMode === "scale") {
+										if (isChordTone) dotState = "primary";
+										else if (isScaleTone) dotState = "scale";
+									} else if (isChordTone) {
+										dotState = "primary";
+									}
 
-										return (
-											<g
-												key={`cell-${stringIdx}-${fret}`}
-												role="button"
-												tabIndex={0}
-												aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}`}
-												className="fret-hit-cell"
-												onClick={() => onPlayFretNote(midi)}
-												onKeyDown={(e) => {
-													if (e.key === "Enter" || e.key === " ") {
-														e.preventDefault();
-														onPlayFretNote(midi);
+									return (
+										<g
+											key={`cell-${stringIdx}-${fret}`}
+											role="button"
+											tabIndex={0}
+											aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}`}
+											className="fret-hit-cell"
+											onClick={() => onPlayFretNote(midi)}
+											onKeyDown={(e) =>
+												handleSvgButtonKeyDown(e, () => onPlayFretNote(midi))
+											}
+										>
+											<rect
+												x={
+													fret === 0
+														? nutX - 31
+														: nutX + (fret - 1) * fretWidth
+												}
+												y={y - stringGap / 2}
+												width={fret === 0 ? 28 : fretWidth}
+												height={stringGap}
+												fill="transparent"
+											/>
+
+											{dotState !== "none" && (
+												<g
+													className={
+														dotState === "primary"
+															? `fret-dot-primary ${qualityClass}`
+															: dotState === "ghost-chord"
+																? `fret-dot-ghost ${qualityClass}`
+																: "fret-dot-scale"
 													}
-												}}
-											>
-												<rect
-													x={
-														fret === 0
-															? nutX - 31
-															: nutX + (fret - 1) * fretWidth
-													}
-													y={y - stringGap / 2}
-													width={fret === 0 ? 28 : fretWidth}
-													height={stringGap}
-													fill="transparent"
-												/>
-
-												{dotState === "primary" && (
-													<g className={`fret-dot-primary ${qualityClass}`}>
-														<circle
-															cx={cx}
-															cy={y}
-															r={10.5}
-															className={`fret-dot-bg ${
-																isRoot ? "is-root-ring" : ""
-															}`}
-														/>
-														<text
-															x={cx}
-															y={y + 0.5}
-															textAnchor="middle"
-															dominantBaseline="central"
-															className="fret-dot-text"
-														>
-															{displayLabel}
-														</text>
-													</g>
-												)}
-
-												{dotState === "ghost-chord" && (
-													<g className={`fret-dot-ghost ${qualityClass}`}>
-														<circle
-															cx={cx}
-															cy={y}
-															r={8.5}
-															className={`fret-dot-ghost-bg ${
-																isRoot ? "is-root-ring" : ""
-															}`}
-														/>
-														<text
-															x={cx}
-															y={y + 0.5}
-															textAnchor="middle"
-															dominantBaseline="central"
-															className="fret-dot-ghost-text"
-														>
-															{displayLabel}
-														</text>
-													</g>
-												)}
-
-												{dotState === "scale" && (
-													<g className="fret-dot-scale">
-														<circle
-															cx={cx}
-															cy={y}
-															r={7.5}
-															className="fret-dot-scale-bg"
-														/>
-														<text
-															x={cx}
-															y={y + 0.5}
-															textAnchor="middle"
-															dominantBaseline="central"
-															className="fret-dot-scale-text"
-														>
-															{noteName}
-														</text>
-													</g>
-												)}
-											</g>
-										);
-									},
-								)}
+												>
+													<circle
+														cx={cx}
+														cy={y}
+														r={
+															dotState === "primary"
+																? 10.5
+																: dotState === "ghost-chord"
+																	? 8.5
+																	: 7.5
+														}
+														className={
+															dotState === "primary"
+																? `fret-dot-bg ${isRoot ? "is-root-ring" : ""}`
+																: dotState === "ghost-chord"
+																	? `fret-dot-ghost-bg ${isRoot ? "is-root-ring" : ""}`
+																	: "fret-dot-scale-bg"
+														}
+													/>
+													<text
+														x={cx}
+														y={y + 0.5}
+														textAnchor="middle"
+														dominantBaseline="central"
+														className={
+															dotState === "primary"
+																? "fret-dot-text"
+																: dotState === "ghost-chord"
+																	? "fret-dot-ghost-text"
+																	: "fret-dot-scale-text"
+														}
+													>
+														{dotState === "scale" ? noteName : displayLabel}
+													</text>
+												</g>
+											)}
+										</g>
+									);
+								})}
 							</g>
 						);
 					})}
 				</svg>
 			</div>
 
-			{/* Compact 6-String Tab & Interval Breakdown */}
 			{selectedVoicing && (
 				<div className="voicing-breakdown">
 					<span className="breakdown-label">Strings (6 → 1):</span>
@@ -502,9 +423,9 @@ export function GuitarFretboard({
 									key={info.stringNumber}
 									type="button"
 									disabled={isMuted}
-									className={`breakdown-cell ${
-										isMuted ? "is-muted" : ""
-									} ${n.intervalLabel === "R" ? "is-root" : ""}`}
+									className={`breakdown-cell ${isMuted ? "is-muted" : ""} ${
+										n.intervalLabel === "R" ? "is-root" : ""
+									}`}
 									onClick={() => {
 										if (n.midi !== null) onPlayFretNote(n.midi);
 									}}
@@ -515,13 +436,9 @@ export function GuitarFretboard({
 									}
 								>
 									<span className="bd-str">{info.label}</span>
-									<span className="bd-fret">
-										{isMuted ? "×" : n.fret}
-									</span>
+									<span className="bd-fret">{isMuted ? "×" : n.fret}</span>
 									<span className="bd-meta">
-										{isMuted
-											? "—"
-											: `${n.noteName} · ${n.intervalLabel}`}
+										{isMuted ? "—" : `${n.noteName} · ${n.intervalLabel}`}
 									</span>
 								</button>
 							);

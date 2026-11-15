@@ -308,6 +308,28 @@ export function getChordCardId(chord: DiatonicChord, suffix = ""): string {
 	return `${chord.roman}-${chord.symbol}${suffix}`;
 }
 
+export function getPianoBadgeClass(quality: ChordQuality): string {
+	if (quality === "minor") return "piano-active-minor";
+	if (quality === "diminished") return "piano-active-dim";
+	return "piano-active-major";
+}
+
+export function getGuitarQualityClass(quality: ChordQuality): string {
+	if (quality === "minor") return "guitar-active-minor";
+	if (quality === "diminished") return "guitar-active-dim";
+	return "guitar-active-major";
+}
+
+export function handleSvgButtonKeyDown(
+	e: { key: string; preventDefault: () => void },
+	action: () => void,
+): void {
+	if (e.key === "Enter" || e.key === " ") {
+		e.preventDefault();
+		action();
+	}
+}
+
 export function buildScale(root: string, mode: KeyMode): string[] {
 	const rootLetterIdx = LETTERS.indexOf(root[0] as (typeof LETTERS)[number]);
 	if (rootLetterIdx === -1) {

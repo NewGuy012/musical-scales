@@ -1,4 +1,8 @@
-import { DiatonicChord, KeyAnalysis } from "../theory/circleOfFifths";
+import {
+	DiatonicChord,
+	KeyAnalysis,
+	getChordCardId,
+} from "../theory/circleOfFifths";
 
 export type ChordVoicingMode = "triad" | "seventh";
 
@@ -13,10 +17,6 @@ interface ChordsPanelProps {
 	onPlayRootPairChord: (kind: "major" | "minor") => void;
 }
 
-function getChordCardId(chord: DiatonicChord, suffix = ""): string {
-	return `${chord.roman}-${chord.symbol}${suffix}`;
-}
-
 export function ChordsPanel({
 	analysis,
 	voicingMode,
@@ -27,13 +27,13 @@ export function ChordsPanel({
 	onSelectChord,
 	onPlayRootPairChord,
 }: ChordsPanelProps) {
+	const isSeventh = voicingMode === "seventh";
+	const getSymbol = (c: DiatonicChord) => (isSeventh ? c.seventhSymbol : c.symbol);
+	const getNotes = (c: DiatonicChord) => (isSeventh ? c.seventhNotes : c.triadNotes);
+
 	const renderChordCard = (chord: DiatonicChord, extraSuffix = "") => {
 		const id = getChordCardId(chord, extraSuffix);
 		const isActive = activeChordId === id;
-		const displaySymbol =
-			voicingMode === "seventh" ? chord.seventhSymbol : chord.symbol;
-		const notes =
-			voicingMode === "seventh" ? chord.seventhNotes : chord.triadNotes;
 
 		return (
 			<button
@@ -54,9 +54,9 @@ export function ChordsPanel({
 								: "Dim"}
 					</span>
 				</div>
-				<div className="chord-symbol">{displaySymbol}</div>
+				<div className="chord-symbol">{getSymbol(chord)}</div>
 				<div className="chord-notes">
-					{notes.map((n, idx) => (
+					{getNotes(chord).map((n, idx) => (
 						<span key={idx} className="chord-note-chip">
 							{n}
 						</span>
@@ -67,12 +67,35 @@ export function ChordsPanel({
 		);
 	};
 
-	const dimId = getChordCardId(analysis.diminishedChord);
-	const harmonicVId = analysis.harmonicMinorV
-		? getChordCardId(analysis.harmonicMinorV, "-harmonic")
-		: null;
-	const tonicMajorId = `tonic-pair-major-${analysis.tonicPair.major.symbol}`;
-	const tonicMinorId = `tonic-pair-minor-${analysis.tonicPair.minor.symbol}`;
+	const renderExtraPill = (
+		chord: DiatonicChord,
+		label: string,
+		variantClass: string,
+		suffix = "",
+		title?: string,
+	) => {
+		const id = getChordCardId(chord, suffix);
+		return (
+			<button
+				key={id}
+				type="button"
+				className={`extra-chord-pill ${variantClass} ${
+					activeChordId === id ? "is-selected" : ""
+				}`}
+				onClick={() => onSelectChord(chord, id)}
+				title={title}
+			>
+				<span className="extra-label">{label}</span>
+				<span className="extra-main">{getSymbol(chord)}</span>
+				<span className="extra-notes">{getNotes(chord).join(" · ")}</span>
+			</button>
+		);
+	};
+
+	const groups = [
+		{ title: "Major Chords", dot: "major", chords: analysis.majorChords },
+		{ title: "Minor Chords", dot: "minor", chords: analysis.minorChords },
+	] as const;
 
 	return (
 		<section className="panel-card" aria-labelledby="chords-heading">
@@ -98,7 +121,7 @@ export function ChordsPanel({
 						</button>
 						<button
 							type="button"
-							className={`seg-btn ${voicingMode === "seventh" ? "is-active" : ""}`}
+							className={`seg-btn ${isSeventh ? "is-active" : ""}`}
 							onClick={() => onChangeVoicingMode("seventh")}
 						>
 							7ths
@@ -117,113 +140,58 @@ export function ChordsPanel({
 			</div>
 
 			<div className="chord-groups">
-				{/* Major Chords Group */}
-				<div className="chord-group">
-					<div className="chord-group-header">
-						<span className="group-dot group-dot-major" />
-						<h3 className="group-title">Major Chords</h3>
-						<span className="group-count">
-							{analysis.majorChords.map((c) => c.roman).join(" · ")}
-						</span>
+				{groups.map(({ title, dot, chords }) => (
+					<div key={dot} className="chord-group">
+						<div className="chord-group-header">
+							<span className={`group-dot group-dot-${dot}`} />
+							<h3 className="group-title">{title}</h3>
+							<span className="group-count">
+								{chords.map((c) => c.roman).join(" · ")}
+							</span>
+						</div>
+						<div className="chord-grid">
+							{chords.map((chord) => renderChordCard(chord))}
+						</div>
 					</div>
-					<div className="chord-grid">
-						{analysis.majorChords.map((chord) => renderChordCard(chord))}
-					</div>
-				</div>
-
-				{/* Minor Chords Group */}
-				<div className="chord-group">
-					<div className="chord-group-header">
-						<span className="group-dot group-dot-minor" />
-						<h3 className="group-title">Minor Chords</h3>
-						<span className="group-count">
-							{analysis.minorChords.map((c) => c.roman).join(" · ")}
-						</span>
-					</div>
-					<div className="chord-grid">
-						{analysis.minorChords.map((chord) => renderChordCard(chord))}
-					</div>
-				</div>
+				))}
 			</div>
 
-			{/* Secondary Row: Diminished Chord + Harmonic Minor V (when Minor) + Direct Root Major/Minor */}
 			<div className="chords-extras-row">
-				<button
-					type="button"
-					className={`extra-chord-pill extra-dim ${
-						activeChordId === dimId ? "is-selected" : ""
-					}`}
-					onClick={() => onSelectChord(analysis.diminishedChord, dimId)}
-				>
-					<span className="extra-label">
-						Diminished ({analysis.diminishedChord.roman})
-					</span>
-					<span className="extra-main">
-						{voicingMode === "seventh"
-							? analysis.diminishedChord.seventhSymbol
-							: analysis.diminishedChord.symbol}
-					</span>
-					<span className="extra-notes">
-						{(voicingMode === "seventh"
-							? analysis.diminishedChord.seventhNotes
-							: analysis.diminishedChord.triadNotes
-						).join(" · ")}
-					</span>
-				</button>
-
-				{analysis.harmonicMinorV && harmonicVId && (
-					<button
-						type="button"
-						className={`extra-chord-pill extra-harmonic ${
-							activeChordId === harmonicVId ? "is-selected" : ""
-						}`}
-						onClick={() =>
-							onSelectChord(analysis.harmonicMinorV!, harmonicVId)
-						}
-						title="Raised 7th harmonic minor dominant chord"
-					>
-						<span className="extra-label">Harmonic V</span>
-						<span className="extra-main">
-							{voicingMode === "seventh"
-								? analysis.harmonicMinorV.seventhSymbol
-								: analysis.harmonicMinorV.symbol}
-						</span>
-						<span className="extra-notes">
-							{(voicingMode === "seventh"
-								? analysis.harmonicMinorV.seventhNotes
-								: analysis.harmonicMinorV.triadNotes
-							).join(" · ")}
-						</span>
-					</button>
+				{renderExtraPill(
+					analysis.diminishedChord,
+					`Diminished (${analysis.diminishedChord.roman})`,
+					"extra-dim",
 				)}
+				{analysis.harmonicMinorV &&
+					renderExtraPill(
+						analysis.harmonicMinorV,
+						"Harmonic V",
+						"extra-harmonic",
+						"-harmonic",
+						"Raised 7th harmonic minor dominant chord",
+					)}
 
 				<div className="root-pair-box">
-					<span className="extra-label">
-						Root {analysis.root} Parallel Pair
-					</span>
+					<span className="extra-label">Root {analysis.root} Parallel Pair</span>
 					<div className="root-pair-btns">
-						<button
-							type="button"
-							className={`root-pair-btn pair-maj ${
-								activeChordId === tonicMajorId ? "is-selected" : ""
-							}`}
-							onClick={() => onPlayRootPairChord("major")}
-							title={analysis.tonicPair.major.noteLabel}
-						>
-							<strong>{analysis.tonicPair.major.symbol}</strong>
-							<span>{analysis.tonicPair.major.notes.join("·")}</span>
-						</button>
-						<button
-							type="button"
-							className={`root-pair-btn pair-min ${
-								activeChordId === tonicMinorId ? "is-selected" : ""
-							}`}
-							onClick={() => onPlayRootPairChord("minor")}
-							title={analysis.tonicPair.minor.noteLabel}
-						>
-							<strong>{analysis.tonicPair.minor.symbol}</strong>
-							<span>{analysis.tonicPair.minor.notes.join("·")}</span>
-						</button>
+						{(["major", "minor"] as const).map((kind) => {
+							const target = analysis.tonicPair[kind];
+							const id = `tonic-pair-${kind}-${target.symbol}`;
+							return (
+								<button
+									key={kind}
+									type="button"
+									className={`root-pair-btn pair-${kind.slice(0, 3)} ${
+										activeChordId === id ? "is-selected" : ""
+									}`}
+									onClick={() => onPlayRootPairChord(kind)}
+									title={target.noteLabel}
+								>
+									<strong>{target.symbol}</strong>
+									<span>{target.notes.join("·")}</span>
+								</button>
+							);
+						})}
 					</div>
 				</div>
 			</div>

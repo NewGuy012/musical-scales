@@ -1,16 +1,19 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 import {
 	CELLO_TUNING,
 	MAX_CELLO_SEMITONE,
 	type CelloVoicing,
 } from "../theory/celloFingerboard";
 import {
+	getGuitarQualityClass,
+	getPianoBadgeClass,
+	handleSvgButtonKeyDown,
 	mod12,
 	noteToPitchClass,
 	type ChordQuality,
 } from "../theory/circleOfFifths";
 import {
-	getChordToneNameMap,
+	createPitchClassNameResolver,
 	getIntervalLabel,
 	type GuitarChordKind,
 } from "../theory/guitarFretboard";
@@ -34,11 +37,12 @@ export interface CelloFingerboardProps {
 	onPlayNote: (midi: number, noteName: string) => void;
 }
 
-const STRING_SUBSCRIPTS = ["IV · C", "III · G", "II · D", "I · A"];
-const STRING_OCTAVE_LABELS = ["C2", "G2", "D3", "A3"];
-// Classic pedagogical cello intonation & harmonic reference semitones
+const STRING_SUBSCRIPTS = ["IV · C", "III · G", "II · D", "I · A"] as const;
+const STRING_OCTAVE_LABELS = ["C2", "G2", "D3", "A3"] as const;
 const INTONATION_GUIDE_SEMITONES = new Set([2, 4, 5, 7, 9, 12]);
 const HARMONIC_DOT_SEMITONES = new Set([5, 7, 12]);
+const SEMITONES = Array.from({ length: MAX_CELLO_SEMITONE + 1 }, (_, idx) => idx);
+const VISUAL_ROWS = [3, 2, 1, 0] as const;
 
 const SVG_WIDTH = 900;
 const SVG_HEIGHT = 238;
@@ -51,28 +55,7 @@ const ROW_STEP = (SVG_HEIGHT - TOP_PAD - BOTTOM_PAD) / 3;
 const SEMI_STEP = (NECK_RIGHT - NUT_X) / MAX_CELLO_SEMITONE;
 
 function semitoneX(semitone: number): number {
-	if (semitone <= 0) return OPEN_COL_X;
-	return NUT_X + (semitone - 0.5) * SEMI_STEP;
-}
-
-function getQualityClass(quality: ChordQuality): string {
-	if (quality === "major") return "guitar-active-major";
-	if (quality === "minor") return "guitar-active-minor";
-	return "guitar-active-dim";
-}
-
-function getPianoBadgeClass(quality: ChordQuality): string {
-	if (quality === "major") return "piano-active-major";
-	if (quality === "minor") return "piano-active-minor";
-	return "piano-active-dim";
-}
-
-function buildScalePcMap(scaleNotes: string[]): Map<number, string> {
-	const map = new Map<number, string>();
-	for (const note of scaleNotes) {
-		map.set(noteToPitchClass(note), note);
-	}
-	return map;
+	return semitone <= 0 ? OPEN_COL_X : NUT_X + (semitone - 0.5) * SEMI_STEP;
 }
 
 export function CelloFingerboard({
@@ -96,28 +79,18 @@ export function CelloFingerboard({
 	const rootNote = chordNotes[0] ?? keyRootName ?? scaleNotes[0] ?? "C";
 	const rootPc = noteToPitchClass(rootNote);
 	const resolvedKind = chordKind ?? "major";
-	const resolveChordNote = getChordToneNameMap(chordNotes, preferFlats);
-	const chordPcSet = new Set(chordNotes.map((n) => noteToPitchClass(n)));
-	const scalePcMap = buildScalePcMap(scaleNotes);
+	const qualityClass = getGuitarQualityClass(chordQuality);
+	const chordPcSet = new Set(chordNotes.map(noteToPitchClass));
+	const scalePcSet = new Set(scaleNotes.map(noteToPitchClass));
+	const resolveNoteName = createPitchClassNameResolver(
+		chordNotes,
+		scaleNotes,
+		preferFlats,
+	);
 
-	const activeByString = new Map<number, (typeof CELLO_TUNING)[number] & {
-		semitone: number;
-		finger: number | null;
-		intervalLabel: string;
-		noteName: string | null;
-	}>();
-
-	if (activeVoicing) {
-		for (const vn of activeVoicing.notes) {
-			activeByString.set(vn.stringIndex, {
-				...CELLO_TUNING[vn.stringIndex],
-				semitone: vn.semitone,
-				finger: vn.finger,
-				intervalLabel: vn.intervalLabel,
-				noteName: vn.noteName,
-			});
-		}
-	}
+	const activeByString = new Map(
+		activeVoicing?.notes.map((vn) => [vn.stringIndex, vn]),
+	);
 
 	const frameSummary = activeVoicing
 		? activeVoicing.handBaseSemitone > 0
@@ -127,25 +100,6 @@ export function CelloFingerboard({
 				)}`
 			: "Open string position"
 		: "No voicing";
-
-	const handleCellKeyDown = (
-		event: KeyboardEvent<SVGGElement>,
-		midi: number,
-		noteName: string,
-	) => {
-		if (event.key === "Enter" || event.key === " ") {
-			event.preventDefault();
-			onPlayNote(midi, noteName);
-		}
-	};
-
-	const semitones = Array.from(
-		{ length: MAX_CELLO_SEMITONE + 1 },
-		(_, idx) => idx,
-	);
-
-	// Strings rendered top-to-bottom from highest pitch (I: A3) to lowest (IV: C2)
-	const visualRows = [3, 2, 1, 0];
 
 	return (
 		<div className="cello-panel">
@@ -168,7 +122,7 @@ export function CelloFingerboard({
 				<div className="cello-controls-group">
 					<button
 						type="button"
-						className="secondary-btn cello-roll-btn"
+						className="pill-action-btn cello-roll-btn"
 						disabled={!activeVoicing}
 						onClick={() => activeVoicing && onRollVoicing(activeVoicing)}
 						aria-label={`Bow roll ${chordLabel} cello chord`}
@@ -181,27 +135,22 @@ export function CelloFingerboard({
 						role="group"
 						aria-label="Cello fingerboard overlay mode"
 					>
-						<button
-							type="button"
-							className={`seg-btn${overlayMode === "voicing" ? " is-active" : ""}`}
-							onClick={() => setOverlayMode("voicing")}
-						>
-							Voicing + Neck
-						</button>
-						<button
-							type="button"
-							className={`seg-btn${overlayMode === "all-tones" ? " is-active" : ""}`}
-							onClick={() => setOverlayMode("all-tones")}
-						>
-							All Positions
-						</button>
-						<button
-							type="button"
-							className={`seg-btn${overlayMode === "scale" ? " is-active" : ""}`}
-							onClick={() => setOverlayMode("scale")}
-						>
-							Key Scale
-						</button>
+						{(
+							[
+								["voicing", "Voicing + Neck"],
+								["all-tones", "All Positions"],
+								["scale", "Key Scale"],
+							] as const
+						).map(([modeKey, label]) => (
+							<button
+								key={modeKey}
+								type="button"
+								className={`seg-btn${overlayMode === modeKey ? " is-active" : ""}`}
+								onClick={() => setOverlayMode(modeKey)}
+							>
+								{label}
+							</button>
+						))}
 					</div>
 
 					<div
@@ -209,27 +158,22 @@ export function CelloFingerboard({
 						role="group"
 						aria-label="Cello marker label mode"
 					>
-						<button
-							type="button"
-							className={`seg-btn${labelMode === "notes" ? " is-active" : ""}`}
-							onClick={() => setLabelMode("notes")}
-						>
-							Notes
-						</button>
-						<button
-							type="button"
-							className={`seg-btn${labelMode === "intervals" ? " is-active" : ""}`}
-							onClick={() => setLabelMode("intervals")}
-						>
-							Intervals
-						</button>
-						<button
-							type="button"
-							className={`seg-btn${labelMode === "fingers" ? " is-active" : ""}`}
-							onClick={() => setLabelMode("fingers")}
-						>
-							Fingers
-						</button>
+						{(
+							[
+								["notes", "Notes"],
+								["intervals", "Intervals"],
+								["fingers", "Fingers"],
+							] as const
+						).map(([modeKey, label]) => (
+							<button
+								key={modeKey}
+								type="button"
+								className={`seg-btn${labelMode === modeKey ? " is-active" : ""}`}
+								onClick={() => setLabelMode(modeKey)}
+							>
+								{label}
+							</button>
+						))}
 					</div>
 				</div>
 			</div>
@@ -245,11 +189,11 @@ export function CelloFingerboard({
 						<button
 							key={voicing.id}
 							type="button"
-							className={`voicing-pill${isSelected ? " is-active" : ""}`}
+							className={`voicing-pill ${qualityClass}${isSelected ? " is-selected" : ""}`}
 							aria-pressed={isSelected}
 							onClick={() => onSelectVoicing(voicing)}
 						>
-							<span>{voicing.name}</span>
+							<span className="voicing-pill-name">{voicing.name}</span>
 							<span className="voicing-pill-meta">{voicing.positionLabel}</span>
 						</button>
 					);
@@ -263,7 +207,6 @@ export function CelloFingerboard({
 					role="img"
 					aria-label={`Fretless cello fingerboard showing ${chordLabel} (${activeVoicing?.name ?? "notes"})`}
 				>
-					{/* Smooth ebony fretless fingerboard from nut to semitone 14 */}
 					<rect
 						x={NUT_X}
 						y={TOP_PAD - 20}
@@ -273,22 +216,15 @@ export function CelloFingerboard({
 						className="fretboard-neck"
 					/>
 
-					{/* Highlighted closed 4-semitone left-hand frame */}
 					{activeVoicing && activeVoicing.handBaseSemitone > 0 && (
 						<g>
 							<rect
-								x={
-									NUT_X +
-									(activeVoicing.handBaseSemitone - 1) * SEMI_STEP +
-									3
-								}
+								x={NUT_X + (activeVoicing.handBaseSemitone - 1) * SEMI_STEP + 3}
 								y={TOP_PAD - 16}
 								width={
 									Math.min(
 										4,
-										MAX_CELLO_SEMITONE -
-											activeVoicing.handBaseSemitone +
-											1,
+										MAX_CELLO_SEMITONE - activeVoicing.handBaseSemitone + 1,
 									) *
 										SEMI_STEP -
 									6
@@ -298,11 +234,7 @@ export function CelloFingerboard({
 								className="cello-hand-frame"
 							/>
 							<text
-								x={
-									NUT_X +
-									(activeVoicing.handBaseSemitone - 1) * SEMI_STEP +
-									9
-								}
+								x={NUT_X + (activeVoicing.handBaseSemitone - 1) * SEMI_STEP + 9}
 								y={SVG_HEIGHT - 8}
 								className="cello-frame-caption"
 							>
@@ -311,21 +243,23 @@ export function CelloFingerboard({
 						</g>
 					)}
 
-					{/* Semitone numbers & subtle dashed intonation guides (no frets) */}
-					{semitones.map((semi) => {
+					{SEMITONES.map((semi) => {
 						const centerX = semitoneX(semi);
 						const dividerX = NUT_X + semi * SEMI_STEP;
 						const isGuide = INTONATION_GUIDE_SEMITONES.has(semi);
-						const isHarmonic = HARMONIC_DOT_SEMITONES.has(semi);
 
 						return (
 							<g key={`semi-${semi}`}>
-								{semi === 0 && (
-									<text x={OPEN_COL_X} y={17} textAnchor="middle" className="cello-semi-label is-guide">
+								{semi === 0 ? (
+									<text
+										x={OPEN_COL_X}
+										y={17}
+										textAnchor="middle"
+										className="cello-semi-label is-guide"
+									>
 										Open
 									</text>
-								)}
-								{semi > 0 && (
+								) : (
 									<>
 										<line
 											x1={dividerX}
@@ -350,7 +284,7 @@ export function CelloFingerboard({
 										</text>
 									</>
 								)}
-								{isHarmonic && (
+								{HARMONIC_DOT_SEMITONES.has(semi) && (
 									<circle
 										cx={centerX}
 										cy={TOP_PAD + ROW_STEP * 1.5}
@@ -362,7 +296,6 @@ export function CelloFingerboard({
 						);
 					})}
 
-					{/* Bone/ebony nut at semitone 0 boundary */}
 					<rect
 						x={NUT_X - 3}
 						y={TOP_PAD - 20}
@@ -372,8 +305,7 @@ export function CelloFingerboard({
 						className="fret-nut"
 					/>
 
-					{/* Strings (top = I A3, bottom = IV C2) + clickable fingerboard stops */}
-					{visualRows.map((stringIndex, visualIdx) => {
+					{VISUAL_ROWS.map((stringIndex, visualIdx) => {
 						const info = CELLO_TUNING[stringIndex];
 						const y = TOP_PAD + visualIdx * ROW_STEP;
 						const strokeWidth = 1.4 + (3 - stringIndex) * 0.48;
@@ -382,11 +314,7 @@ export function CelloFingerboard({
 
 						return (
 							<g key={`string-${info.stringNumber}`}>
-								<text
-									x={16}
-									y={y + 4}
-									className="cello-string-label"
-								>
+								<text x={16} y={y + 4} className="cello-string-label">
 									{STRING_OCTAVE_LABELS[stringIndex]}
 								</text>
 
@@ -399,7 +327,6 @@ export function CelloFingerboard({
 									className="guitar-string-line"
 								/>
 
-								{/* Open-string status indicator when string is skipped */}
 								{isUnplayed && (
 									<text
 										x={OPEN_COL_X - 20}
@@ -411,27 +338,21 @@ export function CelloFingerboard({
 									</text>
 								)}
 
-								{semitones.map((semi) => {
+								{SEMITONES.map((semi) => {
 									const x = semitoneX(semi);
 									const midi = info.openMidi + semi;
 									const pc = mod12(info.openPc + semi);
 									const isRoot = pc === rootPc;
 									const isChordTone = chordPcSet.has(pc);
-									const isScaleTone = scalePcMap.has(pc);
-									const isActiveStop =
-										activeForString !== undefined &&
-										activeForString.semitone === semi;
+									const isScaleTone = scalePcSet.has(pc);
+									const isActiveStop = activeForString?.semitone === semi;
 
-									const chordSpell = resolveChordNote(pc);
-									const scaleSpell = scalePcMap.get(pc) ?? chordSpell;
-									const displayNote = isChordTone ? chordSpell : scaleSpell;
+									const displayNote = resolveNoteName(pc);
 									const interval =
 										getIntervalLabel(rootPc, pc, resolvedKind) ?? "";
 
 									const showSingleNoteHighlight =
-										!activeVoicing &&
-										overlayMode === "voicing" &&
-										isChordTone;
+										!activeVoicing && overlayMode === "voicing" && isChordTone;
 									const showGhostChord =
 										!isActiveStop &&
 										(showSingleNoteHighlight ||
@@ -454,6 +375,11 @@ export function CelloFingerboard({
 										}
 									}
 
+									const secondaryText =
+										labelMode === "intervals" && interval
+											? interval
+											: displayNote;
+
 									return (
 										<g
 											key={`cell-${stringIndex}-${semi}`}
@@ -464,7 +390,11 @@ export function CelloFingerboard({
 												semi === 0 ? "open" : `semitone ${semi}`
 											}, note ${displayNote}${interval ? ` (${interval})` : ""}`}
 											onClick={() => onPlayNote(midi, displayNote)}
-											onKeyDown={(e) => handleCellKeyDown(e, midi, displayNote)}
+											onKeyDown={(e) =>
+												handleSvgButtonKeyDown(e, () =>
+													onPlayNote(midi, displayNote),
+												)
+											}
 										>
 											<rect
 												x={semi === 0 ? OPEN_COL_X - 18 : x - SEMI_STEP / 2}
@@ -475,9 +405,7 @@ export function CelloFingerboard({
 											/>
 
 											{showGhostChord && (
-												<g
-													className={`fret-dot-ghost ${getQualityClass(chordQuality)}`}
-												>
+												<g className={`fret-dot-ghost ${qualityClass}`}>
 													<circle
 														cx={x}
 														cy={y}
@@ -490,17 +418,13 @@ export function CelloFingerboard({
 														textAnchor="middle"
 														className="fret-dot-ghost-text"
 													>
-														{labelMode === "intervals" && interval
-															? interval
-															: displayNote}
+														{secondaryText}
 													</text>
 												</g>
 											)}
 
 											{showScaleDot && (
-												<g
-													className={`fret-dot-scale ${getQualityClass(chordQuality)}`}
-												>
+												<g className={`fret-dot-scale ${qualityClass}`}>
 													<circle
 														cx={x}
 														cy={y}
@@ -521,17 +445,13 @@ export function CelloFingerboard({
 																: "fret-dot-scale-text"
 														}
 													>
-														{labelMode === "intervals" && interval
-															? interval
-															: displayNote}
+														{secondaryText}
 													</text>
 												</g>
 											)}
 
 											{isActiveStop && (
-												<g
-													className={`fret-dot-primary ${getQualityClass(chordQuality)}`}
-												>
+												<g className={`fret-dot-primary ${qualityClass}`}>
 													<circle
 														cx={x}
 														cy={y}
@@ -570,8 +490,7 @@ export function CelloFingerboard({
 					</div>
 					<div className="cello-breakdown-strings">
 						{activeVoicing.notes.map((vn) => {
-							const isRoot =
-								vn.pc !== null && vn.pc === rootPc;
+							const isRoot = vn.pc !== null && vn.pc === rootPc;
 							return (
 								<div
 									key={`bd-${vn.stringIndex}`}
