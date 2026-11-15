@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+	getDefaultChordSpread,
 	midiToFrequency,
 	playChordNotes,
 	playSingleNote,
+	stopAllAudio,
 	synthesizeGuitarPluckSamples,
 } from "../src/react-app/audio/synth";
 
@@ -11,7 +13,6 @@ function detectFundamentalAutocorrelation(
 	sampleRate: number,
 	expectedFreq: number,
 ): number {
-	// Skip initial attack transient (first 40ms) where pluck noise dominates
 	const startIdx = Math.floor(sampleRate * 0.04);
 	const windowLen = Math.min(samples.length - startIdx - 1200, 4096);
 	const expectedLag = Math.round(sampleRate / expectedFreq);
@@ -50,7 +51,7 @@ describe("instrument synthesis engine", () => {
 
 	test("Karplus-Strong guitar pluck maintains exact tuning across E2–E5 and decays cleanly", () => {
 		const sampleRate = 48000;
-		const guitarMidiNotes = [40, 45, 50, 55, 59, 64, 76]; // E2 A2 D3 G3 B3 E4 E5
+		const guitarMidiNotes = [40, 45, 50, 55, 59, 64, 76];
 
 		for (const midi of guitarMidiNotes) {
 			const freq = midiToFrequency(midi);
@@ -66,7 +67,6 @@ describe("instrument synthesis engine", () => {
 			expect(maxAbs).toBeGreaterThan(0.2);
 			expect(maxAbs).toBeLessThanOrEqual(1.0);
 
-			// Attack energy should be substantially louder than tail decay
 			let earlyRms = 0;
 			let tailRms = 0;
 			const chunk = 2400;
@@ -81,24 +81,29 @@ describe("instrument synthesis engine", () => {
 				Math.sqrt(tailRms / chunk) * 2,
 			);
 
-			// Detected pitch matches target frequency within 1.5% (well within discrete lag rounding)
 			const detectedFreq = detectFundamentalAutocorrelation(
 				samples,
 				sampleRate,
 				freq,
 			);
-			const relError = Math.abs(detectedFreq - freq) / freq;
-			expect(relError).toBeLessThan(0.015);
+			expect(Math.abs(detectedFreq - freq) / freq).toBeLessThan(0.015);
 		}
 	});
 
-	test("playback helpers safely no-op outside browser environments for all presets", () => {
+	test("playback helpers safely handle presets, invalid MIDI, and stopAllAudio outside browser", () => {
+		expect(getDefaultChordSpread("guitar")).toBe(0.038);
+		expect(getDefaultChordSpread("cello")).toBe(0.058);
+		expect(getDefaultChordSpread("piano")).toBe(0.01);
+
 		const presets = ["piano", "guitar", "cello", "pad", "muted"] as const;
 		for (const preset of presets) {
 			expect(() => playSingleNote(60, preset, 0.5)).not.toThrow();
+			expect(() => playSingleNote(-5, preset, 0.5)).not.toThrow();
+			expect(() => playSingleNote(999, preset, 0.5)).not.toThrow();
 			expect(() =>
-				playChordNotes([48, 52, 55], { preset, duration: 0.8 }),
+				playChordNotes([48, 52, 55, Number.NaN, 200], { preset, duration: 0.8 }),
 			).not.toThrow();
 		}
+		expect(() => stopAllAudio()).not.toThrow();
 	});
 });
