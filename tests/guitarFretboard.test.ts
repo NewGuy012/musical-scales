@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { mod12, noteToPitchClass } from "../src/react-app/theory/circleOfFifths";
+import {
+	mod12,
+	noteToPitchClass,
+} from "../src/react-app/theory/circleOfFifths";
 import {
 	GuitarChordKind,
 	MAX_GUITAR_FRET,
@@ -7,7 +10,21 @@ import {
 } from "../src/react-app/theory/guitarFretboard";
 
 const ALL_ROOTS = [
-	"C", "C♯", "D♭", "D", "E♭", "E", "F", "F♯", "G♭", "G", "A♭", "A", "B♭", "B", "C♭",
+	"C",
+	"C♯",
+	"D♭",
+	"D",
+	"E♭",
+	"E",
+	"F",
+	"F♯",
+	"G♭",
+	"G",
+	"A♭",
+	"A",
+	"B♭",
+	"B",
+	"C♭",
 ] as const;
 
 const CHORD_SPECS: Record<GuitarChordKind, number[]> = {
@@ -29,7 +46,12 @@ describe("Guitar fretboard chord voicing generator", () => {
 				number[],
 			][]) {
 				const allowedPcs = new Set(intervals.map((i) => mod12(rootPc + i)));
-				const voicings = getGuitarVoicings(root, kind, [root], root.includes("♭"));
+				const voicings = getGuitarVoicings(
+					root,
+					kind,
+					[root],
+					root.includes("♭"),
+				);
 				expect(voicings.length).toBeGreaterThanOrEqual(3);
 
 				for (const v of voicings) {
@@ -50,16 +72,20 @@ describe("Guitar fretboard chord voicing generator", () => {
 					expect(v.notes.find((n) => n.fret >= 0)?.pc).toBe(rootPc);
 
 					if (intervals.length === 3) {
-						for (const reqPc of allowedPcs) expect(presentPcs.has(reqPc)).toBe(true);
+						for (const reqPc of allowedPcs)
+							expect(presentPcs.has(reqPc)).toBe(true);
 					} else {
 						expect(presentPcs.has(mod12(rootPc + intervals[1]))).toBe(true);
 						expect(presentPcs.has(mod12(rootPc + intervals[3]))).toBe(true);
-						if (kind === "m7♭5") expect(presentPcs.has(mod12(rootPc + 6))).toBe(true);
+						if (kind === "m7♭5")
+							expect(presentPcs.has(mod12(rootPc + 6))).toBe(true);
 					}
 
 					const fretted = v.frets.filter((f) => f > 0);
 					if (fretted.length > 0) {
-						expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(4);
+						expect(
+							Math.max(...fretted) - Math.min(...fretted),
+						).toBeLessThanOrEqual(4);
 					}
 				}
 			}
@@ -70,8 +96,14 @@ describe("Guitar fretboard chord voicing generator", () => {
 		const cMaj = getGuitarVoicings("C", "major", ["C", "E", "G"], false);
 		expect(cMaj[0].name).toBe("Open C");
 		expect(cMaj[0].frets).toEqual([-1, 3, 2, 0, 1, 0]);
-		expect(cMaj.some((v) => v.name === "A-Shape Barre" && v.baseFret === 3)).toBe(true);
-		expect(cMaj.some((v) => v.name === "E-Shape Barre" && v.baseFret === 8)).toBe(true);
-		expect(cMaj.some((v) => v.name === "D-Shape Upper" && v.baseFret === 10)).toBe(true);
+		expect(
+			cMaj.some((v) => v.name === "A-Shape Barre" && v.baseFret === 3),
+		).toBe(true);
+		expect(
+			cMaj.some((v) => v.name === "E-Shape Barre" && v.baseFret === 8),
+		).toBe(true);
+		expect(
+			cMaj.some((v) => v.name === "D-Shape Upper" && v.baseFret === 10),
+		).toBe(true);
 	});
 });

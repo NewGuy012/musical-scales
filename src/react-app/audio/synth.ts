@@ -159,7 +159,10 @@ export function synthesizeGuitarPluckSamples(
 ): Float32Array {
 	const fs = Math.max(8000, sampleRate);
 	const clampedFreq = Math.max(40, Math.min(fs * 0.25, freq));
-	const numSamples = Math.max(256, Math.floor(fs * Math.max(0.1, totalSeconds)));
+	const numSamples = Math.max(
+		256,
+		Math.floor(fs * Math.max(0.1, totalSeconds)),
+	);
 	const out = new Float32Array(numSamples);
 
 	const normPitch = Math.max(
@@ -271,7 +274,11 @@ function getGuitarPluckBuffer(
 	const cached = guitarBufferCache.get(key);
 	if (cached) return cached;
 
-	const samples = synthesizeGuitarPluckSamples(freq, ctx.sampleRate, quantizedDur);
+	const samples = synthesizeGuitarPluckSamples(
+		freq,
+		ctx.sampleRate,
+		quantizedDur,
+	);
 	const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
 	buffer.getChannelData(0).set(samples);
 
@@ -378,7 +385,11 @@ function scheduleGuitarVoice(
 	const stopTime = startTime + duration + release;
 
 	const src = ctx.createBufferSource();
-	src.buffer = getGuitarPluckBuffer(ctx, freq, Math.max(duration + release, 1.95));
+	src.buffer = getGuitarPluckBuffer(
+		ctx,
+		freq,
+		Math.max(duration + release, 1.95),
+	);
 
 	const airRes = createFilter(ctx, "peaking", 96, 2.6, 4.8);
 	const topRes = createFilter(ctx, "peaking", 194, 2.4, 3.5);
@@ -436,7 +447,10 @@ function scheduleCelloVoice(
 	vibratoLfo.frequency.setValueAtTime(5.2, startTime);
 	const vibratoDepth = ctx.createGain();
 	vibratoDepth.gain.setValueAtTime(0, startTime);
-	vibratoDepth.gain.setValueAtTime(0, startTime + Math.min(0.13, duration * 0.35));
+	vibratoDepth.gain.setValueAtTime(
+		0,
+		startTime + Math.min(0.13, duration * 0.35),
+	);
 	vibratoDepth.gain.linearRampToValueAtTime(
 		isShort ? 3.5 : 11.5,
 		startTime + Math.min(0.42, Math.max(0.2, duration * 0.72)),
@@ -613,7 +627,14 @@ export function playChordNotes(
 	const spread = spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
 
 	validNotes.forEach((midi, idx) => {
-		scheduleVoice(engine, midi, now + idx * spread, duration, perNoteGain, preset);
+		scheduleVoice(
+			engine,
+			midi,
+			now + idx * spread,
+			duration,
+			perNoteGain,
+			preset,
+		);
 	});
 }
 

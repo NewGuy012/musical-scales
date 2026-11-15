@@ -72,8 +72,7 @@ export function App() {
 	const [soundMode, setSoundMode] = useState<"auto" | "pad" | "muted">("auto");
 	const [rotateToSelected, setRotateToSelected] = useState<boolean>(false);
 	const [theme, setTheme] = useState<"dark" | "light">("dark");
-	const [instrumentView, setInstrumentView] =
-		useState<InstrumentTab>("piano");
+	const [instrumentView, setInstrumentView] = useState<InstrumentTab>("piano");
 	const soundPreset: SoundPreset =
 		soundMode === "auto" ? instrumentView : soundMode;
 	const [selectedGuitarVoicingId, setSelectedGuitarVoicingId] = useState<
@@ -228,7 +227,12 @@ export function App() {
 			flatBias: boolean,
 		): { midi: number[]; spreadSec?: number } => {
 			if (instrumentView === "guitar" && guitarKind && notes.length >= 3) {
-				const voicings = getGuitarVoicings(notes[0], guitarKind, notes, flatBias);
+				const voicings = getGuitarVoicings(
+					notes[0],
+					guitarKind,
+					notes,
+					flatBias,
+				);
 				const chosen =
 					voicings.find((v) => v.id === selectedGuitarVoicingId) ?? voicings[0];
 				if (chosen) {
@@ -236,7 +240,12 @@ export function App() {
 				}
 			}
 			if (instrumentView === "cello" && guitarKind && notes.length >= 3) {
-				const voicings = getCelloVoicings(notes[0], guitarKind, notes, flatBias);
+				const voicings = getCelloVoicings(
+					notes[0],
+					guitarKind,
+					notes,
+					flatBias,
+				);
 				const chosen =
 					voicings.find((v) => v.id === selectedCelloVoicingId) ?? voicings[0];
 				if (chosen) {
@@ -256,7 +265,12 @@ export function App() {
 	const resolveDiatonicPlayback = useCallback(
 		(chord: DiatonicChord, flatBias: boolean) => {
 			const v = toChordVoicing(chord);
-			return resolvePlaybackForInstrument(v.notes, v.guitarKind, v.midi, flatBias);
+			return resolvePlaybackForInstrument(
+				v.notes,
+				v.guitarKind,
+				v.midi,
+				flatBias,
+			);
 		},
 		[toChordVoicing, resolvePlaybackForInstrument],
 	);
@@ -317,7 +331,10 @@ export function App() {
 	const handlePlayTonic = useCallback(() => {
 		stopActiveSequence();
 		setAuditionOverride(null);
-		const pb = resolveDiatonicPlayback(tonicChord, analysis.accidentalsCount < 0);
+		const pb = resolveDiatonicPlayback(
+			tonicChord,
+			analysis.accidentalsCount < 0,
+		);
 		playChordNotes(pb.midi, {
 			preset: soundPreset,
 			arpeggiate,
@@ -829,7 +846,11 @@ export function App() {
 					>
 						{(
 							[
-								["standard", "Standard", "Balanced standard spellings (B, F♯, D♭)"],
+								[
+									"standard",
+									"Standard",
+									"Balanced standard spellings (B, F♯, D♭)",
+								],
 								["sharps", "Sharps ♯", "Prefer sharp keys (B, F♯, C♯)"],
 								["flats", "Flats ♭", "Prefer flat keys (C♭, G♭, D♭)"],
 							] as const
@@ -967,9 +988,8 @@ export function App() {
 											}
 											title={title}
 										>
-											{relType}{" "}
-											{targetKey.mode === "major" ? "Major" : "Minor"}:{" "}
-											<strong>{targetKey.shortName}</strong>
+											{relType} {targetKey.mode === "major" ? "Major" : "Minor"}
+											: <strong>{targetKey.shortName}</strong>
 										</button>
 									))}
 								</div>

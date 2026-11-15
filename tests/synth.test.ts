@@ -101,7 +101,10 @@ describe("instrument synthesis engine", () => {
 			expect(() => playSingleNote(-5, preset, 0.5)).not.toThrow();
 			expect(() => playSingleNote(999, preset, 0.5)).not.toThrow();
 			expect(() =>
-				playChordNotes([48, 52, 55, Number.NaN, 200], { preset, duration: 0.8 }),
+				playChordNotes([48, 52, 55, Number.NaN, 200], {
+					preset,
+					duration: 0.8,
+				}),
 			).not.toThrow();
 		}
 		expect(() => stopAllAudio()).not.toThrow();

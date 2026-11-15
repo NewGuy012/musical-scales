@@ -28,8 +28,10 @@ export function ChordsPanel({
 	onPlayRootPairChord,
 }: ChordsPanelProps) {
 	const isSeventh = voicingMode === "seventh";
-	const getSymbol = (c: DiatonicChord) => (isSeventh ? c.seventhSymbol : c.symbol);
-	const getNotes = (c: DiatonicChord) => (isSeventh ? c.seventhNotes : c.triadNotes);
+	const getSymbol = (c: DiatonicChord) =>
+		isSeventh ? c.seventhSymbol : c.symbol;
+	const getNotes = (c: DiatonicChord) =>
+		isSeventh ? c.seventhNotes : c.triadNotes;
 
 	const renderChordCard = (chord: DiatonicChord, extraSuffix = "") => {
 		const id = getChordCardId(chord, extraSuffix);
@@ -111,7 +113,11 @@ export function ChordsPanel({
 				</div>
 
 				<div className="chord-toolbar">
-					<div className="segmented-control" role="group" aria-label="Chord extension">
+					<div
+						className="segmented-control"
+						role="group"
+						aria-label="Chord extension"
+					>
 						<button
 							type="button"
 							className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
@@ -172,7 +178,9 @@ export function ChordsPanel({
 					)}
 
 				<div className="root-pair-box">
-					<span className="extra-label">Root {analysis.root} Parallel Pair</span>
+					<span className="extra-label">
+						Root {analysis.root} Parallel Pair
+					</span>
 					<div className="root-pair-btns">
 						{(["major", "minor"] as const).map((kind) => {
 							const target = analysis.tonicPair[kind];

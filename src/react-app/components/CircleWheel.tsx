@@ -117,7 +117,12 @@ export function CircleWheel({
 		{
 			key: "fourth",
 			color: "var(--color-fourth)",
-			path: describeArcPath(244, activeCenterDeg - 5, activeCenterDeg - 27, false),
+			path: describeArcPath(
+				244,
+				activeCenterDeg - 5,
+				activeCenterDeg - 27,
+				false,
+			),
 			tip: polarToCartesian(244, activeCenterDeg - 29),
 			tipRot: activeCenterDeg - 29 + 180,
 			labelPos: polarToCartesian(262, activeCenterDeg - 16),
@@ -127,7 +132,12 @@ export function CircleWheel({
 		{
 			key: "fifth",
 			color: "var(--color-fifth)",
-			path: describeArcPath(244, activeCenterDeg + 5, activeCenterDeg + 27, true),
+			path: describeArcPath(
+				244,
+				activeCenterDeg + 5,
+				activeCenterDeg + 27,
+				true,
+			),
 			tip: polarToCartesian(244, activeCenterDeg + 29),
 			tipRot: activeCenterDeg + 29,
 			labelPos: polarToCartesian(262, activeCenterDeg + 16),
@@ -179,13 +189,7 @@ export function CircleWheel({
 							<stop offset="0%" stopColor="var(--hub-glow-start)" />
 							<stop offset="100%" stopColor="var(--hub-glow-end)" />
 						</radialGradient>
-						<filter
-							id="softGlow"
-							x="-25%"
-							y="-25%"
-							width="150%"
-							height="150%"
-						>
+						<filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
 							<feGaussianBlur stdDeviation="3.5" result="blur" />
 							<feMerge>
 								<feMergeNode in="blur" />
@@ -321,7 +325,9 @@ export function CircleWheel({
 												>
 													<g
 														className="label-counter-rotator"
-														style={{ transform: `rotate(${-wheelRotation}deg)` }}
+														style={{
+															transform: `rotate(${-wheelRotation}deg)`,
+														}}
 													>
 														<text
 															x="0"

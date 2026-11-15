@@ -6,13 +6,7 @@ import {
 } from "./circleOfFifths";
 
 export type GuitarChordKind =
-	| "major"
-	| "minor"
-	| "diminished"
-	| "maj7"
-	| "m7"
-	| "7"
-	| "m7♭5";
+	"major" | "minor" | "diminished" | "maj7" | "m7" | "7" | "m7♭5";
 
 export type FretTuple = [number, number, number, number, number, number];
 
@@ -55,11 +49,33 @@ export const STANDARD_TUNING: GuitarStringInfo[] = [
 export const MAX_GUITAR_FRET = 15;
 
 const SHARP_CHROMATIC = [
-	"C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B",
+	"C",
+	"C♯",
+	"D",
+	"D♯",
+	"E",
+	"F",
+	"F♯",
+	"G",
+	"G♯",
+	"A",
+	"A♯",
+	"B",
 ] as const;
 
 const FLAT_CHROMATIC = [
-	"C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B",
+	"C",
+	"D♭",
+	"D",
+	"E♭",
+	"E",
+	"F",
+	"G♭",
+	"G",
+	"A♭",
+	"A",
+	"B♭",
+	"B",
 ] as const;
 
 const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
@@ -258,8 +274,16 @@ export function getGuitarVoicings(
 			candidates.push(
 				["e-shape", "E-Shape Barre", offsetFrets([0, 2, 2, 1, 0, 0], f6)],
 				["a-shape", "A-Shape Barre", offsetFrets([-1, 0, 2, 2, 2, 0], f5)],
-				["c-shape", "C-Shape", offsetFrets([-1, 3, 2, 0, 1, 0], movableFret(rootPc, 0, 1))],
-				["g-shape", "G-Shape", offsetFrets([3, 2, 0, 0, 0, -1], movableFret(rootPc, 7, 1))],
+				[
+					"c-shape",
+					"C-Shape",
+					offsetFrets([-1, 3, 2, 0, 1, 0], movableFret(rootPc, 0, 1)),
+				],
+				[
+					"g-shape",
+					"G-Shape",
+					offsetFrets([3, 2, 0, 0, 0, -1], movableFret(rootPc, 7, 1)),
+				],
 				["d-shape", "D-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 2], f4)],
 			);
 			break;
@@ -267,8 +291,16 @@ export function getGuitarVoicings(
 			candidates.push(
 				["em-shape", "Em-Shape Barre", offsetFrets([0, 2, 2, 0, 0, 0], f6)],
 				["am-shape", "Am-Shape Barre", offsetFrets([-1, 0, 2, 2, 1, 0], f5)],
-				["cm-shape", "Cm-Shape", offsetFrets([-1, 3, 1, 0, 1, -1], mod12(rootPc))],
-				["gm-shape", "Gm-Shape", offsetFrets([3, 1, 0, 0, -1, -1], mod12(rootPc - 7))],
+				[
+					"cm-shape",
+					"Cm-Shape",
+					offsetFrets([-1, 3, 1, 0, 1, -1], mod12(rootPc)),
+				],
+				[
+					"gm-shape",
+					"Gm-Shape",
+					offsetFrets([3, 1, 0, 0, -1, -1], mod12(rootPc - 7)),
+				],
 				["dm-shape", "Dm-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 1], f4)],
 			);
 			break;
@@ -276,7 +308,11 @@ export function getGuitarVoicings(
 			candidates.push(
 				["e7-shape", "E7-Shape Barre", offsetFrets([0, 2, 0, 1, 0, 0], f6)],
 				["a7-shape", "A7-Shape Barre", offsetFrets([-1, 0, 2, 0, 2, 0], f5)],
-				["c7-shape", "C7-Shape", offsetFrets([-1, 3, 2, 3, 1, -1], movableFret(rootPc, 0, 1))],
+				[
+					"c7-shape",
+					"C7-Shape",
+					offsetFrets([-1, 3, 2, 3, 1, -1], movableFret(rootPc, 0, 1)),
+				],
 				["d7-shape", "D7-Shape Upper", offsetFrets([-1, -1, 0, 2, 1, 2], f4)],
 			);
 			break;
@@ -302,10 +338,18 @@ export function getGuitarVoicings(
 				["dim-4", "4th-Str Dim", offsetFrets([-1, -1, 0, 1, 3, 1], d4)],
 			);
 			if (d6 <= 2) {
-				candidates.push(["dim-6-hi", "6th-Str High", offsetFrets([0, 1, 2, 0, -1, -1], d6 + 12)]);
+				candidates.push([
+					"dim-6-hi",
+					"6th-Str High",
+					offsetFrets([0, 1, 2, 0, -1, -1], d6 + 12),
+				]);
 			}
 			if (d5 <= 2) {
-				candidates.push(["dim-5-hi", "5th-Str High", offsetFrets([-1, 0, 1, 2, 1, -1], d5 + 12)]);
+				candidates.push([
+					"dim-5-hi",
+					"5th-Str High",
+					offsetFrets([-1, 0, 1, 2, 1, -1], d5 + 12),
+				]);
 			}
 			break;
 		case "m7♭5":
@@ -315,7 +359,11 @@ export function getGuitarVoicings(
 				["halfdim-4", "4th-Str m7♭5", offsetFrets([-1, -1, 0, 1, 1, 1], d4)],
 			);
 			if (d5 <= 2) {
-				candidates.push(["halfdim-5-hi", "5th-Str High", offsetFrets([-1, 0, 1, 0, 1, -1], d5 + 12)]);
+				candidates.push([
+					"halfdim-5-hi",
+					"5th-Str High",
+					offsetFrets([-1, 0, 1, 0, 1, -1], d5 + 12),
+				]);
 			}
 			break;
 	}

@@ -9,7 +9,7 @@
 - **Frontend**: React 19, TypeScript, custom SVG visualizers, CSS variables (dark/light themes)
 - **Audio**: Native browser Web Audio API (zero external sample files)
 - **Edge Runtime**: Cloudflare Workers + Hono (`src/worker/index.ts`)
-- **Build & Tooling**: Vite 8, Wrangler, ESLint 10, Bun (`bun test`)
+- **Build & Tooling**: Vite 8, Wrangler, Bun (`bun test`, `bun check`, `bun fmt`)
 
 ---
 
@@ -17,6 +17,7 @@
 
 ```text
 musical-scales/
+├── dist/
 ├── docs/
 │   └── architecture.md              # Architecture documentation
 ├── public/
@@ -45,7 +46,8 @@ musical-scales/
 │   │       └── songExamples.ts      # Curated repertoire & playback event timeline flattener
 │   └── worker/
 │       └── index.ts                 # Hono API worker with security headers & 404 fallback
-└── tests/                           # Bun test suite (theory, voicings, audio DSP, SSR rendering)
+├── tests/                           # Bun test suite (theory, voicings, audio DSP, SSR rendering)
+└── bunfig.toml                      # Bun formatter configuration
 ```
 
 ---
@@ -102,7 +104,7 @@ flowchart TD
   - `getCelloVoicings()` generates playable 3- and 4-string double/triple/quadruple stops constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
 - **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)**:
-  - Stores instrument-specific repertoire (*Do-Re-Mi* for Piano, *Amazing Grace* for Guitar, *Bach Cello Suite No. 1 Prelude* for Cello) and flattens bar steps into timestamped playback schedules via `flattenSongPlaybackSteps()`.
+  - Stores instrument-specific repertoire (_Do-Re-Mi_ for Piano, _Amazing Grace_ for Guitar, _Bach Cello Suite No. 1 Prelude_ for Cello) and flattens bar steps into timestamped playback schedules via `flattenSongPlaybackSteps()`.
 
 ---
 
@@ -140,6 +142,7 @@ flowchart TD
 ### 5. Verification & Testing (`tests/`)
 
 Run via `bun test`:
+
 - **[`circleOfFifths.test.ts`](../tests/circleOfFifths.test.ts)**: Verifies enharmonic scale spelling, diatonic chord qualities, `6/7` shared-note neighbor invariants, and MIDI range bounds (`C4..B5`).
 - **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 7 chord qualities produce at least 3 ergonomic, harmonically complete voicings within hand-span limits.
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, and safe handling of invalid MIDI inputs.

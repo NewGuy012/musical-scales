@@ -136,15 +136,25 @@ export function getCelloVoicings(
 		case "major": {
 			const t3 = mod12(rootPc - 3);
 			candidates.push(
-				["root-4str", f4 === 0 ? "Open 4-Str" : "4-Str Root", [f4, f4, f4 + 2, f4 + 3]],
+				[
+					"root-4str",
+					f4 === 0 ? "Open 4-Str" : "4-Str Root",
+					[f4, f4, f4 + 2, f4 + 3],
+				],
 				...(f4 <= 2
-					? ([["root-4str-oct", "Upper 4-Str", [f4 + 12, f4 + 12, f4 + 14, f4 + 15]]] as [
-							string,
-							string,
-							CelloSemitoneTuple,
-						][])
+					? ([
+							[
+								"root-4str-oct",
+								"Upper 4-Str",
+								[f4 + 12, f4 + 12, f4 + 14, f4 + 15],
+							],
+						] as [string, string, CelloSemitoneTuple][])
 					: []),
-				["root-g3str", f3 === 0 ? "Open G-Str" : "Upper 3-Str", [-1, f3, f3, f3 + 2]],
+				[
+					"root-g3str",
+					f3 === 0 ? "Open G-Str" : "Upper 3-Str",
+					[-1, f3, f3, f3 + 2],
+				],
 				["root-c3str", "Low 3-Str", [f4, f4, f4 + 2, -1]],
 				["inv1-4str", "1st Inv (3rd Bass)", [t4, t4 + 1, t4 + 1, t4 + 3]],
 				["inv1-3str", "Upper 1st Inv", [-1, t3, t3 + 1, t3 + 1]],
@@ -153,8 +163,16 @@ export function getCelloVoicings(
 		}
 		case "minor":
 			candidates.push(
-				["root-4str", f4 === 0 ? "Open 4-Str" : "4-Str Root", [f4, f4, f4 + 1, f4 + 3]],
-				["root-g3str", f3 === 0 ? "Open G-Str" : "Upper 3-Str", [-1, f3, f3, f3 + 1]],
+				[
+					"root-4str",
+					f4 === 0 ? "Open 4-Str" : "4-Str Root",
+					[f4, f4, f4 + 1, f4 + 3],
+				],
+				[
+					"root-g3str",
+					f3 === 0 ? "Open G-Str" : "Upper 3-Str",
+					[-1, f3, f3, f3 + 1],
+				],
 				["root-c3str", "Low 3-Str", [f4, f4, f4 + 1, -1]],
 				["inv1-4str", "1st Inv (♭3 Bass)", [m4, m4 + 2, m4 + 2, m4 + 3]],
 				["inv1-3str", "Upper 1st Inv", [-1, m3, m3 + 2, m3 + 2]],
@@ -165,7 +183,11 @@ export function getCelloVoicings(
 			const t4Pos = t4 < 1 ? t4 + 12 : t4;
 			const g7Pos = t4 < 2 ? t4 + 12 : t4;
 			candidates.push(
-				["root-4str-maj7", f4 === 0 ? "Open Maj7" : "4-Str Root", [f4, f4, f4 + 2, f4 + 2]],
+				[
+					"root-4str-maj7",
+					f4 === 0 ? "Open Maj7" : "4-Str Root",
+					[f4, f4, f4 + 2, f4 + 2],
+				],
 				["jazz-maj7", "Close R-3-7-5", [j4, j4 - 3, j4 - 3, j4 - 2]],
 				...(f3 === 0
 					? ([["open-g-maj7", "Open G Maj7", [-1, 0, 4, 2]]] as [
@@ -181,14 +203,22 @@ export function getCelloVoicings(
 		}
 		case "7":
 			candidates.push(
-				["root-4str-7", f4 === 0 ? "Open Dom7" : "4-Str Root", [f4, f4, f4 + 2, f4 + 1]],
+				[
+					"root-4str-7",
+					f4 === 0 ? "Open Dom7" : "4-Str Root",
+					[f4, f4, f4 + 2, f4 + 1],
+				],
 				["inv2-dom7", "5th-Bass Dom7", [s4Pos, s4Pos - 2, s4Pos + 1, s4Pos]],
 				["shell-g-7", "Upper Shell (R-♭7-3)", [-1, f3, f3 + 3, f3 + 2]],
 			);
 			break;
 		case "m7":
 			candidates.push(
-				["root-4str-m7", f4 === 0 ? "Open m7" : "4-Str Root", [f4, f4, f4 + 1, f4 + 1]],
+				[
+					"root-4str-m7",
+					f4 === 0 ? "Open m7" : "4-Str Root",
+					[f4, f4, f4 + 1, f4 + 1],
+				],
 				["inv2-m7", "5th-Bass m7", [s4Pos, s4Pos - 2, s4Pos + 1, s4Pos - 1]],
 				["shell-g-m7", "Upper Shell (R-♭7-♭3)", [-1, f3, f3 + 3, f3 + 1]],
 			);
@@ -225,7 +255,14 @@ export function getCelloVoicings(
 	for (const [id, name, semitones] of candidates) {
 		const key = semitones.join(",");
 		if (seen.has(key)) continue;
-		const voicing = buildCelloVoicing(id, name, semitones, rootPc, kind, resolveName);
+		const voicing = buildCelloVoicing(
+			id,
+			name,
+			semitones,
+			rootPc,
+			kind,
+			resolveName,
+		);
 		if (voicing) {
 			seen.add(key);
 			built.push(voicing);

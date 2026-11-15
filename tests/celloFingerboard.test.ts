@@ -31,7 +31,21 @@ const REQUIRED_INTERVALS: Record<GuitarChordKind, number[]> = {
 };
 
 const ALL_ROOTS = [
-	"C", "G", "D", "A", "E", "B", "F♯", "C♯", "F", "B♭", "E♭", "A♭", "D♭", "G♭", "C♭",
+	"C",
+	"G",
+	"D",
+	"A",
+	"E",
+	"B",
+	"F♯",
+	"C♯",
+	"F",
+	"B♭",
+	"E♭",
+	"A♭",
+	"D♭",
+	"G♭",
+	"C♭",
 ] as const;
 
 describe("celloFingerboard", () => {

@@ -140,30 +140,132 @@ export const FLAT_ORDER = ["B♭", "E♭", "A♭", "D♭", "G♭", "C♭", "F♭
 const CIRCLE_DEGREE_OFFSETS = [0, 11, 1, 11, 1, 0, 5] as const;
 
 export const CIRCLE_SLOTS: CircleSlot[] = [
-	{ index: 0, primary: { majorRoot: "C", minorRoot: "A", accidentalsCount: 0, side: "neutral" } },
-	{ index: 1, primary: { majorRoot: "G", minorRoot: "E", accidentalsCount: 1, side: "sharp" } },
-	{ index: 2, primary: { majorRoot: "D", minorRoot: "B", accidentalsCount: 2, side: "sharp" } },
-	{ index: 3, primary: { majorRoot: "A", minorRoot: "F♯", accidentalsCount: 3, side: "sharp" } },
-	{ index: 4, primary: { majorRoot: "E", minorRoot: "C♯", accidentalsCount: 4, side: "sharp" } },
+	{
+		index: 0,
+		primary: {
+			majorRoot: "C",
+			minorRoot: "A",
+			accidentalsCount: 0,
+			side: "neutral",
+		},
+	},
+	{
+		index: 1,
+		primary: {
+			majorRoot: "G",
+			minorRoot: "E",
+			accidentalsCount: 1,
+			side: "sharp",
+		},
+	},
+	{
+		index: 2,
+		primary: {
+			majorRoot: "D",
+			minorRoot: "B",
+			accidentalsCount: 2,
+			side: "sharp",
+		},
+	},
+	{
+		index: 3,
+		primary: {
+			majorRoot: "A",
+			minorRoot: "F♯",
+			accidentalsCount: 3,
+			side: "sharp",
+		},
+	},
+	{
+		index: 4,
+		primary: {
+			majorRoot: "E",
+			minorRoot: "C♯",
+			accidentalsCount: 4,
+			side: "sharp",
+		},
+	},
 	{
 		index: 5,
-		primary: { majorRoot: "B", minorRoot: "G♯", accidentalsCount: 5, side: "sharp" },
-		enharmonic: { majorRoot: "C♭", minorRoot: "A♭", accidentalsCount: -7, side: "flat" },
+		primary: {
+			majorRoot: "B",
+			minorRoot: "G♯",
+			accidentalsCount: 5,
+			side: "sharp",
+		},
+		enharmonic: {
+			majorRoot: "C♭",
+			minorRoot: "A♭",
+			accidentalsCount: -7,
+			side: "flat",
+		},
 	},
 	{
 		index: 6,
-		primary: { majorRoot: "F♯", minorRoot: "D♯", accidentalsCount: 6, side: "sharp" },
-		enharmonic: { majorRoot: "G♭", minorRoot: "E♭", accidentalsCount: -6, side: "flat" },
+		primary: {
+			majorRoot: "F♯",
+			minorRoot: "D♯",
+			accidentalsCount: 6,
+			side: "sharp",
+		},
+		enharmonic: {
+			majorRoot: "G♭",
+			minorRoot: "E♭",
+			accidentalsCount: -6,
+			side: "flat",
+		},
 	},
 	{
 		index: 7,
-		primary: { majorRoot: "D♭", minorRoot: "B♭", accidentalsCount: -5, side: "flat" },
-		enharmonic: { majorRoot: "C♯", minorRoot: "A♯", accidentalsCount: 7, side: "sharp" },
+		primary: {
+			majorRoot: "D♭",
+			minorRoot: "B♭",
+			accidentalsCount: -5,
+			side: "flat",
+		},
+		enharmonic: {
+			majorRoot: "C♯",
+			minorRoot: "A♯",
+			accidentalsCount: 7,
+			side: "sharp",
+		},
 	},
-	{ index: 8, primary: { majorRoot: "A♭", minorRoot: "F", accidentalsCount: -4, side: "flat" } },
-	{ index: 9, primary: { majorRoot: "E♭", minorRoot: "C", accidentalsCount: -3, side: "flat" } },
-	{ index: 10, primary: { majorRoot: "B♭", minorRoot: "G", accidentalsCount: -2, side: "flat" } },
-	{ index: 11, primary: { majorRoot: "F", minorRoot: "D", accidentalsCount: -1, side: "flat" } },
+	{
+		index: 8,
+		primary: {
+			majorRoot: "A♭",
+			minorRoot: "F",
+			accidentalsCount: -4,
+			side: "flat",
+		},
+	},
+	{
+		index: 9,
+		primary: {
+			majorRoot: "E♭",
+			minorRoot: "C",
+			accidentalsCount: -3,
+			side: "flat",
+		},
+	},
+	{
+		index: 10,
+		primary: {
+			majorRoot: "B♭",
+			minorRoot: "G",
+			accidentalsCount: -2,
+			side: "flat",
+		},
+	},
+	{
+		index: 11,
+		primary: {
+			majorRoot: "F",
+			minorRoot: "D",
+			accidentalsCount: -1,
+			side: "flat",
+		},
+	},
 ];
 
 const MAJOR_PROGRESSIONS: ChordProgression[] = [
@@ -171,28 +273,32 @@ const MAJOR_PROGRESSIONS: ChordProgression[] = [
 		id: "maj-1451",
 		name: "I – IV – V – I",
 		label: "Classic Fifths & Fourths",
-		description: "Moves counter-clockwise to the 4th, clockwise to the 5th, and resolves home.",
+		description:
+			"Moves counter-clockwise to the 4th, clockwise to the 5th, and resolves home.",
 		degrees: [1, 4, 5, 1],
 	},
 	{
 		id: "maj-1564",
 		name: "I – V – vi – IV",
 		label: "Pop Anthem Loop",
-		description: "Alternates between major tonic/dominant/subdominant and the relative minor.",
+		description:
+			"Alternates between major tonic/dominant/subdominant and the relative minor.",
 		degrees: [1, 5, 6, 4],
 	},
 	{
 		id: "maj-251",
 		name: "ii – V – I",
 		label: "Jazz Circle Cadence",
-		description: "Walks clockwise by fifths from the minor ii through V back to I.",
+		description:
+			"Walks clockwise by fifths from the minor ii through V back to I.",
 		degrees: [2, 5, 1],
 	},
 	{
 		id: "maj-1645",
 		name: "I – vi – IV – V",
 		label: "50s Progression",
-		description: "Drops to the relative minor before climbing through IV and V.",
+		description:
+			"Drops to the relative minor before climbing through IV and V.",
 		degrees: [1, 6, 4, 5],
 	},
 ];
@@ -202,14 +308,16 @@ const MINOR_PROGRESSIONS: ChordProgression[] = [
 		id: "min-1451",
 		name: "i – iv – v – i",
 		label: "Natural Minor Cadence",
-		description: "Explores the minor 4th and minor 5th neighbors around the tonic minor.",
+		description:
+			"Explores the minor 4th and minor 5th neighbors around the tonic minor.",
 		degrees: [1, 4, 5, 1],
 	},
 	{
 		id: "min-1637",
 		name: "i – VI – III – VII",
 		label: "Epic Minor Loop",
-		description: "Weaves between minor tonic and the three bright relative major chords.",
+		description:
+			"Weaves between minor tonic and the three bright relative major chords.",
 		degrees: [1, 6, 3, 7],
 	},
 	{
@@ -223,7 +331,8 @@ const MINOR_PROGRESSIONS: ChordProgression[] = [
 		id: "min-251",
 		name: "ii° – V – i",
 		label: "Harmonic Minor Cadence",
-		description: "Uses the diminished ii° and raised major V to pull strongly back to i.",
+		description:
+			"Uses the diminished ii° and raised major V to pull strongly back to i.",
 		degrees: [2, -5, 1],
 	},
 ];
@@ -242,7 +351,15 @@ const MODE_SPECS: Record<
 	major: {
 		intervals: [0, 2, 4, 5, 7, 9, 11],
 		romans: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-		qualities: ["major", "minor", "minor", "major", "major", "minor", "diminished"],
+		qualities: [
+			"major",
+			"minor",
+			"minor",
+			"major",
+			"major",
+			"minor",
+			"diminished",
+		],
 		seventhSuffixes: ["maj7", "m7", "m7", "maj7", "7", "m7", "m7♭5"],
 		functions: [
 			"Tonic",
@@ -258,7 +375,15 @@ const MODE_SPECS: Record<
 	minor: {
 		intervals: [0, 2, 3, 5, 7, 8, 10],
 		romans: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-		qualities: ["minor", "diminished", "major", "minor", "minor", "major", "major"],
+		qualities: [
+			"minor",
+			"diminished",
+			"major",
+			"minor",
+			"minor",
+			"major",
+			"major",
+		],
 		seventhSuffixes: ["m7", "m7♭5", "maj7", "m7", "m7", "maj7", "7"],
 		functions: [
 			"Tonic",
@@ -445,13 +570,21 @@ function buildDiatonicChord(
 		triadNotes,
 		seventhNotes,
 		triadMidi: ascendingNotesToMidi(triadNotes) as [number, number, number],
-		seventhMidi: ascendingNotesToMidi(seventhNotes) as [number, number, number, number],
+		seventhMidi: ascendingNotesToMidi(seventhNotes) as [
+			number,
+			number,
+			number,
+			number,
+		],
 		circleIndex: mod12(slotIndex + CIRCLE_DEGREE_OFFSETS[degreeIndex]),
 		functionLabel: spec.functions[degreeIndex],
 	};
 }
 
-function buildHarmonicMinorV(scaleNotes: string[], slotIndex: number): DiatonicChord {
+function buildHarmonicMinorV(
+	scaleNotes: string[],
+	slotIndex: number,
+): DiatonicChord {
 	const root = scaleNotes[4];
 	const triadNotes: [string, string, string] = [
 		root,
@@ -473,7 +606,12 @@ function buildHarmonicMinorV(scaleNotes: string[], slotIndex: number): DiatonicC
 		triadNotes,
 		seventhNotes,
 		triadMidi: ascendingNotesToMidi(triadNotes) as [number, number, number],
-		seventhMidi: ascendingNotesToMidi(seventhNotes) as [number, number, number, number],
+		seventhMidi: ascendingNotesToMidi(seventhNotes) as [
+			number,
+			number,
+			number,
+			number,
+		],
 		circleIndex: mod12(slotIndex + 1),
 		functionLabel: "Harmonic Dominant · 5th",
 	};
@@ -481,7 +619,9 @@ function buildHarmonicMinorV(scaleNotes: string[], slotIndex: number): DiatonicC
 
 function getAllSlotVariants(mode: KeyMode) {
 	return CIRCLE_SLOTS.flatMap((slot) => {
-		const variants = slot.enharmonic ? [slot.primary, slot.enharmonic] : [slot.primary];
+		const variants = slot.enharmonic
+			? [slot.primary, slot.enharmonic]
+			: [slot.primary];
 		return variants.map((variant) => ({
 			slotIndex: slot.index,
 			variant,
@@ -520,9 +660,15 @@ function computeNeighborInfo(
 
 	const delta = targetVariant.accidentalsCount - currentAccCount;
 	let signatureDeltaLabel: string;
-	if (currentAccCount >= 0 && targetVariant.accidentalsCount > currentAccCount) {
+	if (
+		currentAccCount >= 0 &&
+		targetVariant.accidentalsCount > currentAccCount
+	) {
 		signatureDeltaLabel = `+${delta}♯`;
-	} else if (currentAccCount <= 0 && targetVariant.accidentalsCount < currentAccCount) {
+	} else if (
+		currentAccCount <= 0 &&
+		targetVariant.accidentalsCount < currentAccCount
+	) {
 		signatureDeltaLabel = `+${Math.abs(delta)}♭`;
 	} else if (delta === 1) {
 		signatureDeltaLabel = "-1♭";
@@ -652,7 +798,8 @@ export function analyzeKey(
 						: undefined,
 			},
 			minor: {
-				symbol: mode === "major" && !exactParallel ? `${parallelRoot}m` : `${root}m`,
+				symbol:
+					mode === "major" && !exactParallel ? `${parallelRoot}m` : `${root}m`,
 				notes: cleanMinorNotes,
 				midi: ascendingNotesToMidi(cleanMinorNotes) as [number, number, number],
 				noteLabel:

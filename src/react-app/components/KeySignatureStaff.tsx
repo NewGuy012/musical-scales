@@ -41,14 +41,7 @@ export function KeySignatureStaff({
 				}
 			>
 				{STAFF_LINES.map((y) => (
-					<line
-						key={y}
-						x1="6"
-						y1={y}
-						x2="126"
-						y2={y}
-						className="staff-line"
-					/>
+					<line key={y} x1="6" y1={y} x2="126" y2={y} className="staff-line" />
 				))}
 
 				{/* Crisp vector Treble (G) Clef centered on the G4 line (y=32) */}

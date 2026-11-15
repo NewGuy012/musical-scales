@@ -41,7 +41,10 @@ const STRING_SUBSCRIPTS = ["IV · C", "III · G", "II · D", "I · A"] as const;
 const STRING_OCTAVE_LABELS = ["C2", "G2", "D3", "A3"] as const;
 const INTONATION_GUIDE_SEMITONES = new Set([2, 4, 5, 7, 9, 12]);
 const HARMONIC_DOT_SEMITONES = new Set([5, 7, 12]);
-const SEMITONES = Array.from({ length: MAX_CELLO_SEMITONE + 1 }, (_, idx) => idx);
+const SEMITONES = Array.from(
+	{ length: MAX_CELLO_SEMITONE + 1 },
+	(_, idx) => idx,
+);
 const VISUAL_ROWS = [3, 2, 1, 0] as const;
 
 const SVG_WIDTH = 900;
@@ -277,7 +280,9 @@ export function CelloFingerboard({
 											y={17}
 											textAnchor="middle"
 											className={
-												isGuide ? "cello-semi-label is-guide" : "cello-semi-label"
+												isGuide
+													? "cello-semi-label is-guide"
+													: "cello-semi-label"
 											}
 										>
 											{semi}
@@ -484,8 +489,8 @@ export function CelloFingerboard({
 							Hand placement &amp; string breakdown (Strings IV → I)
 						</span>
 						<span className="cello-breakdown-hint">
-							Click any string position above to audition pitch · Fingers 1–4 span
-							a closed 4-semitone frame
+							Click any string position above to audition pitch · Fingers 1–4
+							span a closed 4-semitone frame
 						</span>
 					</div>
 					<div className="cello-breakdown-strings">

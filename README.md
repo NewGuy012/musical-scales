@@ -19,11 +19,11 @@
 
 Switch tabs at any time — audio automatically adapts via **Instrument** mode (with **Pad** and **Mute** toggles in the header):
 
-| Tab | What You See | Hand Placement Focus | Song Example |
-| :--- | :--- | :--- | :--- |
-| **Piano View** | 2-octave keyboard (`C4`–`B5`) | Highlighted chord voicings & scale dots | *Do-Re-Mi* (*The Sound of Music*) |
-| **Guitar View** | 15-fret neck (`E A D G B e`) | CAGED open/barre shapes, strumming & scale overlays | *Amazing Grace* |
-| **Cello View** | Fretless neck (`C2–G2–D3–A3`, 5ths) | Closed 4-semitone left-hand frames & fingers `0–4` | *Bach — Cello Suite No. 1 (Prelude)* *(Cello tab only)* |
+| Tab             | What You See                        | Hand Placement Focus                                | Song Example                                            |
+| :-------------- | :---------------------------------- | :-------------------------------------------------- | :------------------------------------------------------ |
+| **Piano View**  | 2-octave keyboard (`C4`–`B5`)       | Highlighted chord voicings & scale dots             | _Do-Re-Mi_ (_The Sound of Music_)                       |
+| **Guitar View** | 15-fret neck (`E A D G B e`)        | CAGED open/barre shapes, strumming & scale overlays | _Amazing Grace_                                         |
+| **Cello View**  | Fretless neck (`C2–G2–D3–A3`, 5ths) | Closed 4-semitone left-hand frames & fingers `0–4`  | _Bach — Cello Suite No. 1 (Prelude)_ _(Cello tab only)_ |
 
 ## Keyboard Shortcuts
 

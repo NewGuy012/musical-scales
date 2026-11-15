@@ -16,12 +16,8 @@ describe("songExamples", () => {
 		expect(celloSongs.map((s) => s.id)).toEqual(["bach-cello-suite-1"]);
 
 		// Bach Cello Suite #1 must only be exposed for Cello View
-		expect(
-			pianoSongs.some((s) => s.id === "bach-cello-suite-1"),
-		).toBe(false);
-		expect(
-			guitarSongs.some((s) => s.id === "bach-cello-suite-1"),
-		).toBe(false);
+		expect(pianoSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
+		expect(guitarSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
 	});
 
 	test("all song progressions flatten with valid timestamps and playable MIDI notes", () => {

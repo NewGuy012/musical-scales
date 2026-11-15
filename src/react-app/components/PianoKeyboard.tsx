@@ -24,7 +24,18 @@ const BLACK_KEY_OFFSETS = [
 ] as const;
 
 const FALLBACK_NOTE_NAMES = [
-	"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B",
+	"C",
+	"C♯",
+	"D",
+	"E♭",
+	"E",
+	"F",
+	"F♯",
+	"G",
+	"A♭",
+	"A",
+	"B♭",
+	"B",
 ] as const;
 
 export function PianoKeyboard({
@@ -40,8 +51,10 @@ export function PianoKeyboard({
 	const blackKeyWidth = 18;
 	const blackKeyHeight = 62;
 
-	const whiteKeys: { midi: number; x: number; pc: number; octave: number }[] = [];
-	const blackKeys: { midi: number; x: number; pc: number; octave: number }[] = [];
+	const whiteKeys: { midi: number; x: number; pc: number; octave: number }[] =
+		[];
+	const blackKeys: { midi: number; x: number; pc: number; octave: number }[] =
+		[];
 
 	for (let octave = 0; octave < 2; octave++) {
 		const baseMidi = 60 + octave * 12;
@@ -56,7 +69,9 @@ export function PianoKeyboard({
 		BLACK_KEY_OFFSETS.forEach(({ pc, afterWhiteIndex }) => {
 			blackKeys.push({
 				midi: baseMidi + pc,
-				x: (octave * 7 + afterWhiteIndex + 1) * whiteKeyWidth - blackKeyWidth / 2,
+				x:
+					(octave * 7 + afterWhiteIndex + 1) * whiteKeyWidth -
+					blackKeyWidth / 2,
 				pc,
 				octave: 4 + octave,
 			});

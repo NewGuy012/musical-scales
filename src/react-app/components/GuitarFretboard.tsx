@@ -51,7 +51,8 @@ export function GuitarFretboard({
 	onStrumVoicing,
 	onPlayFretNote,
 }: GuitarFretboardProps) {
-	const [overlayMode, setOverlayMode] = useState<FretboardOverlayMode>("voicing");
+	const [overlayMode, setOverlayMode] =
+		useState<FretboardOverlayMode>("voicing");
 	const [labelMode, setLabelMode] = useState<FretboardLabelMode>("notes");
 
 	const qualityClass = getGuitarQualityClass(activeQuality);
@@ -188,8 +189,18 @@ export function GuitarFretboard({
 						if (fret === 12) {
 							return (
 								<g key={`inlay-${fret}`}>
-									<circle cx={cx} cy={topY + 1.5 * stringGap} r={4.2} className="fret-inlay" />
-									<circle cx={cx} cy={topY + 3.5 * stringGap} r={4.2} className="fret-inlay" />
+									<circle
+										cx={cx}
+										cy={topY + 1.5 * stringGap}
+										r={4.2}
+										className="fret-inlay"
+									/>
+									<circle
+										cx={cx}
+										cy={topY + 3.5 * stringGap}
+										r={4.2}
+										className="fret-inlay"
+									/>
 								</g>
 							);
 						}
@@ -321,7 +332,10 @@ export function GuitarFretboard({
 									if (overlayMode === "voicing" && selectedVoicing) {
 										if (isVoicedHere) {
 											dotState = "primary";
-										} else if (isChordTone && !(fret === 0 && voicedFret === -1)) {
+										} else if (
+											isChordTone &&
+											!(fret === 0 && voicedFret === -1)
+										) {
 											dotState = "ghost-chord";
 										}
 									} else if (overlayMode === "chordTones") {
@@ -347,9 +361,7 @@ export function GuitarFretboard({
 										>
 											<rect
 												x={
-													fret === 0
-														? nutX - 31
-														: nutX + (fret - 1) * fretWidth
+													fret === 0 ? nutX - 31 : nutX + (fret - 1) * fretWidth
 												}
 												y={y - stringGap / 2}
 												width={fret === 0 ? 28 : fretWidth}
