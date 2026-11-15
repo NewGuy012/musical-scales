@@ -9,6 +9,7 @@ interface AudioEngine {
 
 let sharedEngine: AudioEngine | null = null;
 const guitarBufferCache = new Map<string, AudioBuffer>();
+const activeVoiceGains = new Set<GainNode>();
 const MAX_GUITAR_CACHE_SIZE = 72;
 
 function getAudioEngine(): AudioEngine | null {
@@ -31,32 +32,23 @@ function getAudioEngine(): AudioEngine | null {
 		const master = ctx.createGain();
 		master.gain.value = 0.72;
 
-		// Subtle feedforward room early reflections so acoustic instruments sit naturally in space
-		const roomTone = ctx.createBiquadFilter();
-		roomTone.type = "lowpass";
-		roomTone.frequency.value = 1650;
-
-		const tap1 = ctx.createDelay(0.1);
-		tap1.delayTime.value = 0.021;
-		const tap1Gain = ctx.createGain();
-		tap1Gain.gain.value = 0.095;
-
-		const tap2 = ctx.createDelay(0.1);
-		tap2.delayTime.value = 0.039;
-		const tap2Gain = ctx.createGain();
-		tap2Gain.gain.value = 0.065;
+		// Feedforward early reflections for natural room ambience
+		const roomTone = createFilter(ctx, "lowpass", 1650, 0.7);
+		for (const [delaySec, gainVal] of [
+			[0.021, 0.095],
+			[0.039, 0.065],
+		] as const) {
+			const tap = ctx.createDelay(0.1);
+			tap.delayTime.value = delaySec;
+			const tapGain = ctx.createGain();
+			tapGain.gain.value = gainVal;
+			chainNodes(master, tap, tapGain, roomTone);
+		}
 
 		master.connect(compressor);
-		master.connect(tap1);
-		master.connect(tap2);
-		tap1.connect(tap1Gain);
-		tap2.connect(tap2Gain);
-		tap1Gain.connect(roomTone);
-		tap2Gain.connect(roomTone);
 		roomTone.connect(compressor);
 		compressor.connect(ctx.destination);
 
-		// Shared deterministic 0.35s noise buffer for hammer felt / rosin bow attacks
 		const noiseLen = Math.floor(ctx.sampleRate * 0.35);
 		const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
 		const noiseData = noiseBuffer.getChannelData(0);
@@ -69,10 +61,61 @@ function getAudioEngine(): AudioEngine | null {
 	}
 
 	if (sharedEngine.ctx.state === "suspended") {
-		void sharedEngine.ctx.resume();
+		void sharedEngine.ctx.resume().catch(() => {});
 	}
 
 	return sharedEngine;
+}
+
+function createFilter(
+	ctx: AudioContext,
+	type: BiquadFilterType,
+	frequency: number,
+	q = 1,
+	gainDb = 0,
+): BiquadFilterNode {
+	const filter = ctx.createBiquadFilter();
+	filter.type = type;
+	filter.frequency.value = frequency;
+	filter.Q.value = q;
+	filter.gain.value = gainDb;
+	return filter;
+}
+
+function chainNodes(...nodes: AudioNode[]): void {
+	for (let i = 0; i < nodes.length - 1; i++) {
+		nodes[i].connect(nodes[i + 1]);
+	}
+}
+
+function registerVoiceCleanup(
+	primarySource: AudioScheduledSourceNode,
+	noteGain: GainNode,
+): void {
+	activeVoiceGains.add(noteGain);
+	primarySource.onended = () => {
+		activeVoiceGains.delete(noteGain);
+		try {
+			noteGain.disconnect();
+		} catch {
+			// Ignore if already disconnected
+		}
+	};
+}
+
+export function stopAllAudio(): void {
+	if (!sharedEngine || activeVoiceGains.size === 0) return;
+	const now = sharedEngine.ctx.currentTime;
+	for (const gainNode of activeVoiceGains) {
+		try {
+			gainNode.gain.cancelScheduledValues(now);
+			gainNode.gain.setValueAtTime(Math.max(0.0001, gainNode.gain.value), now);
+			gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+		} catch {
+			// Ignore if node was already released
+		}
+	}
+	activeVoiceGains.clear();
 }
 
 function createSeededRandom(seed: number): () => number {
@@ -85,14 +128,29 @@ function createSeededRandom(seed: number): () => number {
 	};
 }
 
+function isValidMidi(midi: number): boolean {
+	return Number.isFinite(midi) && midi >= 0 && midi <= 127;
+}
+
 export function midiToFrequency(midi: number): number {
-	return 440 * Math.pow(2, (midi - 69) / 12);
+	const clamped = Number.isFinite(midi) ? Math.max(0, Math.min(127, midi)) : 69;
+	return 440 * Math.pow(2, (clamped - 69) / 12);
+}
+
+export function getDefaultChordSpread(
+	preset: SoundPreset,
+	arpeggiate: boolean,
+): number {
+	if (arpeggiate) return preset === "piano" || preset === "pad" ? 0.075 : 0.08;
+	if (preset === "cello") return 0.058;
+	if (preset === "guitar") return 0.038;
+	return 0.01;
 }
 
 /**
- * Generates an accurately tuned classical nylon-string guitar pluck via
- * Karplus-Strong waveguide synthesis with fingertip smoothing, soundhole pluck
- * comb filtering, viscous nylon damping, and Thiran fractional-delay tuning.
+ * Classical nylon-string guitar pluck via Karplus-Strong waveguide synthesis
+ * with fingertip low-pass smoothing, soundhole comb filtering, viscoelastic
+ * nylon damping, and Thiran fractional-delay tuning.
  */
 export function synthesizeGuitarPluckSamples(
 	freq: number,
@@ -104,46 +162,36 @@ export function synthesizeGuitarPluckSamples(
 	const numSamples = Math.max(256, Math.floor(fs * Math.max(0.1, totalSeconds)));
 	const out = new Float32Array(numSamples);
 
-	// Pitch normalized from E2 (~82.4 Hz) to E5 (~659 Hz)
 	const normPitch = Math.max(
 		0,
 		Math.min(1, (Math.log2(clampedFreq) - Math.log2(82.41)) / 3),
 	);
-	// Warm classical loop filters: averaging blend + nylon viscoelastic IIR damping
 	const blend = 0.48 - normPitch * 0.08;
 	const nylonDamp = 0.14 + normPitch * 0.14;
 
 	const w = (2 * Math.PI * clampedFreq) / fs;
-	// H1(z) = (1 - blend) + blend * z^-1
 	const r1 = 1 - blend + blend * Math.cos(w);
 	const i1 = -blend * Math.sin(w);
 	const pd1 = w > 0 ? -Math.atan2(i1, r1) / w : blend;
 	const mag1 = Math.hypot(r1, i1);
 
-	// H2(z) = (1 - nylonDamp) / (1 - nylonDamp * z^-1)
 	const r2 = 1 - nylonDamp * Math.cos(w);
 	const i2 = nylonDamp * Math.sin(w);
 	const pd2 = w > 0 ? Math.atan2(i2, r2) / w : nylonDamp / (1 - nylonDamp);
 	const mag2 = (1 - nylonDamp) / Math.hypot(r2, i2);
 
-	const totalPhaseDelay = pd1 + pd2;
-	const totalFilterMag = mag1 * mag2;
-
-	// Split fractional period into integer delay ring M + Thiran allpass tau in [0.5, 1.5)
-	const exactPeriod = fs / clampedFreq - totalPhaseDelay;
+	const exactPeriod = fs / clampedFreq - (pd1 + pd2);
 	const M = Math.max(2, Math.floor(exactPeriod - 0.5));
 	const tau = Math.max(0.25, Math.min(1.75, exactPeriod - M));
 	const allpassCoeff = (1 - tau) / (1 + tau);
 
-	// Classical nylon bass sustain (~3.3s) and warm singing treble decay (~2.0s)
 	const decaySec = 3.3 - normPitch * 1.25;
 	const targetLoopGain = Math.pow(0.001, 1 / (clampedFreq * decaySec));
 	const loopFeedback = Math.min(
 		0.9986,
-		targetLoopGain / Math.max(0.45, totalFilterMag),
+		targetLoopGain / Math.max(0.45, mag1 * mag2),
 	);
 
-	// Seed burst shaped like warm fingertip pluck (sample-rate normalized low-pass + DC removal)
 	const rawBurst = new Float32Array(M);
 	const rand = createSeededRandom(Math.round(clampedFreq * 100));
 	const pickPole = Math.exp((-2 * Math.PI * 2200) / fs);
@@ -152,7 +200,6 @@ export function synthesizeGuitarPluckSamples(
 		lpState = (1 - pickPole) * rand() + pickPole * lpState;
 		rawBurst[i % M] = lpState;
 	}
-	// Second backward smoothing pass eliminates harsh pick fizz while keeping finger warmth
 	for (let i = M - 1; i >= 0; i--) {
 		lpState = (1 - pickPole) * rawBurst[i] + pickPole * lpState;
 		rawBurst[i] = lpState;
@@ -162,7 +209,6 @@ export function synthesizeGuitarPluckSamples(
 	for (let i = 0; i < M; i++) mean += rawBurst[i];
 	mean /= M;
 
-	// Rosette/soundhole pluck position (~22% from bridge) emphasizes warm fundamental & cedar body
 	const ring = new Float32Array(M);
 	const pluckOffset = Math.max(1, Math.min(M - 1, Math.round(M * 0.22)));
 	let peak = 0;
@@ -179,7 +225,6 @@ export function synthesizeGuitarPluckSamples(
 		ring[i] *= normScale;
 	}
 
-	// Waveguide loop
 	let ptr = 0;
 	let prevCur = ring[M - 1];
 	let iirLp = 0;
@@ -202,8 +247,7 @@ export function synthesizeGuitarPluckSamples(
 		prevAp = ap;
 
 		ring[ptr] = ap * loopFeedback;
-		ptr = ptr + 1;
-		if (ptr >= M) ptr = 0;
+		ptr = ptr + 1 >= M ? 0 : ptr + 1;
 
 		let env = 1;
 		if (i < fadeInSamples) {
@@ -227,11 +271,7 @@ function getGuitarPluckBuffer(
 	const cached = guitarBufferCache.get(key);
 	if (cached) return cached;
 
-	const samples = synthesizeGuitarPluckSamples(
-		freq,
-		ctx.sampleRate,
-		quantizedDur,
-	);
+	const samples = synthesizeGuitarPluckSamples(freq, ctx.sampleRate, quantizedDur);
 	const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
 	buffer.getChannelData(0).set(samples);
 
@@ -254,50 +294,11 @@ function schedulePianoVoice(
 	const freq = midiToFrequency(midi);
 	const pitchNorm = Math.max(0, Math.min(1, (midi - 21) / 87));
 
-	// Triple-string warmth (triangle fundamental + softly detuned sawtooth harmonics + fading octave partial)
-	const oscTri = ctx.createOscillator();
-	const oscSaw = ctx.createOscillator();
-	const oscOct = ctx.createOscillator();
-	const triGain = ctx.createGain();
-	const sawGain = ctx.createGain();
-	const octGain = ctx.createGain();
-
-	oscTri.type = "triangle";
-	oscTri.frequency.setValueAtTime(freq, startTime);
-	oscTri.detune.setValueAtTime(-1.8, startTime);
-	triGain.gain.setValueAtTime(0.78, startTime);
-
-	oscSaw.type = "sawtooth";
-	oscSaw.frequency.setValueAtTime(freq, startTime);
-	oscSaw.detune.setValueAtTime(1.8, startTime);
-	sawGain.gain.setValueAtTime(0.36 - pitchNorm * 0.12, startTime);
-
-	oscOct.type = "sine";
-	oscOct.frequency.setValueAtTime(freq * 2.0012, startTime);
-	octGain.gain.setValueAtTime(0.2, startTime);
-	octGain.gain.exponentialRampToValueAtTime(0.015, startTime + 0.42);
-
-	// Felt hammer impact thump (22ms burst)
-	const hammerSrc = ctx.createBufferSource();
-	hammerSrc.buffer = noiseBuffer;
-	const hammerFilter = ctx.createBiquadFilter();
-	hammerFilter.type = "bandpass";
-	hammerFilter.frequency.setValueAtTime(
-		Math.min(2400, Math.max(420, freq * 4.2)),
-		startTime,
-	);
-	hammerFilter.Q.value = 1.6;
-	const hammerGain = ctx.createGain();
-	hammerGain.gain.setValueAtTime(0.0001, startTime);
-	hammerGain.gain.linearRampToValueAtTime(peakGain * 0.12, startTime + 0.003);
-	hammerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.025);
-
-	// Dynamic string brightness filter + upright/grand soundboard body warmth
-	const stringFilter = ctx.createBiquadFilter();
-	stringFilter.type = "lowpass";
-	stringFilter.frequency.setValueAtTime(
+	const stringFilter = createFilter(
+		ctx,
+		"lowpass",
 		Math.min(5800, Math.max(950, freq * (9.5 - pitchNorm * 4))),
-		startTime,
+		0.7,
 	);
 	stringFilter.frequency.exponentialRampToValueAtTime(
 		Math.min(3200, Math.max(550, freq * 4.6)),
@@ -307,16 +308,11 @@ function schedulePianoVoice(
 		Math.max(320, freq * 2.0),
 		startTime + Math.min(0.75, duration + 0.18),
 	);
-	stringFilter.Q.value = 0.7;
 
-	const boardResonance = ctx.createBiquadFilter();
-	boardResonance.type = "peaking";
-	boardResonance.frequency.value = 230;
-	boardResonance.Q.value = 1.1;
-	boardResonance.gain.value = 2.4;
-
+	const boardResonance = createFilter(ctx, "peaking", 230, 1.1, 2.4);
 	const release = 0.65 - pitchNorm * 0.24;
 	const stopTime = startTime + duration + release;
+
 	const noteGain = ctx.createGain();
 	noteGain.gain.setValueAtTime(0.0001, startTime);
 	noteGain.gain.linearRampToValueAtTime(peakGain * 1.12, startTime + 0.005);
@@ -327,30 +323,45 @@ function schedulePianoVoice(
 	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	oscTri.connect(triGain);
-	oscSaw.connect(sawGain);
-	oscOct.connect(octGain);
-	triGain.connect(stringFilter);
-	sawGain.connect(stringFilter);
-	octGain.connect(stringFilter);
-	stringFilter.connect(boardResonance);
+	const partials: [OscillatorType, number, number, number][] = [
+		["triangle", freq, -1.8, 0.78],
+		["sawtooth", freq, 1.8, 0.36 - pitchNorm * 0.12],
+		["sine", freq * 2.0012, 0, 0.2],
+	];
 
-	hammerSrc.connect(hammerFilter);
-	hammerFilter.connect(hammerGain);
-	hammerGain.connect(boardResonance);
+	partials.forEach(([type, oscFreq, detune, gain], idx) => {
+		const osc = ctx.createOscillator();
+		const g = ctx.createGain();
+		osc.type = type;
+		osc.frequency.setValueAtTime(oscFreq, startTime);
+		if (detune !== 0) osc.detune.setValueAtTime(detune, startTime);
+		g.gain.setValueAtTime(gain, startTime);
+		if (idx === 2) {
+			g.gain.exponentialRampToValueAtTime(0.015, startTime + 0.42);
+		}
+		chainNodes(osc, g, stringFilter);
+		osc.start(startTime);
+		osc.stop(stopTime + 0.03);
+		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+	});
 
-	boardResonance.connect(noteGain);
-	noteGain.connect(master);
+	const hammerSrc = ctx.createBufferSource();
+	hammerSrc.buffer = noiseBuffer;
+	const hammerFilter = createFilter(
+		ctx,
+		"bandpass",
+		Math.min(2400, Math.max(420, freq * 4.2)),
+		1.6,
+	);
+	const hammerGain = ctx.createGain();
+	hammerGain.gain.setValueAtTime(0.0001, startTime);
+	hammerGain.gain.linearRampToValueAtTime(peakGain * 0.12, startTime + 0.003);
+	hammerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.025);
 
-	const offset = ((midi * 17) % 100) * 0.002;
-	oscTri.start(startTime);
-	oscSaw.start(startTime);
-	oscOct.start(startTime);
-	hammerSrc.start(startTime, offset, 0.03);
+	chainNodes(hammerSrc, hammerFilter, hammerGain, boardResonance);
+	chainNodes(stringFilter, boardResonance, noteGain, master);
 
-	oscTri.stop(stopTime + 0.03);
-	oscSaw.stop(stopTime + 0.03);
-	oscOct.stop(stopTime + 0.03);
+	hammerSrc.start(startTime, ((midi * 17) % 100) * 0.002, 0.03);
 	hammerSrc.stop(startTime + 0.035);
 }
 
@@ -364,38 +375,19 @@ function scheduleGuitarVoice(
 	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
 	const release = 0.95;
-	const totalDur = Math.max(duration + release, 1.95);
 	const stopTime = startTime + duration + release;
 
 	const src = ctx.createBufferSource();
-	src.buffer = getGuitarPluckBuffer(ctx, freq, totalDur);
+	src.buffer = getGuitarPluckBuffer(ctx, freq, Math.max(duration + release, 1.95));
 
-	// Classical Torres/Spanish cedar body resonances:
-	// Warm A0 soundhole air chamber (~96 Hz) + main cedar top monopole (~194 Hz) + dynamic nylon damping
-	const airRes = ctx.createBiquadFilter();
-	airRes.type = "peaking";
-	airRes.frequency.value = 96;
-	airRes.Q.value = 2.6;
-	airRes.gain.value = 4.8;
-
-	const topRes = ctx.createBiquadFilter();
-	topRes.type = "peaking";
-	topRes.frequency.value = 194;
-	topRes.Q.value = 2.4;
-	topRes.gain.value = 3.5;
-
-	const harshScoop = ctx.createBiquadFilter();
-	harshScoop.type = "peaking";
-	harshScoop.frequency.value = 2500;
-	harshScoop.Q.value = 1.2;
-	harshScoop.gain.value = -2.8;
-
-	const bodyLPF = ctx.createBiquadFilter();
-	bodyLPF.type = "lowpass";
-	bodyLPF.Q.value = 0.65;
-	bodyLPF.frequency.setValueAtTime(
+	const airRes = createFilter(ctx, "peaking", 96, 2.6, 4.8);
+	const topRes = createFilter(ctx, "peaking", 194, 2.4, 3.5);
+	const harshScoop = createFilter(ctx, "peaking", 2500, 1.2, -2.8);
+	const bodyLPF = createFilter(
+		ctx,
+		"lowpass",
 		Math.min(3100, Math.max(1750, freq * 7.5)),
-		startTime,
+		0.65,
 	);
 	bodyLPF.frequency.exponentialRampToValueAtTime(
 		Math.min(2200, Math.max(1250, freq * 4.5)),
@@ -408,12 +400,8 @@ function scheduleGuitarVoice(
 	noteGain.gain.setValueAtTime(ksGain * 0.9, startTime + duration);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	src.connect(airRes);
-	airRes.connect(topRes);
-	topRes.connect(harshScoop);
-	harshScoop.connect(bodyLPF);
-	bodyLPF.connect(noteGain);
-	noteGain.connect(master);
+	chainNodes(src, airRes, topRes, harshScoop, bodyLPF, noteGain, master);
+	registerVoiceCleanup(src, noteGain);
 
 	src.start(startTime);
 	src.stop(stopTime + 0.03);
@@ -428,102 +416,33 @@ function scheduleCelloVoice(
 ) {
 	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
-	const isShortArticulation = duration <= 0.42;
+	const isShort = duration <= 0.42;
+	const attack = isShort ? Math.max(0.025, duration * 0.14) : 0.078;
+	const release = isShort ? 0.26 : 0.44;
+	const stopTime = startTime + duration + release;
 
-	// Helmholtz bowed string: full harmonic sawtooth + fundamental-reinforcing triangle
-	const oscSaw = ctx.createOscillator();
-	const oscTri = ctx.createOscillator();
-	const sawGain = ctx.createGain();
-	const triGain = ctx.createGain();
+	const bowLPF = createFilter(ctx, "lowpass", Math.max(360, freq * 2.4), 0.75);
+	bowLPF.frequency.exponentialRampToValueAtTime(
+		Math.min(2500, Math.max(720, freq * 7.2)),
+		startTime + attack + 0.04,
+	);
+	bowLPF.frequency.exponentialRampToValueAtTime(
+		Math.min(1850, Math.max(520, freq * 4.5)),
+		startTime + Math.max(attack + 0.12, duration),
+	);
 
-	oscSaw.type = "sawtooth";
-	oscSaw.frequency.setValueAtTime(freq, startTime);
-	sawGain.gain.setValueAtTime(0.7, startTime);
-
-	oscTri.type = "triangle";
-	oscTri.frequency.setValueAtTime(freq, startTime);
-	triGain.gain.setValueAtTime(0.36, startTime);
-
-	// Delayed finger vibrato (steady pitch on bow grip, singing vibrato blooms during sustain)
 	const vibratoLfo = ctx.createOscillator();
 	vibratoLfo.type = "sine";
 	vibratoLfo.frequency.setValueAtTime(5.2, startTime);
 	const vibratoDepth = ctx.createGain();
-	const maxCents = isShortArticulation ? 3.5 : 11.5;
 	vibratoDepth.gain.setValueAtTime(0, startTime);
 	vibratoDepth.gain.setValueAtTime(0, startTime + Math.min(0.13, duration * 0.35));
 	vibratoDepth.gain.linearRampToValueAtTime(
-		maxCents,
+		isShort ? 3.5 : 11.5,
 		startTime + Math.min(0.42, Math.max(0.2, duration * 0.72)),
 	);
 	vibratoLfo.connect(vibratoDepth);
-	vibratoDepth.connect(oscSaw.detune);
-	vibratoDepth.connect(oscTri.detune);
 
-	// Rosin bow-bite transient (soft bandpass scrape at bow engagement)
-	const bowNoise = ctx.createBufferSource();
-	bowNoise.buffer = noiseBuffer;
-	const bowBandpass = ctx.createBiquadFilter();
-	bowBandpass.type = "bandpass";
-	bowBandpass.frequency.setValueAtTime(
-		Math.min(1300, Math.max(520, freq * 5)),
-		startTime,
-	);
-	bowBandpass.Q.value = 2.2;
-	const bowNoiseGain = ctx.createGain();
-	const noiseDur = isShortArticulation ? 0.04 : 0.075;
-	bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
-	bowNoiseGain.gain.linearRampToValueAtTime(
-		peakGain * 0.055,
-		startTime + noiseDur * 0.35,
-	);
-	bowNoiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + noiseDur);
-
-	// Bow-pressure dynamic low-pass filter
-	const bowLPF = ctx.createBiquadFilter();
-	bowLPF.type = "lowpass";
-	bowLPF.Q.value = 0.75;
-	const startCutoff = Math.max(360, freq * 2.4);
-	const swellCutoff = Math.min(2500, Math.max(720, freq * 7.2));
-	const settleCutoff = Math.min(1850, Math.max(520, freq * 4.5));
-	const attack = isShortArticulation
-		? Math.max(0.025, duration * 0.14)
-		: 0.078;
-	bowLPF.frequency.setValueAtTime(startCutoff, startTime);
-	bowLPF.frequency.exponentialRampToValueAtTime(swellCutoff, startTime + attack + 0.04);
-	bowLPF.frequency.exponentialRampToValueAtTime(
-		settleCutoff,
-		startTime + Math.max(attack + 0.12, duration),
-	);
-
-	// Cello spruce/maple acoustic body formants:
-	// A0 f-hole air resonance (~78 Hz), B1 wood chest (~195 Hz), box scoop (490 Hz), singing bridge (~1150 Hz)
-	const airChamber = ctx.createBiquadFilter();
-	airChamber.type = "peaking";
-	airChamber.frequency.value = 78;
-	airChamber.Q.value = 1.8;
-	airChamber.gain.value = 4.0;
-
-	const chestBody = ctx.createBiquadFilter();
-	chestBody.type = "peaking";
-	chestBody.frequency.value = 195;
-	chestBody.Q.value = 2.1;
-	chestBody.gain.value = 4.2;
-
-	const midScoop = ctx.createBiquadFilter();
-	midScoop.type = "peaking";
-	midScoop.frequency.value = 490;
-	midScoop.Q.value = 1.4;
-	midScoop.gain.value = -3.2;
-
-	const bridgeHill = ctx.createBiquadFilter();
-	bridgeHill.type = "peaking";
-	bridgeHill.frequency.value = 1150;
-	bridgeHill.Q.value = 1.5;
-	bridgeHill.gain.value = 3.0;
-
-	const release = isShortArticulation ? 0.26 : 0.44;
-	const stopTime = startTime + duration + release;
 	const noteGain = ctx.createGain();
 	noteGain.gain.setValueAtTime(0.0001, startTime);
 	noteGain.gain.linearRampToValueAtTime(peakGain * 0.88, startTime + attack);
@@ -533,29 +452,60 @@ function scheduleCelloVoice(
 	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	oscSaw.connect(sawGain);
-	oscTri.connect(triGain);
-	sawGain.connect(bowLPF);
-	triGain.connect(bowLPF);
-	bowNoise.connect(bowBandpass);
-	bowBandpass.connect(bowNoiseGain);
-	bowNoiseGain.connect(bowLPF);
+	(
+		[
+			["sawtooth", 0.7],
+			["triangle", 0.36],
+		] as const
+	).forEach(([type, gainVal], idx) => {
+		const osc = ctx.createOscillator();
+		const g = ctx.createGain();
+		osc.type = type;
+		osc.frequency.setValueAtTime(freq, startTime);
+		g.gain.setValueAtTime(gainVal, startTime);
+		vibratoDepth.connect(osc.detune);
+		chainNodes(osc, g, bowLPF);
+		osc.start(startTime);
+		osc.stop(stopTime + 0.04);
+		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+	});
 
-	bowLPF.connect(airChamber);
-	airChamber.connect(chestBody);
-	chestBody.connect(midScoop);
-	midScoop.connect(bridgeHill);
-	bridgeHill.connect(noteGain);
-	noteGain.connect(master);
+	const bowNoise = ctx.createBufferSource();
+	bowNoise.buffer = noiseBuffer;
+	const bowBandpass = createFilter(
+		ctx,
+		"bandpass",
+		Math.min(1300, Math.max(520, freq * 5)),
+		2.2,
+	);
+	const bowNoiseGain = ctx.createGain();
+	const noiseDur = isShort ? 0.04 : 0.075;
+	bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
+	bowNoiseGain.gain.linearRampToValueAtTime(
+		peakGain * 0.055,
+		startTime + noiseDur * 0.35,
+	);
+	bowNoiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + noiseDur);
+	chainNodes(bowNoise, bowBandpass, bowNoiseGain, bowLPF);
 
-	const noiseOffset = ((midi * 23) % 100) * 0.002;
-	oscSaw.start(startTime);
-	oscTri.start(startTime);
+	// Cello body formants: A0 f-hole air, B1 chest wood, box scoop, singing bridge hill
+	const airChamber = createFilter(ctx, "peaking", 78, 1.8, 4.0);
+	const chestBody = createFilter(ctx, "peaking", 195, 2.1, 4.2);
+	const midScoop = createFilter(ctx, "peaking", 490, 1.4, -3.2);
+	const bridgeHill = createFilter(ctx, "peaking", 1150, 1.5, 3.0);
+
+	chainNodes(
+		bowLPF,
+		airChamber,
+		chestBody,
+		midScoop,
+		bridgeHill,
+		noteGain,
+		master,
+	);
+
 	vibratoLfo.start(startTime);
-	bowNoise.start(startTime, noiseOffset, noiseDur + 0.01);
-
-	oscSaw.stop(stopTime + 0.04);
-	oscTri.stop(stopTime + 0.04);
+	bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
 	vibratoLfo.stop(stopTime + 0.04);
 	bowNoise.stop(startTime + noiseDur + 0.02);
 }
@@ -569,40 +519,37 @@ function schedulePadVoice(
 ) {
 	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
-	const osc1 = ctx.createOscillator();
-	const osc2 = ctx.createOscillator();
-	const filter = ctx.createBiquadFilter();
+	const filter = createFilter(
+		ctx,
+		"lowpass",
+		Math.min(1800, Math.max(520, freq * 3.5)),
+		0.5,
+	);
 	const noteGain = ctx.createGain();
+	const stopTime = startTime + duration + 0.85;
 
-	osc1.type = "triangle";
-	osc1.frequency.setValueAtTime(freq, startTime);
-	osc1.detune.setValueAtTime(-6, startTime);
-
-	osc2.type = "sine";
-	osc2.frequency.setValueAtTime(freq, startTime);
-	osc2.detune.setValueAtTime(6, startTime);
-
-	filter.type = "lowpass";
-	filter.frequency.setValueAtTime(Math.min(1800, Math.max(520, freq * 3.5)), startTime);
-	filter.Q.value = 0.5;
-
-	const attack = 0.08;
-	const release = 0.85;
-	const stopTime = startTime + duration + release;
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(peakGain * 0.8, startTime + attack);
+	noteGain.gain.linearRampToValueAtTime(peakGain * 0.8, startTime + 0.08);
 	noteGain.gain.setValueAtTime(peakGain * 0.72, startTime + duration);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	osc1.connect(filter);
-	osc2.connect(filter);
-	filter.connect(noteGain);
-	noteGain.connect(master);
+	(
+		[
+			["triangle", -6],
+			["sine", 6],
+		] as const
+	).forEach(([type, detune], idx) => {
+		const osc = ctx.createOscillator();
+		osc.type = type;
+		osc.frequency.setValueAtTime(freq, startTime);
+		osc.detune.setValueAtTime(detune, startTime);
+		osc.connect(filter);
+		osc.start(startTime);
+		osc.stop(stopTime + 0.05);
+		if (idx === 0) registerVoiceCleanup(osc, noteGain);
+	});
 
-	osc1.start(startTime);
-	osc2.start(startTime);
-	osc1.stop(stopTime + 0.05);
-	osc2.stop(stopTime + 0.05);
+	chainNodes(filter, noteGain, master);
 }
 
 function scheduleVoice(
@@ -634,7 +581,7 @@ export function playSingleNote(
 	preset: SoundPreset = "piano",
 	duration = 0.55,
 ): void {
-	if (preset === "muted") return;
+	if (preset === "muted" || !isValidMidi(midi)) return;
 	const engine = getAudioEngine();
 	if (!engine) return;
 	const now = engine.ctx.currentTime + 0.01;
@@ -656,35 +603,17 @@ export function playChordNotes(
 		arpeggiate = false,
 		spreadSec,
 	} = options;
-	if (preset === "muted" || midiNotes.length === 0) return;
+	const validNotes = midiNotes.filter(isValidMidi);
+	if (preset === "muted" || validNotes.length === 0) return;
 	const engine = getAudioEngine();
 	if (!engine) return;
 
 	const now = engine.ctx.currentTime + 0.015;
-	const perNoteGain = Math.min(0.22, 0.54 / Math.max(1, midiNotes.length));
-	const defaultSpread =
-		preset === "cello"
-			? arpeggiate
-				? 0.08
-				: 0.058
-			: preset === "guitar"
-				? arpeggiate
-					? 0.08
-					: 0.038
-				: arpeggiate
-					? 0.075
-					: 0.01;
-	const spread = spreadSec ?? defaultSpread;
+	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
+	const spread = spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
 
-	midiNotes.forEach((midi, idx) => {
-		scheduleVoice(
-			engine,
-			midi,
-			now + idx * spread,
-			duration,
-			perNoteGain,
-			preset,
-		);
+	validNotes.forEach((midi, idx) => {
+		scheduleVoice(engine, midi, now + idx * spread, duration, perNoteGain, preset);
 	});
 }
 
@@ -693,25 +622,6 @@ export interface TimedSequenceStep {
 	atMs: number;
 	durationSec: number;
 	spreadSec?: number;
-}
-
-function triggerSequenceAudio(
-	midi: number[],
-	preset: SoundPreset,
-	durationSec: number,
-	arpeggiate: boolean,
-	spreadSec?: number,
-) {
-	if (midi.length === 1) {
-		playSingleNote(midi[0], preset, durationSec);
-	} else {
-		playChordNotes(midi, {
-			preset,
-			duration: durationSec,
-			arpeggiate,
-			spreadSec,
-		});
-	}
 }
 
 export function playStepSequence(
@@ -779,13 +689,16 @@ export function playTimedSequence(
 		const timerId = window.setTimeout(() => {
 			if (cancelled) return;
 			onStep?.(idx);
-			triggerSequenceAudio(
-				step.midi,
-				preset,
-				step.durationSec,
-				arpeggiate,
-				step.spreadSec,
-			);
+			if (step.midi.length === 1) {
+				playSingleNote(step.midi[0], preset, step.durationSec);
+			} else {
+				playChordNotes(step.midi, {
+					preset,
+					duration: step.durationSec,
+					arpeggiate,
+					spreadSec: step.spreadSec,
+				});
+			}
 		}, step.atMs);
 		timers.push(timerId);
 	});
@@ -796,17 +709,17 @@ export function playTimedSequence(
 			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
 			0,
 		);
-	const endTimer = window.setTimeout(() => {
-		if (!cancelled) {
-			onDone?.();
-		}
-	}, endDelayMs);
-	timers.push(endTimer);
+	timers.push(
+		window.setTimeout(() => {
+			if (!cancelled) onDone?.();
+		}, endDelayMs),
+	);
 
 	return () => {
 		cancelled = true;
 		for (const id of timers) {
 			window.clearTimeout(id);
 		}
+		stopAllAudio();
 	};
 }
