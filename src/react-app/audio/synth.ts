@@ -90,9 +90,9 @@ export function midiToFrequency(midi: number): number {
 }
 
 /**
- * Generates an accurately tuned acoustic guitar pluck via Karplus-Strong
- * waveguide synthesis with pluck-position comb filtering and Thiran 1st-order
- * allpass fractional-delay tuning compensation.
+ * Generates an accurately tuned classical nylon-string guitar pluck via
+ * Karplus-Strong waveguide synthesis with fingertip smoothing, soundhole pluck
+ * comb filtering, viscous nylon damping, and Thiran fractional-delay tuning.
  */
 export function synthesizeGuitarPluckSamples(
 	freq: number,
@@ -104,57 +104,77 @@ export function synthesizeGuitarPluckSamples(
 	const numSamples = Math.max(256, Math.floor(fs * Math.max(0.1, totalSeconds)));
 	const out = new Float32Array(numSamples);
 
-	// Blend factor controls string damping brightness (warmer bass, clearer treble)
+	// Pitch normalized from E2 (~82.4 Hz) to E5 (~659 Hz)
 	const normPitch = Math.max(
 		0,
 		Math.min(1, (Math.log2(clampedFreq) - Math.log2(82.41)) / 3),
 	);
-	const blend = 0.42 - normPitch * 0.18;
+	// Warm classical loop filters: averaging blend + nylon viscoelastic IIR damping
+	const blend = 0.48 - normPitch * 0.08;
+	const nylonDamp = 0.14 + normPitch * 0.14;
 
-	// Exact phase delay of 2-point weighted loop filter H(z) = (1 - blend) + blend * z^-1
 	const w = (2 * Math.PI * clampedFreq) / fs;
-	const real = 1 - blend + blend * Math.cos(w);
-	const imag = -blend * Math.sin(w);
-	const lpfPhaseDelay = w > 0 ? -Math.atan2(imag, real) / w : blend;
-	const lpfMag = Math.hypot(real, imag);
+	// H1(z) = (1 - blend) + blend * z^-1
+	const r1 = 1 - blend + blend * Math.cos(w);
+	const i1 = -blend * Math.sin(w);
+	const pd1 = w > 0 ? -Math.atan2(i1, r1) / w : blend;
+	const mag1 = Math.hypot(r1, i1);
 
-	// Total fractional period split into integer ring length M + Thiran fractional tau in [0.5, 1.5)
-	const exactPeriod = fs / clampedFreq - lpfPhaseDelay;
+	// H2(z) = (1 - nylonDamp) / (1 - nylonDamp * z^-1)
+	const r2 = 1 - nylonDamp * Math.cos(w);
+	const i2 = nylonDamp * Math.sin(w);
+	const pd2 = w > 0 ? Math.atan2(i2, r2) / w : nylonDamp / (1 - nylonDamp);
+	const mag2 = (1 - nylonDamp) / Math.hypot(r2, i2);
+
+	const totalPhaseDelay = pd1 + pd2;
+	const totalFilterMag = mag1 * mag2;
+
+	// Split fractional period into integer delay ring M + Thiran allpass tau in [0.5, 1.5)
+	const exactPeriod = fs / clampedFreq - totalPhaseDelay;
 	const M = Math.max(2, Math.floor(exactPeriod - 0.5));
 	const tau = Math.max(0.25, Math.min(1.75, exactPeriod - M));
 	const allpassCoeff = (1 - tau) / (1 + tau);
 
-	// Target natural decay time (-60 dB) around 2.0s–3.1s
-	const decaySec = 3.1 - normPitch * 1.1;
+	// Classical nylon bass sustain (~3.3s) and warm singing treble decay (~2.0s)
+	const decaySec = 3.3 - normPitch * 1.25;
 	const targetLoopGain = Math.pow(0.001, 1 / (clampedFreq * decaySec));
-	const loopFeedback = Math.min(0.9988, targetLoopGain / Math.max(0.5, lpfMag));
+	const loopFeedback = Math.min(
+		0.9986,
+		targetLoopGain / Math.max(0.45, totalFilterMag),
+	);
 
-	// Seed burst with warm pick pre-filter & DC removal
+	// Seed burst shaped like warm fingertip pluck (sample-rate normalized low-pass + DC removal)
 	const rawBurst = new Float32Array(M);
 	const rand = createSeededRandom(Math.round(clampedFreq * 100));
-	let prevPick = 0;
-	let mean = 0;
-	for (let i = 0; i < M; i++) {
-		const filtered = 0.58 * rand() + 0.42 * prevPick;
-		prevPick = filtered;
-		rawBurst[i] = filtered;
-		mean += filtered;
+	const pickPole = Math.exp((-2 * Math.PI * 2200) / fs);
+	let lpState = 0;
+	for (let i = 0; i < M * 2; i++) {
+		lpState = (1 - pickPole) * rand() + pickPole * lpState;
+		rawBurst[i % M] = lpState;
 	}
+	// Second backward smoothing pass eliminates harsh pick fizz while keeping finger warmth
+	for (let i = M - 1; i >= 0; i--) {
+		lpState = (1 - pickPole) * rawBurst[i] + pickPole * lpState;
+		rawBurst[i] = lpState;
+	}
+
+	let mean = 0;
+	for (let i = 0; i < M; i++) mean += rawBurst[i];
 	mean /= M;
 
-	// Pluck-position comb filter (~16% from bridge) shapes realistic acoustic guitar body harmonics
+	// Rosette/soundhole pluck position (~22% from bridge) emphasizes warm fundamental & cedar body
 	const ring = new Float32Array(M);
-	const pluckOffset = Math.max(1, Math.min(M - 1, Math.round(M * 0.16)));
+	const pluckOffset = Math.max(1, Math.min(M - 1, Math.round(M * 0.22)));
 	let peak = 0;
 	for (let i = 0; i < M; i++) {
 		const a = rawBurst[i] - mean;
 		const b = rawBurst[(i - pluckOffset + M) % M] - mean;
-		const val = 0.72 * (a - 0.78 * b) + 0.28 * a;
+		const val = 0.65 * (a - 0.68 * b) + 0.35 * a;
 		ring[i] = val;
 		const absVal = Math.abs(val);
 		if (absVal > peak) peak = absVal;
 	}
-	const normScale = peak > 1e-6 ? 0.9 / peak : 1;
+	const normScale = peak > 1e-6 ? 0.88 / peak : 1;
 	for (let i = 0; i < M; i++) {
 		ring[i] *= normScale;
 	}
@@ -162,20 +182,23 @@ export function synthesizeGuitarPluckSamples(
 	// Waveguide loop
 	let ptr = 0;
 	let prevCur = ring[M - 1];
+	let iirLp = 0;
 	let prevLp = 0;
 	let prevAp = 0;
 
-	const fadeInSamples = Math.min(numSamples, Math.round(fs * 0.0018));
-	const fadeOutSamples = Math.min(numSamples, Math.round(fs * 0.065));
+	const fadeInSamples = Math.min(numSamples, Math.round(fs * 0.0032));
+	const fadeOutSamples = Math.min(numSamples, Math.round(fs * 0.075));
 	const fadeOutStart = numSamples - fadeOutSamples;
 
 	for (let i = 0; i < numSamples; i++) {
 		const cur = ring[ptr];
-		const lp = (1 - blend) * cur + blend * prevCur;
+		const fir = (1 - blend) * cur + blend * prevCur;
 		prevCur = cur;
 
-		const ap = allpassCoeff * lp + prevLp - allpassCoeff * prevAp;
-		prevLp = lp;
+		iirLp = (1 - nylonDamp) * fir + nylonDamp * iirLp;
+
+		const ap = allpassCoeff * iirLp + prevLp - allpassCoeff * prevAp;
+		prevLp = iirLp;
 		prevAp = ap;
 
 		ring[ptr] = ap * loopFeedback;
@@ -188,7 +211,7 @@ export function synthesizeGuitarPluckSamples(
 		} else if (i >= fadeOutStart) {
 			env = (numSamples - i) / fadeOutSamples;
 		}
-		out[i] = ap * env;
+		out[i] = Math.max(-1, Math.min(1, ap * env));
 	}
 
 	return out;
@@ -340,40 +363,55 @@ function scheduleGuitarVoice(
 ) {
 	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
-	const release = 0.9;
-	const totalDur = Math.max(duration + release, 1.85);
+	const release = 0.95;
+	const totalDur = Math.max(duration + release, 1.95);
 	const stopTime = startTime + duration + release;
 
 	const src = ctx.createBufferSource();
 	src.buffer = getGuitarPluckBuffer(ctx, freq, totalDur);
 
-	// Acoustic dreadnought/classical body resonances: air chamber (~102 Hz) + spruce top (~212 Hz)
+	// Classical Torres/Spanish cedar body resonances:
+	// Warm A0 soundhole air chamber (~96 Hz) + main cedar top monopole (~194 Hz) + dynamic nylon damping
 	const airRes = ctx.createBiquadFilter();
 	airRes.type = "peaking";
-	airRes.frequency.value = 102;
-	airRes.Q.value = 2.4;
-	airRes.gain.value = 4.2;
+	airRes.frequency.value = 96;
+	airRes.Q.value = 2.6;
+	airRes.gain.value = 4.8;
 
 	const topRes = ctx.createBiquadFilter();
 	topRes.type = "peaking";
-	topRes.frequency.value = 212;
-	topRes.Q.value = 2.2;
-	topRes.gain.value = 2.8;
+	topRes.frequency.value = 194;
+	topRes.Q.value = 2.4;
+	topRes.gain.value = 3.5;
+
+	const harshScoop = ctx.createBiquadFilter();
+	harshScoop.type = "peaking";
+	harshScoop.frequency.value = 2500;
+	harshScoop.Q.value = 1.2;
+	harshScoop.gain.value = -2.8;
 
 	const bodyLPF = ctx.createBiquadFilter();
 	bodyLPF.type = "lowpass";
-	bodyLPF.frequency.value = 4600;
-	bodyLPF.Q.value = 0.55;
+	bodyLPF.Q.value = 0.65;
+	bodyLPF.frequency.setValueAtTime(
+		Math.min(3100, Math.max(1750, freq * 7.5)),
+		startTime,
+	);
+	bodyLPF.frequency.exponentialRampToValueAtTime(
+		Math.min(2200, Math.max(1250, freq * 4.5)),
+		startTime + Math.min(0.28, duration * 0.5),
+	);
 
 	const noteGain = ctx.createGain();
-	const ksGain = peakGain * 1.35;
+	const ksGain = peakGain * 1.48;
 	noteGain.gain.setValueAtTime(ksGain, startTime);
-	noteGain.gain.setValueAtTime(ksGain * 0.88, startTime + duration);
+	noteGain.gain.setValueAtTime(ksGain * 0.9, startTime + duration);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
 	src.connect(airRes);
 	airRes.connect(topRes);
-	topRes.connect(bodyLPF);
+	topRes.connect(harshScoop);
+	harshScoop.connect(bodyLPF);
 	bodyLPF.connect(noteGain);
 	noteGain.connect(master);
 
@@ -631,8 +669,8 @@ export function playChordNotes(
 				: 0.058
 			: preset === "guitar"
 				? arpeggiate
-					? 0.075
-					: 0.03
+					? 0.08
+					: 0.038
 				: arpeggiate
 					? 0.075
 					: 0.01;
@@ -648,6 +686,32 @@ export function playChordNotes(
 			preset,
 		);
 	});
+}
+
+export interface TimedSequenceStep {
+	midi: number[];
+	atMs: number;
+	durationSec: number;
+	spreadSec?: number;
+}
+
+function triggerSequenceAudio(
+	midi: number[],
+	preset: SoundPreset,
+	durationSec: number,
+	arpeggiate: boolean,
+	spreadSec?: number,
+) {
+	if (midi.length === 1) {
+		playSingleNote(midi[0], preset, durationSec);
+	} else {
+		playChordNotes(midi, {
+			preset,
+			duration: durationSec,
+			arpeggiate,
+			spreadSec,
+		});
+	}
 }
 
 export function playStepSequence(
@@ -669,6 +733,45 @@ export function playStepSequence(
 		onStep,
 		onDone,
 	} = options;
+	const timedSteps: TimedSequenceStep[] = steps.map((step, idx) => ({
+		midi: step.midi,
+		atMs: idx * stepMs,
+		durationSec:
+			step.durationSec ??
+			(step.midi.length === 1
+				? Math.max(0.28, (stepMs / 1000) * 0.9)
+				: Math.max(0.45, (stepMs / 1000) * 0.88)),
+		spreadSec,
+	}));
+	return playTimedSequence(timedSteps, {
+		preset,
+		arpeggiate,
+		totalDurationMs: steps.length * stepMs,
+		onStep,
+		onDone,
+	});
+}
+
+export function playTimedSequence(
+	steps: TimedSequenceStep[],
+	options: {
+		preset?: SoundPreset;
+		arpeggiate?: boolean;
+		totalDurationMs?: number;
+		onStep?: (index: number) => void;
+		onDone?: () => void;
+	},
+): () => void {
+	const {
+		preset = "piano",
+		arpeggiate = false,
+		totalDurationMs,
+		onStep,
+		onDone,
+	} = options;
+	if (typeof window === "undefined") {
+		return () => {};
+	}
 	let cancelled = false;
 	const timers: number[] = [];
 
@@ -676,29 +779,28 @@ export function playStepSequence(
 		const timerId = window.setTimeout(() => {
 			if (cancelled) return;
 			onStep?.(idx);
-			if (step.midi.length === 1) {
-				playSingleNote(
-					step.midi[0],
-					preset,
-					step.durationSec ?? Math.max(0.28, (stepMs / 1000) * 0.9),
-				);
-			} else {
-				playChordNotes(step.midi, {
-					preset,
-					duration: step.durationSec ?? Math.max(0.45, (stepMs / 1000) * 0.88),
-					arpeggiate,
-					spreadSec,
-				});
-			}
-		}, idx * stepMs);
+			triggerSequenceAudio(
+				step.midi,
+				preset,
+				step.durationSec,
+				arpeggiate,
+				step.spreadSec,
+			);
+		}, step.atMs);
 		timers.push(timerId);
 	});
 
+	const endDelayMs =
+		totalDurationMs ??
+		steps.reduce(
+			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
+			0,
+		);
 	const endTimer = window.setTimeout(() => {
 		if (!cancelled) {
 			onDone?.();
 		}
-	}, steps.length * stepMs);
+	}, endDelayMs);
 	timers.push(endTimer);
 
 	return () => {

@@ -4,6 +4,7 @@ import {
 	playChordNotes,
 	playSingleNote,
 	playStepSequence,
+	playTimedSequence,
 } from "./audio/synth";
 import { CelloFingerboard } from "./components/CelloFingerboard";
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
@@ -12,6 +13,7 @@ import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
+import { SongExamplesPanel } from "./components/SongExamplesPanel";
 import {
 	CelloVoicing,
 	getCelloVoicings,
@@ -33,6 +35,12 @@ import {
 	getGuitarVoicings,
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
+import {
+	SongChordStep,
+	SongExample,
+	flattenSongPlaybackSteps,
+	getSongsForInstrument,
+} from "./theory/songExamples";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -43,6 +51,7 @@ interface ActiveVoicing {
 	midi: number[];
 	notes: string[];
 	chord: DiatonicChord | null;
+	preserveVoicing?: boolean;
 }
 
 const MAJOR_DEGREES = ["1", "2", "3", "4", "5", "6", "7"] as const;
@@ -83,6 +92,16 @@ export function App() {
 	const [walkingDirection, setWalkingDirection] = useState<
 		"fourth" | "fifth" | null
 	>(null);
+	const [playingSongId, setPlayingSongId] = useState<string | null>(null);
+	const [activeSongStepIndex, setActiveSongStepIndex] = useState<
+		number | null
+	>(null);
+	const [activeSongNoteLabel, setActiveSongNoteLabel] = useState<string | null>(
+		null,
+	);
+	const [selectedSongPreviewId, setSelectedSongPreviewId] = useState<
+		string | null
+	>(null);
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
 
@@ -99,6 +118,10 @@ export function App() {
 		setActiveScaleIndex(null);
 		setActiveProgressionId(null);
 		setWalkingDirection(null);
+		setPlayingSongId(null);
+		setActiveSongStepIndex(null);
+		setActiveSongNoteLabel(null);
+		setSelectedSongPreviewId(null);
 	}, []);
 
 	useEffect(() => {
@@ -133,7 +156,7 @@ export function App() {
 	const tonicChord = analysis.chords[0];
 	const activeVoicing = useMemo<ActiveVoicing>(() => {
 		if (auditionOverride) {
-			if (auditionOverride.chord) {
+			if (auditionOverride.chord && !auditionOverride.preserveVoicing) {
 				const c = auditionOverride.chord;
 				return {
 					id: auditionOverride.id,
@@ -223,8 +246,8 @@ export function App() {
 	const instrumentSpreadSec =
 		instrumentView === "guitar"
 			? arpeggiate
-				? 0.075
-				: 0.032
+				? 0.08
+				: 0.038
 			: instrumentView === "cello"
 				? arpeggiate
 					? 0.08
@@ -731,7 +754,7 @@ export function App() {
 			setSelectedGuitarVoicingId(voicing.id);
 			playChordNotes(voicing.soundingMidi, {
 				preset: soundPreset,
-				spreadSec: arpeggiate ? 0.075 : 0.032,
+				spreadSec: arpeggiate ? 0.08 : 0.038,
 			});
 		},
 		[soundPreset, arpeggiate],
@@ -741,7 +764,7 @@ export function App() {
 		(voicing: GuitarVoicing) => {
 			playChordNotes(voicing.soundingMidi, {
 				preset: soundPreset,
-				spreadSec: arpeggiate ? 0.075 : 0.032,
+				spreadSec: arpeggiate ? 0.08 : 0.038,
 			});
 		},
 		[soundPreset, arpeggiate],
@@ -766,6 +789,128 @@ export function App() {
 			});
 		},
 		[soundPreset, arpeggiate],
+	);
+
+	const songsForInstrument = useMemo(
+		() => getSongsForInstrument(instrumentView),
+		[instrumentView],
+	);
+
+	const applySongStepHighlight = useCallback(
+		(song: SongExample, step: SongChordStep) => {
+			const songAnalysis = analyzeKey(
+				song.keySlot,
+				song.keyMode,
+				preference,
+				slotOverrides,
+			);
+			const matchedChord = songAnalysis.chords[step.circleDegree - 1] ?? null;
+			setAuditionOverride({
+				id: matchedChord
+					? `${matchedChord.roman}-${matchedChord.symbol}`
+					: step.id,
+				label: `${step.chordSymbol} (${step.roman})`,
+				quality: step.quality,
+				guitarKind: step.guitarKind,
+				midi: step.displayMidi,
+				notes: step.chordNotes,
+				chord: matchedChord,
+				preserveVoicing: true,
+			});
+		},
+		[preference, slotOverrides],
+	);
+
+	const handleTogglePlaySong = useCallback(
+		(song: SongExample) => {
+			if (playingSongId === song.id) {
+				stopActiveSequence();
+				setAuditionOverride(null);
+				return;
+			}
+			stopActiveSequence();
+			setSelectedSongPreviewId(null);
+			setSelectedGuitarVoicingId(null);
+			setSelectedCelloVoicingId(null);
+			setSelectedSlot(song.keySlot);
+			setMode(song.keyMode);
+			setPlayingSongId(song.id);
+
+			const { events, totalDurationMs } = flattenSongPlaybackSteps(song);
+			cancelSequenceRef.current = playTimedSequence(events, {
+				preset: soundPreset,
+				arpeggiate: false,
+				totalDurationMs,
+				onStep: (idx) => {
+					const ev = events[idx];
+					setActiveSongStepIndex(ev.chordStepIndex);
+					setActiveSongNoteLabel(ev.noteLabel);
+					applySongStepHighlight(song, ev.chordStep);
+				},
+				onDone: () => {
+					setPlayingSongId(null);
+					setActiveSongStepIndex(null);
+					setActiveSongNoteLabel(null);
+					setAuditionOverride(null);
+					cancelSequenceRef.current = null;
+				},
+			});
+		},
+		[playingSongId, stopActiveSequence, soundPreset, applySongStepHighlight],
+	);
+
+	const handleSelectSongChordStep = useCallback(
+		(song: SongExample, stepIndex: number) => {
+			const step = song.steps[stepIndex];
+			if (!step) return;
+			stopActiveSequence();
+			setSelectedSongPreviewId(step.id);
+			setSelectedGuitarVoicingId(null);
+			setSelectedCelloVoicingId(null);
+			setSelectedSlot(song.keySlot);
+			setMode(song.keyMode);
+			applySongStepHighlight(song, step);
+
+			const songAnalysis = analyzeKey(
+				song.keySlot,
+				song.keyMode,
+				preference,
+				slotOverrides,
+			);
+			const pb = resolvePlaybackForInstrument(
+				step.chordNotes,
+				step.guitarKind,
+				step.displayMidi,
+				songAnalysis.accidentalsCount < 0,
+			);
+			playChordNotes(pb.midi, {
+				preset: soundPreset,
+				arpeggiate,
+				spreadSec: pb.spreadSec,
+			});
+		},
+		[
+			stopActiveSequence,
+			applySongStepHighlight,
+			preference,
+			slotOverrides,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+		],
+	);
+
+	const handleSelectInstrumentTab = useCallback(
+		(nextTab: "piano" | "guitar" | "cello") => {
+			if (nextTab === instrumentView) return;
+			if (playingSongId) {
+				stopActiveSequence();
+				setAuditionOverride(null);
+			}
+			setSelectedSongPreviewId(null);
+			setInstrumentView(nextTab);
+		},
+		[instrumentView, playingSongId, stopActiveSequence],
 	);
 
 	const handleFlipEnharmonic = useCallback(() => {
@@ -1124,7 +1269,7 @@ export function App() {
 									className={`instrument-tab ${
 										instrumentView === "piano" ? "is-active" : ""
 									}`}
-									onClick={() => setInstrumentView("piano")}
+									onClick={() => handleSelectInstrumentTab("piano")}
 								>
 									Piano View
 								</button>
@@ -1137,7 +1282,7 @@ export function App() {
 									className={`instrument-tab ${
 										instrumentView === "guitar" ? "is-active" : ""
 									}`}
-									onClick={() => setInstrumentView("guitar")}
+									onClick={() => handleSelectInstrumentTab("guitar")}
 								>
 									Guitar View
 								</button>
@@ -1150,7 +1295,7 @@ export function App() {
 									className={`instrument-tab ${
 										instrumentView === "cello" ? "is-active" : ""
 									}`}
-									onClick={() => setInstrumentView("cello")}
+									onClick={() => handleSelectInstrumentTab("cello")}
 								>
 									Cello View
 								</button>
@@ -1159,7 +1304,7 @@ export function App() {
 								{instrumentView === "piano"
 									? "Grand Piano · 2-Octave Keyboard (C4–B5)"
 									: instrumentView === "guitar"
-										? "Acoustic Guitar · E A D G B e"
+										? "Classical Guitar · E A D G B e"
 										: "Bowed Cello · C2–G2–D3–A3 (5ths)"}
 							</span>
 						</div>
@@ -1223,6 +1368,17 @@ export function App() {
 								/>
 							)}
 						</div>
+
+						<SongExamplesPanel
+							instrumentView={instrumentView}
+							songs={songsForInstrument}
+							playingSongId={playingSongId}
+							activeChordStepIndex={activeSongStepIndex}
+							activeNoteLabel={activeSongNoteLabel}
+							selectedPreviewStepId={selectedSongPreviewId}
+							onTogglePlaySong={handleTogglePlaySong}
+							onSelectSongChordStep={handleSelectSongChordStep}
+						/>
 
 						<div className="progressions-wrap">
 							<div className="progressions-header">

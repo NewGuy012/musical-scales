@@ -6,9 +6,11 @@ import { ChordsPanel } from "../src/react-app/components/ChordsPanel";
 import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
+import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import { getSongsForInstrument } from "../src/react-app/theory/songExamples";
 
 describe("Circle of Fifths UI rendering", () => {
 	test("renders App with C Major default state, fifths/fourths relationships, and major/minor chords", () => {
@@ -29,6 +31,10 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Cello View");
 		expect(html).toContain("Instrument");
 		expect(html).toContain("Grand Piano");
+		expect(html).toContain("Learn from Real Songs");
+		expect(html).toContain("Do-Re-Mi (from The Sound of Music)");
+		expect(html).not.toContain("Cello Suite No. 1");
+		expect(html).not.toContain("Amazing Grace");
 	});
 
 	test("renders GuitarFretboard with C major CAGED voicings and 15-fret neck markers", () => {
@@ -201,5 +207,44 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(ebHtml).toContain("C♭maj7");
 		expect(ebHtml).toContain("D♭7");
 		expect(ebHtml).toContain("Harmonic V");
+	});
+
+	test("renders SongExamplesPanel per instrument (Guitar Amazing Grace, Cello-only Bach Suite)", () => {
+		const guitarHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				instrumentView="guitar"
+				songs={getSongsForInstrument("guitar")}
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={() => {}}
+				onSelectSongChordStep={() => {}}
+			/>,
+		);
+		expect(guitarHtml).toContain("Amazing Grace");
+		expect(guitarHtml).toContain("Em");
+		expect(guitarHtml).toContain("D7");
+		expect(guitarHtml).not.toContain("Cello Suite No. 1");
+
+		const celloSongs = getSongsForInstrument("cello");
+		const celloHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				instrumentView="cello"
+				songs={celloSongs}
+				playingSongId={celloSongs[0].id}
+				activeChordStepIndex={1}
+				activeNoteLabel="C4 (I · F2)"
+				selectedPreviewStepId={null}
+				onTogglePlaySong={() => {}}
+				onSelectSongChordStep={() => {}}
+			/>,
+		);
+		expect(celloHtml).toContain("Cello Suite No. 1 — Prelude (BWV 1007)");
+		expect(celloHtml).toContain("J.S. Bach");
+		expect(celloHtml).toContain("C/G");
+		expect(celloHtml).toContain("D7/G");
+		expect(celloHtml).toContain("Playing");
+		expect(celloHtml).toContain("C4 (I · F2)");
 	});
 });
