@@ -8,6 +8,7 @@ import {
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
 import { CircleWheel } from "./components/CircleWheel";
 import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
+import { GuitarFretboard } from "./components/GuitarFretboard";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
 import {
@@ -21,12 +22,19 @@ import {
 	mod12,
 	noteToPitchClass,
 } from "./theory/circleOfFifths";
+import {
+	GuitarChordKind,
+	GuitarVoicing,
+	getGuitarVoicings,
+	inferGuitarChordKind,
+} from "./theory/guitarFretboard";
 import "./App.css";
 
 interface ActiveVoicing {
 	id: string | null;
 	label: string;
 	quality: ChordQuality;
+	guitarKind: GuitarChordKind | null;
 	midi: number[];
 	notes: string[];
 	chord: DiatonicChord | null;
@@ -48,6 +56,12 @@ export function App() {
 	const [soundPreset, setSoundPreset] = useState<SoundPreset>("keys");
 	const [rotateToSelected, setRotateToSelected] = useState<boolean>(false);
 	const [theme, setTheme] = useState<"dark" | "light">("dark");
+	const [instrumentView, setInstrumentView] = useState<"piano" | "guitar">(
+		"piano",
+	);
+	const [selectedGuitarVoicingId, setSelectedGuitarVoicingId] = useState<
+		string | null
+	>(null);
 
 	// Active audition / playback highlight state
 	const [auditionOverride, setAuditionOverride] =
@@ -115,6 +129,11 @@ export function App() {
 					id: auditionOverride.id,
 					label: `${getChordSymbol(c)} (${c.roman})`,
 					quality: c.quality,
+					guitarKind: inferGuitarChordKind(
+						c,
+						c.quality,
+						voicingMode === "seventh",
+					),
 					midi: getChordMidi(c),
 					notes: getChordNotes(c),
 					chord: c,
@@ -126,6 +145,11 @@ export function App() {
 			id: `${tonicChord.roman}-${tonicChord.symbol}`,
 			label: `${getChordSymbol(tonicChord)} (${tonicChord.roman})`,
 			quality: tonicChord.quality,
+			guitarKind: inferGuitarChordKind(
+				tonicChord,
+				tonicChord.quality,
+				voicingMode === "seventh",
+			),
 			midi: getChordMidi(tonicChord),
 			notes: getChordNotes(tonicChord),
 			chord: null,
@@ -133,10 +157,67 @@ export function App() {
 	}, [
 		auditionOverride,
 		tonicChord,
+		voicingMode,
 		getChordSymbol,
 		getChordMidi,
 		getChordNotes,
 	]);
+
+	const preferFlats = useMemo(
+		() =>
+			analysis.accidentalsCount < 0 ||
+			activeVoicing.notes.some((n) => n.includes("♭")),
+		[analysis.accidentalsCount, activeVoicing.notes],
+	);
+
+	const guitarVoicings = useMemo(() => {
+		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) {
+			return [];
+		}
+		return getGuitarVoicings(
+			activeVoicing.notes[0],
+			activeVoicing.guitarKind,
+			activeVoicing.notes,
+			preferFlats,
+		);
+	}, [activeVoicing.guitarKind, activeVoicing.notes, preferFlats]);
+
+	const activeGuitarVoicing = useMemo(() => {
+		if (guitarVoicings.length === 0) return null;
+		return (
+			guitarVoicings.find((v) => v.id === selectedGuitarVoicingId) ??
+			guitarVoicings[0]
+		);
+	}, [guitarVoicings, selectedGuitarVoicingId]);
+
+	const resolvePlaybackForInstrument = useCallback(
+		(
+			notes: string[],
+			guitarKind: GuitarChordKind | null,
+			pianoMidi: number[],
+			flatBias: boolean,
+		): { midi: number[]; spreadSec?: number } => {
+			if (instrumentView === "guitar" && guitarKind && notes.length >= 3) {
+				const voicings = getGuitarVoicings(
+					notes[0],
+					guitarKind,
+					notes,
+					flatBias,
+				);
+				const chosen =
+					voicings.find((v) => v.id === selectedGuitarVoicingId) ??
+					voicings[0];
+				if (chosen) {
+					return {
+						midi: chosen.soundingMidi,
+						spreadSec: arpeggiate ? 0.075 : 0.032,
+					};
+				}
+			}
+			return { midi: pianoMidi };
+		},
+		[instrumentView, selectedGuitarVoicingId, arpeggiate],
+	);
 
 	const activeNoteNamesByMidi = useMemo(() => {
 		const map: Record<number, string> = {};
@@ -173,11 +254,25 @@ export function App() {
 					slotOverrides,
 				);
 				const chord = nextAnalysis.chords[0];
-				const midi =
+				const pianoMidi =
 					voicingMode === "seventh" ? chord.seventhMidi : chord.triadMidi;
-				playChordNotes(midi, {
+				const notes =
+					voicingMode === "seventh" ? chord.seventhNotes : chord.triadNotes;
+				const guitarKind = inferGuitarChordKind(
+					chord,
+					chord.quality,
+					voicingMode === "seventh",
+				);
+				const playback = resolvePlaybackForInstrument(
+					notes,
+					guitarKind,
+					pianoMidi,
+					nextAnalysis.accidentalsCount < 0,
+				);
+				playChordNotes(playback.midi, {
 					preset: soundPreset,
 					arpeggiate,
+					spreadSec: playback.spreadSec,
 				});
 			}
 		},
@@ -186,6 +281,7 @@ export function App() {
 			preference,
 			slotOverrides,
 			voicingMode,
+			resolvePlaybackForInstrument,
 			soundPreset,
 			arpeggiate,
 		],
@@ -194,28 +290,63 @@ export function App() {
 	const handlePlayTonic = useCallback(() => {
 		stopActiveSequence();
 		setAuditionOverride(null);
-		playChordNotes(getChordMidi(tonicChord), {
+		const guitarKind = inferGuitarChordKind(
+			tonicChord,
+			tonicChord.quality,
+			voicingMode === "seventh",
+		);
+		const playback = resolvePlaybackForInstrument(
+			getChordNotes(tonicChord),
+			guitarKind,
+			getChordMidi(tonicChord),
+			analysis.accidentalsCount < 0,
+		);
+		playChordNotes(playback.midi, {
 			preset: soundPreset,
 			arpeggiate,
+			spreadSec: playback.spreadSec,
 		});
-	}, [stopActiveSequence, getChordMidi, tonicChord, soundPreset, arpeggiate]);
+	}, [
+		stopActiveSequence,
+		tonicChord,
+		voicingMode,
+		resolvePlaybackForInstrument,
+		getChordNotes,
+		getChordMidi,
+		analysis.accidentalsCount,
+		soundPreset,
+		arpeggiate,
+	]);
 
 	const handleSelectChord = useCallback(
 		(chord: DiatonicChord, id: string) => {
 			stopActiveSequence();
 			const midi = getChordMidi(chord);
 			const notes = getChordNotes(chord);
+			const guitarKind = inferGuitarChordKind(
+				chord,
+				chord.quality,
+				voicingMode === "seventh",
+			);
 			setAuditionOverride({
 				id,
 				label: `${getChordSymbol(chord)} (${chord.roman})`,
 				quality: chord.quality,
+				guitarKind,
 				midi,
 				notes,
 				chord,
 			});
-			playChordNotes(midi, {
+			const playback = resolvePlaybackForInstrument(
+				notes,
+				guitarKind,
+				midi,
+				analysis.accidentalsCount < 0 || notes.some((n) => n.includes("♭")),
+			);
+			playChordNotes(playback.midi, {
 				preset: soundPreset,
 				arpeggiate,
+				spreadSec: playback.spreadSec,
 			});
 		},
 		[
@@ -223,6 +354,9 @@ export function App() {
 			getChordMidi,
 			getChordNotes,
 			getChordSymbol,
+			voicingMode,
+			resolvePlaybackForInstrument,
+			analysis.accidentalsCount,
 			soundPreset,
 			arpeggiate,
 		],
@@ -237,16 +371,30 @@ export function App() {
 				id: `tonic-pair-${kind}-${target.symbol}`,
 				label: `${target.symbol} (${kind === "major" ? "Major" : "Minor"})`,
 				quality: kind,
+				guitarKind: kind,
 				midi: target.midi,
 				notes: target.notes,
 				chord: null,
 			});
-			playChordNotes(target.midi, {
+			const playback = resolvePlaybackForInstrument(
+				target.notes,
+				kind,
+				target.midi,
+				target.notes.some((n) => n.includes("♭")),
+			);
+			playChordNotes(playback.midi, {
 				preset: soundPreset,
 				arpeggiate,
+				spreadSec: playback.spreadSec,
 			});
 		},
-		[stopActiveSequence, analysis.tonicPair, soundPreset, arpeggiate],
+		[
+			stopActiveSequence,
+			analysis.tonicPair,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+		],
 	);
 
 	const handlePlayScale = useCallback(() => {
@@ -272,6 +420,7 @@ export function App() {
 					id: null,
 					label: `${noteLabel} (Degree ${idx === 7 ? "8" : idx + 1})`,
 					quality: mode === "major" ? "major" : "minor",
+					guitarKind: null,
 					midi: [analysis.scaleMidi[idx]],
 					notes: [noteLabel],
 					chord: null,
@@ -300,20 +449,44 @@ export function App() {
 			const cadence = [tonicChord, targetChord, tonicChord];
 
 			cancelSequenceRef.current = playStepSequence(
-				cadence.map((c) => ({
-					midi: getChordMidi(c),
-					durationSec: 0.72,
-				})),
+				cadence.map((c) => {
+					const gKind = inferGuitarChordKind(
+						c,
+						c.quality,
+						voicingMode === "seventh",
+					);
+					const pb = resolvePlaybackForInstrument(
+						getChordNotes(c),
+						gKind,
+						getChordMidi(c),
+						analysis.accidentalsCount < 0,
+					);
+					return {
+						midi: pb.midi,
+						durationSec: 0.72,
+					};
+				}),
 				{
 					preset: soundPreset,
 					stepMs: 680,
 					arpeggiate,
+					spreadSec:
+						instrumentView === "guitar"
+							? arpeggiate
+								? 0.075
+								: 0.032
+							: undefined,
 					onStep: (idx) => {
 						const c = cadence[idx];
 						setAuditionOverride({
 							id: `${c.roman}-${c.symbol}`,
 							label: `${getChordSymbol(c)} (${c.roman})`,
 							quality: c.quality,
+							guitarKind: inferGuitarChordKind(
+								c,
+								c.quality,
+								voicingMode === "seventh",
+							),
 							midi: getChordMidi(c),
 							notes: getChordNotes(c),
 							chord: c,
@@ -329,12 +502,16 @@ export function App() {
 		[
 			stopActiveSequence,
 			analysis.chords,
+			analysis.accidentalsCount,
 			tonicChord,
+			voicingMode,
+			resolvePlaybackForInstrument,
 			getChordMidi,
 			getChordNotes,
 			getChordSymbol,
 			soundPreset,
 			arpeggiate,
+			instrumentView,
 		],
 	);
 
@@ -361,20 +538,44 @@ export function App() {
 			});
 
 			cancelSequenceRef.current = playStepSequence(
-				chordSteps.map(({ chord }) => ({
-					midi: getChordMidi(chord),
-					durationSec: 0.85,
-				})),
+				chordSteps.map(({ chord }) => {
+					const gKind = inferGuitarChordKind(
+						chord,
+						chord.quality,
+						voicingMode === "seventh",
+					);
+					const pb = resolvePlaybackForInstrument(
+						getChordNotes(chord),
+						gKind,
+						getChordMidi(chord),
+						analysis.accidentalsCount < 0,
+					);
+					return {
+						midi: pb.midi,
+						durationSec: 0.85,
+					};
+				}),
 				{
 					preset: soundPreset,
 					stepMs: 780,
 					arpeggiate,
+					spreadSec:
+						instrumentView === "guitar"
+							? arpeggiate
+								? 0.075
+								: 0.032
+							: undefined,
 					onStep: (idx) => {
 						const { chord, suffix } = chordSteps[idx];
 						setAuditionOverride({
 							id: `${chord.roman}-${chord.symbol}${suffix}`,
 							label: `${getChordSymbol(chord)} (${chord.roman})`,
 							quality: chord.quality,
+							guitarKind: inferGuitarChordKind(
+								chord,
+								chord.quality,
+								voicingMode === "seventh",
+							),
 							midi: getChordMidi(chord),
 							notes: getChordNotes(chord),
 							chord,
@@ -393,11 +594,15 @@ export function App() {
 			stopActiveSequence,
 			analysis.chords,
 			analysis.harmonicMinorV,
+			analysis.accidentalsCount,
+			voicingMode,
+			resolvePlaybackForInstrument,
 			getChordMidi,
 			getChordNotes,
 			getChordSymbol,
 			soundPreset,
 			arpeggiate,
+			instrumentView,
 		],
 	);
 
@@ -421,15 +626,34 @@ export function App() {
 					slotOverrides,
 				);
 				const chord = stepAnalysis.chords[0];
-				const midi =
+				const pianoMidi =
 					voicingMode === "seventh" ? chord.seventhMidi : chord.triadMidi;
-				return { slot, midi, durationSec: 0.65 };
+				const notes =
+					voicingMode === "seventh" ? chord.seventhNotes : chord.triadNotes;
+				const gKind = inferGuitarChordKind(
+					chord,
+					chord.quality,
+					voicingMode === "seventh",
+				);
+				const pb = resolvePlaybackForInstrument(
+					notes,
+					gKind,
+					pianoMidi,
+					stepAnalysis.accidentalsCount < 0,
+				);
+				return { slot, midi: pb.midi, durationSec: 0.65 };
 			});
 
 			cancelSequenceRef.current = playStepSequence(steps, {
 				preset: soundPreset,
 				stepMs: 650,
 				arpeggiate,
+				spreadSec:
+					instrumentView === "guitar"
+						? arpeggiate
+							? 0.075
+							: 0.032
+						: undefined,
 				onStep: (idx) => {
 					setSelectedSlot(steps[idx].slot);
 					setAuditionOverride(null);
@@ -448,9 +672,32 @@ export function App() {
 			preference,
 			slotOverrides,
 			voicingMode,
+			resolvePlaybackForInstrument,
 			soundPreset,
 			arpeggiate,
+			instrumentView,
 		],
+	);
+
+	const handleSelectGuitarVoicing = useCallback(
+		(voicing: GuitarVoicing) => {
+			setSelectedGuitarVoicingId(voicing.id);
+			playChordNotes(voicing.soundingMidi, {
+				preset: soundPreset,
+				spreadSec: arpeggiate ? 0.075 : 0.032,
+			});
+		},
+		[soundPreset, arpeggiate],
+	);
+
+	const handleStrumGuitarVoicing = useCallback(
+		(voicing: GuitarVoicing) => {
+			playChordNotes(voicing.soundingMidi, {
+				preset: soundPreset,
+				spreadSec: arpeggiate ? 0.075 : 0.032,
+			});
+		},
+		[soundPreset, arpeggiate],
 	);
 
 	const handleFlipEnharmonic = useCallback(() => {
@@ -503,30 +750,12 @@ export function App() {
 		<div className="app-shell">
 			<header className="top-bar">
 				<div className="brand-cluster">
-					<div className="brand-emblem" aria-hidden="true">
-						<svg viewBox="0 0 32 32" className="brand-icon">
-							<circle
-								cx="16"
-								cy="16"
-								r="13"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.8"
-								strokeOpacity="0.35"
-							/>
-							<circle
-								cx="16"
-								cy="16"
-								r="7"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.6"
-								strokeOpacity="0.6"
-							/>
-							<circle cx="16" cy="3.5" r="2.6" fill="var(--color-tonic)" />
-							<circle cx="22.3" cy="5.2" r="2.1" fill="var(--color-fifth)" />
-							<circle cx="9.7" cy="5.2" r="2.1" fill="var(--color-fourth)" />
-						</svg>
+					<div className="brand-emblem">
+						<img
+							src="/logo.png"
+							alt="Circle of Fifths logo"
+							className="brand-logo-img"
+						/>
 					</div>
 					<div>
 						<h1 className="brand-title">Circle of Fifths</h1>
@@ -806,16 +1035,86 @@ export function App() {
 						onPlayRootPairChord={handlePlayRootPairChord}
 					/>
 
-					{/* 4. Interactive Piano & Chord Progressions */}
-					<section className="panel-card" aria-label="Piano and progressions">
-						<PianoKeyboard
-							activeMidiNotes={activeVoicing.midi}
-							activeLabel={activeVoicing.label}
-							activeQuality={activeVoicing.quality}
-							scalePitchClasses={scalePitchClasses}
-							activeNoteNamesByMidi={activeNoteNamesByMidi}
-							onPlayNote={(midi) => playSingleNote(midi, soundPreset)}
-						/>
+					{/* 4. Interactive Instrument View (Piano / Guitar) & Chord Progressions */}
+					<section
+						className="panel-card"
+						aria-label="Instrument view and progressions"
+					>
+						<div className="instrument-tabs-bar">
+							<div
+								className="instrument-tablist"
+								role="tablist"
+								aria-label="Instrument view"
+							>
+								<button
+									type="button"
+									role="tab"
+									id="tab-piano"
+									aria-selected={instrumentView === "piano"}
+									aria-controls="panel-instrument"
+									className={`instrument-tab ${
+										instrumentView === "piano" ? "is-active" : ""
+									}`}
+									onClick={() => setInstrumentView("piano")}
+								>
+									Piano View
+								</button>
+								<button
+									type="button"
+									role="tab"
+									id="tab-guitar"
+									aria-selected={instrumentView === "guitar"}
+									aria-controls="panel-instrument"
+									className={`instrument-tab ${
+										instrumentView === "guitar" ? "is-active" : ""
+									}`}
+									onClick={() => setInstrumentView("guitar")}
+								>
+									Guitar View
+								</button>
+							</div>
+							<span className="instrument-tab-meta">
+								{instrumentView === "piano"
+									? "2-Octave Keyboard (C4–B5)"
+									: "Standard Tuning · E A D G B e"}
+							</span>
+						</div>
+
+						<div
+							id="panel-instrument"
+							role="tabpanel"
+							aria-labelledby={
+								instrumentView === "piano" ? "tab-piano" : "tab-guitar"
+							}
+						>
+							{instrumentView === "piano" ? (
+								<PianoKeyboard
+									activeMidiNotes={activeVoicing.midi}
+									activeLabel={activeVoicing.label}
+									activeQuality={activeVoicing.quality}
+									scalePitchClasses={scalePitchClasses}
+									activeNoteNamesByMidi={activeNoteNamesByMidi}
+									onPlayNote={(midi) => playSingleNote(midi, soundPreset)}
+								/>
+							) : (
+								<GuitarFretboard
+									activeLabel={activeVoicing.label}
+									activeQuality={activeVoicing.quality}
+									chordNotes={activeVoicing.notes}
+									chordKind={activeVoicing.guitarKind}
+									voicings={guitarVoicings}
+									selectedVoicing={activeGuitarVoicing}
+									scalePitchClasses={scalePitchClasses}
+									scaleNoteNames={analysis.scaleNotes}
+									preferFlats={preferFlats}
+									onSelectVoicing={handleSelectGuitarVoicing}
+									onStrumVoicing={handleStrumGuitarVoicing}
+									onPlayFretNote={(midi) =>
+										playSingleNote(midi, soundPreset, 0.7)
+									}
+								/>
+							)}
+						</div>
 
 						<div className="progressions-wrap">
 							<div className="progressions-header">

@@ -1,26 +1,21 @@
-# Circle of Fifths — Interactive Musical Scales & Chords Explorer
+<div align="center">
+  <img src="./public/logo.png" alt="Circle of Fifths Logo" width="112" />
+  <h1>Circle of Fifths — Interactive Musical Scales &amp; Chords Explorer</h1>
+  <p>
+    <strong>Live Preview:</strong>
+    <a href="https://musical-scales.juyoung-m-yoo.workers.dev/">https://musical-scales.juyoung-m-yoo.workers.dev/</a>
+  </p>
+</div>
 
-> **Live Preview:** [https://musical-scales.juyoung-m-yoo.workers.dev/](https://musical-scales.juyoung-m-yoo.workers.dev/)
-
-An interactive web application built with **React**, **TypeScript**, **Vite**, **Hono**, and **Cloudflare Workers** for exploring the Circle of Fifths, fifths and fourths relationships, scales, and major/minor chords in real time.
+An interactive web app built with **React**, **TypeScript**, **Vite**, **Hono**, and **Cloudflare Workers** for exploring the Circle of Fifths, fifths and fourths relationships, scales, and major/minor chords across piano and guitar.
 
 ## Features
 
-- **Interactive Circle of Fifths Wheel**
-  - Dual concentric rings for **Major keys** (outer) and **Relative Minor keys** (inner), plus an outer key-signature perimeter (`0`, `1♯`–`7♯`, `1♭`–`7♭`) and diminished chord (`vii°` / `ii°`) marker.
-  - Highlights the active 6-chord diatonic neighborhood with Roman numeral overlays (`IV`, `I`, `V` / `ii`, `vi`, `iii` in Major; `VI`, `III`, `VII` / `iv`, `i`, `v` in Minor).
-  - Supports **Standard**, **Sharps (`♯`)**, and **Flats (`♭`)** enharmonic spellings (plus per-slot toggling for `B / C♭`, `F♯ / G♭`, and `D♭ / C♯`), optional wheel rotation to center the active key, and dark/light themes.
-  - Keyboard shortcuts: `←` (4th), `→` (5th), `Space` (play tonic), and `M` (toggle Major/Minor).
-- **Fifths & Fourths Relationship Explorer**
-  - Inspects both the counter-clockwise **Perfect 4th (`+5` semitones)** and clockwise **Perfect 5th (`+7` semitones)** neighbors, showing key signature deltas, `6/7` shared scale notes, and the single shifted pitch (such as `B → B♭` or `F → F♯`).
-  - Includes one-click cadence auditions (`I–IV–I` / `I–V–I`) and animated **Walk 4ths** / **Walk 5ths** playback around the full circle.
-- **Major & Minor Chords per Key**
-  - Groups each key's diatonic **Major Chords** and **Minor Chords**, alongside its diminished triad, Harmonic Minor `V` (in Minor mode), and direct **Root Parallel Pair** (`Major` vs. `Minor` sharing the same tonic note).
-  - Switch between **Triads** and **7th Chords** and toggle **Block Chord** vs. **Arpeggio** voicing.
-- **Key Signature Staff, Piano Voicing & Web Audio Synth**
-  - Treble-clef SVG staff rendering the exact sharps or flats of the selected key.
-  - Clickable 2-octave (`C4`–`B5`) piano keyboard highlighting active chord voicings and scale notes.
-  - Built-in Web Audio API polyphonic synthesizer (`Keys`, `Pad`, and `Mute` modes) with scale playback and common chord progressions.
+- **Interactive Circle of Fifths** — Concentric Major and Relative Minor rings with Roman numeral overlays, key-signature tracking, enharmonic toggles (`B/C♭`, `F♯/G♭`, `D♭/C♯`), dark/light themes, and keyboard navigation (`←`, `→`, `Space`, `M`).
+- **Fifths & Fourths Explorer** — Compares adjacent `+5` (4th) and `+7` (5th) keys (`6/7` shared tones and single-pitch shifts), with cadence auditions (`I–IV–I`, `I–V–I`) and animated circle walks.
+- **Major & Minor Chords** — Displays each key's diatonic Major and Minor chords, diminished chord, Harmonic Minor `V`, and Root Parallel Pair with **Triads / 7ths** and **Block / Arpeggio** modes.
+- **Piano & Guitar Tab Views** — Switch between a clickable 2-octave (`C4`–`B5`) piano keyboard and a 15-fret guitar fretboard featuring CAGED/open/barre voicings, neck maps, and scale overlays.
+- **Treble Staff & Web Audio Synth** — Live treble-clef key signature SVG and zero-dependency polyphonic Web Audio playback (`Keys`, `Pad`, `Mute`) for scales, chords, and progressions.
 
 ## Tech Stack
 
@@ -29,40 +24,19 @@ An interactive web application built with **React**, **TypeScript**, **Vite**, *
 
 ## Local Development
 
-Install dependencies:
-
 ```bash
-bun install
-# or: npm install
-```
-
-Start the development server:
-
-```bash
-bun run dev
-# or: npm run dev
+bun install   # or: npm install
+bun run dev   # or: npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Testing, Building & Deployment
 
-Run unit and component render tests:
-
 ```bash
-bun test
-```
-
-Typecheck, lint, and build for production:
-
-```bash
-bun run build
-bun run lint
-```
-
-Preview the production build locally or deploy to Cloudflare Workers:
-
-```bash
-bun run preview
+bun test                 # Run music theory, fretboard & UI tests
+bun run build            # Typecheck and build client + worker bundles
+bun run lint             # Lint codebase
+bun run preview          # Preview production build locally
 bun run build && bun run deploy
 ```

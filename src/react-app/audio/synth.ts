@@ -151,16 +151,22 @@ export function playChordNotes(
 		preset?: SoundPreset;
 		duration?: number;
 		arpeggiate?: boolean;
+		spreadSec?: number;
 	} = {},
 ): void {
-	const { preset = "keys", duration = 0.95, arpeggiate = false } = options;
+	const {
+		preset = "keys",
+		duration = 0.95,
+		arpeggiate = false,
+		spreadSec,
+	} = options;
 	if (preset === "muted" || midiNotes.length === 0) return;
 	const audio = getAudioContext();
 	if (!audio) return;
 
 	const now = audio.ctx.currentTime + 0.015;
 	const perNoteGain = Math.min(0.22, 0.54 / Math.max(1, midiNotes.length));
-	const spread = arpeggiate ? 0.075 : 0.012;
+	const spread = spreadSec ?? (arpeggiate ? 0.075 : 0.012);
 
 	midiNotes.forEach((midi, idx) => {
 		scheduleVoice(
@@ -181,6 +187,7 @@ export function playStepSequence(
 		preset?: SoundPreset;
 		stepMs: number;
 		arpeggiate?: boolean;
+		spreadSec?: number;
 		onStep?: (index: number) => void;
 		onDone?: () => void;
 	},
@@ -189,6 +196,7 @@ export function playStepSequence(
 		preset = "keys",
 		stepMs,
 		arpeggiate = false,
+		spreadSec,
 		onStep,
 		onDone,
 	} = options;
@@ -210,6 +218,7 @@ export function playStepSequence(
 					preset,
 					duration: step.durationSec ?? Math.max(0.45, (stepMs / 1000) * 0.88),
 					arpeggiate,
+					spreadSec,
 				});
 			}
 		}, idx * stepMs);

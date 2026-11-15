@@ -4,7 +4,9 @@ import { App } from "../src/react-app/App";
 import { ChordsPanel } from "../src/react-app/components/ChordsPanel";
 import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
+import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
+import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 
 describe("Circle of Fifths UI rendering", () => {
 	test("renders App with C Major default state, fifths/fourths relationships, and major/minor chords", () => {
@@ -20,6 +22,44 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Am");
 		expect(html).toContain("B°");
 		expect(html).toContain("Piano Voicing");
+		expect(html).toContain("Piano View");
+		expect(html).toContain("Guitar View");
+	});
+
+	test("renders GuitarFretboard with C major CAGED voicings and 15-fret neck markers", () => {
+		const cMaj = analyzeKey(0, "major");
+		const tonic = cMaj.chords[0];
+		const voicings = getGuitarVoicings(
+			tonic.root,
+			"major",
+			tonic.triadNotes,
+			false,
+		);
+		const html = renderToStaticMarkup(
+			<GuitarFretboard
+				activeLabel="C (I)"
+				activeQuality="major"
+				chordNotes={tonic.triadNotes}
+				chordKind="major"
+				voicings={voicings}
+				selectedVoicing={voicings[0]}
+				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
+				scaleNoteNames={cMaj.scaleNotes}
+				preferFlats={false}
+				onSelectVoicing={() => {}}
+				onStrumVoicing={() => {}}
+				onPlayFretNote={() => {}}
+			/>,
+		);
+		expect(html).toContain("Guitar Fretboard");
+		expect(html).toContain("Open C");
+		expect(html).toContain("A-Shape Barre");
+		expect(html).toContain("E-Shape Barre");
+		expect(html).toContain("D-Shape Upper");
+		expect(html).toContain("Voicing + Neck");
+		expect(html).toContain("All Positions");
+		expect(html).toContain("Key Scale");
+		expect(html).toContain("Strings (6 → 1):");
 	});
 
 	test("renders F♯ Major and E♭ Minor cleanly with proper accidentals and harmonic minor V", () => {

@@ -23,19 +23,22 @@
 }
 
 .brand-emblem {
-	width: 38px;
-	height: 38px;
+	width: 40px;
+	height: 40px;
 	display: grid;
 	place-items: center;
 	border-radius: 11px;
+	overflow: hidden;
 	background: var(--bg-card);
 	border: 1px solid var(--border-hairline);
-	color: var(--text-primary);
+	flex-shrink: 0;
 }
 
-.brand-icon {
-	width: 26px;
-	height: 26px;
+.brand-logo-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .brand-title {
@@ -1189,6 +1192,382 @@
 .root-pair-btn.pair-min.is-selected {
 	border-color: var(--color-minor);
 	background: var(--color-minor-soft);
+}
+
+/* Instrument Tabs (Piano / Guitar) */
+.instrument-tabs-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding-bottom: 12px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+.instrument-tablist {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px;
+	border-radius: 11px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	gap: 3px;
+}
+
+.instrument-tab {
+	border: none;
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: 0.82rem;
+	font-weight: 700;
+	padding: 6px 14px;
+	border-radius: 8px;
+	transition:
+		background-color 140ms ease,
+		color 140ms ease,
+		box-shadow 140ms ease;
+}
+
+.instrument-tab:hover {
+	color: var(--text-primary);
+}
+
+.instrument-tab.is-active {
+	background: var(--bg-card);
+	color: var(--text-primary);
+	box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.instrument-tab-meta {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+/* Guitar Fretboard View */
+.guitar-wrap {
+	margin-bottom: 16px;
+}
+
+.guitar-top-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.guitar-title-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.guitar-title {
+	font-size: 0.9rem;
+	font-weight: 700;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.guitar-voicing-summary {
+	font-size: 0.76rem;
+	color: var(--text-secondary);
+}
+
+.guitar-voicing-summary code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 0.75rem;
+	padding: 1px 6px;
+	border-radius: 6px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	color: var(--text-primary);
+}
+
+.guitar-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.voicing-pills-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.voicing-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border-radius: 9px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	font-size: 0.75rem;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		transform 100ms ease;
+}
+
+.voicing-pill:hover {
+	border-color: var(--border-strong);
+	transform: translateY(-1px);
+}
+
+.voicing-pill-name {
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.voicing-pill-pos {
+	font-size: 0.69rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.voicing-pill.guitar-active-major.is-selected {
+	border-color: var(--color-tonic);
+	background: var(--color-tonic-soft);
+}
+
+.voicing-pill.guitar-active-minor.is-selected {
+	border-color: var(--color-minor);
+	background: var(--color-minor-soft);
+}
+
+.voicing-pill.guitar-active-dim.is-selected {
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
+}
+
+.piano-badge.guitar-active-major {
+	background: var(--color-tonic-soft);
+	color: var(--color-tonic);
+}
+
+.piano-badge.guitar-active-minor {
+	background: var(--color-minor-soft);
+	color: var(--color-minor);
+}
+
+.piano-badge.guitar-active-dim {
+	background: var(--color-dim-soft);
+	color: var(--color-dim);
+}
+
+.fretboard-scroll {
+	width: 100%;
+	overflow-x: auto;
+	padding-bottom: 4px;
+}
+
+.fretboard-svg {
+	width: 100%;
+	min-width: 620px;
+	height: auto;
+	display: block;
+	user-select: none;
+}
+
+.fretboard-neck {
+	fill: var(--fretboard-neck);
+	stroke: var(--border-hairline);
+	stroke-width: 1;
+}
+
+.fret-inlay {
+	fill: var(--fretboard-inlay);
+}
+
+.fret-nut {
+	stroke: var(--fretboard-nut);
+	stroke-width: 4;
+	stroke-linecap: round;
+}
+
+.fret-wire {
+	stroke: var(--fretboard-wire);
+	stroke-width: 1.5;
+}
+
+.fret-num-label {
+	font-size: 9.5px;
+	font-weight: 600;
+	fill: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.fret-num-label.is-marker-fret {
+	fill: var(--text-secondary);
+	font-weight: 700;
+}
+
+.string-tuning-label {
+	font-size: 11px;
+	font-weight: 700;
+	fill: var(--text-secondary);
+}
+
+.fret-muted-x {
+	font-size: 12px;
+	font-weight: 800;
+	fill: var(--color-dim);
+}
+
+.guitar-string-line {
+	stroke: var(--fretboard-string);
+}
+
+.fret-hit-cell {
+	cursor: pointer;
+	outline: none;
+}
+
+.fret-hit-cell:hover .fret-dot-bg,
+.fret-hit-cell:hover .fret-dot-ghost-bg {
+	filter: brightness(1.12);
+}
+
+.fret-dot-primary.guitar-active-major .fret-dot-bg {
+	fill: var(--color-tonic);
+}
+
+.fret-dot-primary.guitar-active-minor .fret-dot-bg {
+	fill: var(--color-minor);
+}
+
+.fret-dot-primary.guitar-active-dim .fret-dot-bg {
+	fill: var(--color-dim);
+}
+
+.fret-dot-bg.is-root-ring {
+	stroke: var(--text-primary);
+	stroke-width: 2;
+}
+
+.fret-dot-text {
+	font-size: 8.5px;
+	font-weight: 800;
+	fill: #090d14;
+	pointer-events: none;
+}
+
+.fret-dot-primary.guitar-active-minor .fret-dot-text,
+.fret-dot-primary.guitar-active-dim .fret-dot-text {
+	fill: #ffffff;
+}
+
+.fret-dot-ghost-bg {
+	fill: var(--bg-card);
+	fill-opacity: 0.85;
+	stroke-width: 1.4;
+}
+
+.fret-dot-ghost.guitar-active-major .fret-dot-ghost-bg {
+	stroke: var(--color-tonic);
+}
+
+.fret-dot-ghost.guitar-active-minor .fret-dot-ghost-bg {
+	stroke: var(--color-minor);
+}
+
+.fret-dot-ghost.guitar-active-dim .fret-dot-ghost-bg {
+	stroke: var(--color-dim);
+}
+
+.fret-dot-ghost-text {
+	font-size: 7.5px;
+	font-weight: 700;
+	fill: var(--text-secondary);
+	pointer-events: none;
+}
+
+.fret-dot-scale-bg {
+	fill: var(--color-fifth-soft);
+	stroke: var(--color-fifth);
+	stroke-width: 1;
+}
+
+.fret-dot-scale-text {
+	font-size: 7px;
+	font-weight: 700;
+	fill: var(--color-fifth);
+	pointer-events: none;
+}
+
+/* Fretboard Breakdown Strip */
+.voicing-breakdown {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.breakdown-label {
+	font-size: 0.74rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.breakdown-strings {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 6px;
+	flex: 1 1 340px;
+}
+
+.breakdown-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1px;
+	padding: 5px 4px;
+	border-radius: 8px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	transition: border-color 120ms ease;
+}
+
+.breakdown-cell:not(:disabled):hover {
+	border-color: var(--border-strong);
+}
+
+.breakdown-cell.is-root {
+	border-color: rgba(245, 158, 11, 0.45);
+}
+
+.breakdown-cell.is-muted {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.bd-str {
+	font-size: 0.66rem;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+
+.bd-fret {
+	font-size: 0.88rem;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+}
+
+.bd-meta {
+	font-size: 0.64rem;
+	font-weight: 600;
+	color: var(--text-secondary);
 }
 
 /* Piano Keyboard */
