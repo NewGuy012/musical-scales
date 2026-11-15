@@ -36,13 +36,15 @@ Switch tabs at any time — audio automatically adapts via **Instrument** mode (
 Built with **React 19**, **TypeScript**, **Vite**, **Web Audio API**, **Hono**, and **Cloudflare Workers**.
 
 ```bash
-bun install   # or: npm install
-bun run dev   # open http://localhost:5173
+bun install
+bun dev       # open http://localhost:5173
 ```
 
 ```bash
-bun test            # run unit and UI tests
-bun run build       # typecheck and build client + worker bundles
-bun run lint        # run ESLint
-bun run deploy      # deploy to Cloudflare Workers
+bun test      # run unit and UI tests
+bun fmt       # format codebase with Bun's native formatter
+bun check -b  # typecheck across all tsconfig projects with Bun
+bun lint      # run bun check -b and bun fmt --check
+bun run build # typecheck and build client + worker bundles
+bun deploy    # deploy to Cloudflare Workers
 ```

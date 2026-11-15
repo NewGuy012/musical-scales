@@ -8,11 +8,9 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.69.1",
-		"@types/node": "^24.10.1",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@vitejs/plugin-react": "^6.3.0",
-		"typescript": "^5.9.3",
 		"vite": "^8.3.8",
 		"wrangler": "^4.162.0"
 	},
@@ -26,15 +24,13 @@
 	],
 	"private": true,
 	"scripts": {
-		"build": "bun check --no-script -b && vite build",
+		"build": "bun check -b && vite build",
 		"cf-typegen": "wrangler types",
-		"check": "bun check --no-script -b && bun fmt --no-script --check && vite build && wrangler deploy --dry-run",
 		"deploy": "wrangler deploy",
 		"dev": "vite",
-		"fmt": "bun fmt --no-script",
-		"lint": "bun check --no-script -b && bun fmt --no-script --check",
+		"lint": "bun check -b && bun fmt --check",
 		"preview": "bun run build && vite preview",
-		"test": "bun test --no-script && bun fmt --no-script --check"
+		"test": "bun test && bun fmt --check"
 	},
 	"type": "module"
 }
