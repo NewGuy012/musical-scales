@@ -14,6 +14,8 @@ export type GuitarChordKind =
 	| "7"
 	| "m7♭5";
 
+export type FretTuple = [number, number, number, number, number, number];
+
 export interface GuitarStringInfo {
 	stringNumber: 6 | 5 | 4 | 3 | 2 | 1; // 6 = low E, 1 = high e
 	label: string;
@@ -26,18 +28,18 @@ export interface GuitarVoicingNote {
 	fret: number; // -1 = muted, 0 = open, 1..15 = fretted
 	midi: number | null;
 	pc: number | null;
-	intervalLabel: string; // "R", "3", "♭3", "5", "♭5", "7", "♭7", or "×"
+	intervalLabel: string;
 	noteName: string | null;
 }
 
 export interface GuitarVoicing {
 	id: string;
-	name: string; // e.g. "Open", "E-Shape", "A-Shape", "D-Shape"
-	positionLabel: string; // e.g. "Open" or "Fret 3"
-	baseFret: number; // 0 for open, >= 1 for movable
-	frets: [number, number, number, number, number, number]; // [str6..str1]
+	name: string;
+	positionLabel: string;
+	baseFret: number;
+	frets: FretTuple;
 	notes: GuitarVoicingNote[];
-	soundingMidi: number[]; // low-to-high MIDI pitches for strumming
+	soundingMidi: number[];
 }
 
 // Standard tuning E2 A2 D3 G3 B3 E4 (ordered 6th string -> 1st string)
@@ -53,33 +55,11 @@ export const STANDARD_TUNING: GuitarStringInfo[] = [
 export const MAX_GUITAR_FRET = 15;
 
 const SHARP_CHROMATIC = [
-	"C",
-	"C♯",
-	"D",
-	"D♯",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"G♯",
-	"A",
-	"A♯",
-	"B",
+	"C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B",
 ] as const;
 
 const FLAT_CHROMATIC = [
-	"C",
-	"D♭",
-	"D",
-	"E♭",
-	"E",
-	"F",
-	"G♭",
-	"G",
-	"A♭",
-	"A",
-	"B♭",
-	"B",
+	"C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B",
 ] as const;
 
 const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
@@ -90,6 +70,45 @@ const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
 	m7: { 0: "R", 3: "♭3", 7: "5", 10: "♭7" },
 	"7": { 0: "R", 4: "3", 7: "5", 10: "♭7" },
 	"m7♭5": { 0: "R", 3: "♭3", 6: "♭5", 10: "♭7" },
+};
+
+const OPEN_SHAPES: Partial<
+	Record<GuitarChordKind, Partial<Record<number, [string, string, FretTuple]>>>
+> = {
+	major: {
+		0: ["open-c", "Open C", [-1, 3, 2, 0, 1, 0]],
+		9: ["open-a", "Open A", [-1, 0, 2, 2, 2, 0]],
+		7: ["open-g", "Open G", [3, 2, 0, 0, 0, 3]],
+		4: ["open-e", "Open E", [0, 2, 2, 1, 0, 0]],
+		2: ["open-d", "Open D", [-1, -1, 0, 2, 3, 2]],
+		5: ["compact-f", "Compact F", [-1, -1, 3, 2, 1, 1]],
+	},
+	minor: {
+		4: ["open-em", "Open Em", [0, 2, 2, 0, 0, 0]],
+		9: ["open-am", "Open Am", [-1, 0, 2, 2, 1, 0]],
+		2: ["open-dm", "Open Dm", [-1, -1, 0, 2, 3, 1]],
+	},
+	"7": {
+		4: ["open-e7", "Open E7", [0, 2, 0, 1, 0, 0]],
+		9: ["open-a7", "Open A7", [-1, 0, 2, 0, 2, 0]],
+		2: ["open-d7", "Open D7", [-1, -1, 0, 2, 1, 2]],
+		7: ["open-g7", "Open G7", [3, 2, 0, 0, 0, 1]],
+		0: ["open-c7", "Open C7", [-1, 3, 2, 3, 1, 0]],
+		11: ["open-b7", "Open B7", [-1, 2, 1, 2, 0, 2]],
+	},
+	maj7: {
+		0: ["open-cmaj7", "Open Cmaj7", [-1, 3, 2, 0, 0, 0]],
+		5: ["open-fmaj7", "Open Fmaj7", [-1, -1, 3, 2, 1, 0]],
+		7: ["open-gmaj7", "Open Gmaj7", [3, 2, 0, 0, 0, 2]],
+		2: ["open-dmaj7", "Open Dmaj7", [-1, -1, 0, 2, 2, 2]],
+		9: ["open-amaj7", "Open Amaj7", [-1, 0, 2, 1, 2, 0]],
+		4: ["open-emaj7", "Open Emaj7", [0, 2, 1, 1, 0, 0]],
+	},
+	m7: {
+		4: ["open-em7", "Open Em7", [0, 2, 0, 0, 0, 0]],
+		9: ["open-am7", "Open Am7", [-1, 0, 2, 0, 1, 0]],
+		2: ["open-dm7", "Open Dm7", [-1, -1, 0, 2, 1, 1]],
+	},
 };
 
 export function inferGuitarChordKind(
@@ -117,43 +136,67 @@ export function getChordToneNameMap(
 	return (pc: number) => pcToSpelled.get(mod12(pc)) ?? fallback[mod12(pc)];
 }
 
+/**
+ * Resolves any pitch class to a spelled note name, preferring chord tones first,
+ * then scale degrees, then chromatic sharp/flat fallback.
+ */
+export function createPitchClassNameResolver(
+	chordNotes: string[],
+	scaleNotes: string[],
+	preferFlats: boolean,
+): (pc: number) => string {
+	const chordLookup = getChordToneNameMap(chordNotes, preferFlats);
+	const chordPcs = new Set(chordNotes.map(noteToPitchClass));
+	const scaleMap = new Map<number, string>();
+	for (const n of scaleNotes) {
+		scaleMap.set(noteToPitchClass(n), n);
+	}
+	return (pc: number) => {
+		const norm = mod12(pc);
+		if (chordPcs.has(norm)) return chordLookup(norm);
+		return scaleMap.get(norm) ?? chordLookup(norm);
+	};
+}
+
 export function getIntervalLabel(
 	rootPc: number,
 	targetPc: number,
 	kind: GuitarChordKind,
 ): string | null {
-	const semitones = mod12(targetPc - rootPc);
-	return CHORD_INTERVAL_MAP[kind][semitones] ?? null;
+	return CHORD_INTERVAL_MAP[kind][mod12(targetPc - rootPc)] ?? null;
 }
 
-interface RawShape {
-	id: string;
-	name: string;
-	frets: [number, number, number, number, number, number];
+function offsetFrets(template: FretTuple, offset: number): FretTuple {
+	return template.map((f) => (f < 0 ? -1 : f + offset)) as FretTuple;
+}
+
+function movableFret(rootPc: number, openPc: number, minFret = 1): number {
+	const raw = mod12(rootPc - openPc);
+	return raw < minFret ? raw + 12 : raw;
 }
 
 function buildVoicing(
-	shape: RawShape,
+	id: string,
+	name: string,
+	frets: FretTuple,
 	rootPc: number,
 	kind: GuitarChordKind,
 	resolveNoteName: (pc: number) => string,
 ): GuitarVoicing | null {
-	const nonZeroFrets = shape.frets.filter((f) => f > 0);
-	const maxFret = shape.frets.reduce((acc, f) => Math.max(acc, f), 0);
+	const nonZeroFrets = frets.filter((f) => f > 0);
+	const maxFret = Math.max(0, ...frets);
 	if (maxFret > MAX_GUITAR_FRET) return null;
 
-	// Check playable span for fretted notes
 	if (nonZeroFrets.length > 0) {
 		const minNonZero = Math.min(...nonZeroFrets);
-		const maxNonZero = Math.max(...nonZeroFrets);
-		if (maxNonZero - minNonZero > 4) return null;
+		if (Math.max(...nonZeroFrets) - minNonZero > 4) return null;
 	}
 
-	const hasOpen = shape.frets.some((f) => f === 0);
+	const hasOpen = frets.includes(0);
 	const minFret = nonZeroFrets.length > 0 ? Math.min(...nonZeroFrets) : 0;
 	const baseFret = hasOpen && minFret <= 4 ? 0 : minFret;
 
-	const notes: GuitarVoicingNote[] = shape.frets.map((fret, stringIndex) => {
+	const notes: GuitarVoicingNote[] = frets.map((fret, stringIndex) => {
 		if (fret < 0) {
 			return {
 				stringIndex,
@@ -167,49 +210,27 @@ function buildVoicing(
 		const info = STANDARD_TUNING[stringIndex];
 		const midi = info.openMidi + fret;
 		const pc = mod12(info.openPc + fret);
-		const intervalLabel = getIntervalLabel(rootPc, pc, kind) ?? "?";
 		return {
 			stringIndex,
 			fret,
 			midi,
 			pc,
-			intervalLabel,
+			intervalLabel: getIntervalLabel(rootPc, pc, kind) ?? "?",
 			noteName: resolveNoteName(pc),
 		};
 	});
 
-	const soundingMidi = notes
-		.filter((n): n is GuitarVoicingNote & { midi: number } => n.midi !== null)
-		.map((n) => n.midi);
-
 	return {
-		id: shape.id,
-		name: shape.name,
+		id,
+		name,
 		positionLabel: baseFret === 0 ? "Open" : `Fret ${baseFret}`,
 		baseFret,
-		frets: shape.frets,
+		frets,
 		notes,
-		soundingMidi,
+		soundingMidi: notes
+			.filter((n): n is GuitarVoicingNote & { midi: number } => n.midi !== null)
+			.map((n) => n.midi),
 	};
-}
-
-function offsetFrets(
-	template: [number, number, number, number, number, number],
-	offset: number,
-): [number, number, number, number, number, number] {
-	return template.map((f) => (f < 0 ? -1 : f + offset)) as [
-		number,
-		number,
-		number,
-		number,
-		number,
-		number,
-	];
-}
-
-function movableFret(rootPc: number, openPc: number, minFret = 1): number {
-	const raw = mod12(rootPc - openPc);
-	return raw < minFret ? raw + 12 : raw;
 }
 
 export function getGuitarVoicings(
@@ -220,361 +241,97 @@ export function getGuitarVoicings(
 ): GuitarVoicing[] {
 	const rootPc = noteToPitchClass(rootNote);
 	const resolveName = getChordToneNameMap(chordNotes, preferFlats);
-	const candidates: RawShape[] = [];
+	const candidates: [string, string, FretTuple][] = [];
+
+	const openMatch = OPEN_SHAPES[kind]?.[rootPc];
+	if (openMatch) candidates.push(openMatch);
 
 	const f6 = movableFret(rootPc, 4, 1);
 	const f5 = movableFret(rootPc, 9, 1);
 	const f4 = movableFret(rootPc, 2, 1);
+	const d6 = mod12(rootPc - 4);
+	const d5 = mod12(rootPc - 9);
+	const d4 = mod12(rootPc - 2);
 
-	if (kind === "major") {
-		if (rootPc === 0)
-			candidates.push({
-				id: "open-c",
-				name: "Open C",
-				frets: [-1, 3, 2, 0, 1, 0],
-			});
-		if (rootPc === 9)
-			candidates.push({
-				id: "open-a",
-				name: "Open A",
-				frets: [-1, 0, 2, 2, 2, 0],
-			});
-		if (rootPc === 7)
-			candidates.push({
-				id: "open-g",
-				name: "Open G",
-				frets: [3, 2, 0, 0, 0, 3],
-			});
-		if (rootPc === 4)
-			candidates.push({
-				id: "open-e",
-				name: "Open E",
-				frets: [0, 2, 2, 1, 0, 0],
-			});
-		if (rootPc === 2)
-			candidates.push({
-				id: "open-d",
-				name: "Open D",
-				frets: [-1, -1, 0, 2, 3, 2],
-			});
-		if (rootPc === 5)
-			candidates.push({
-				id: "compact-f",
-				name: "Compact F",
-				frets: [-1, -1, 3, 2, 1, 1],
-			});
-
-		candidates.push({
-			id: "e-shape",
-			name: "E-Shape Barre",
-			frets: offsetFrets([0, 2, 2, 1, 0, 0], f6),
-		});
-		candidates.push({
-			id: "a-shape",
-			name: "A-Shape Barre",
-			frets: offsetFrets([-1, 0, 2, 2, 2, 0], f5),
-		});
-
-		const cAnchor = movableFret(rootPc, 0, 1); // C open pc=0 -> C-shape anchor
-		candidates.push({
-			id: "c-shape",
-			name: "C-Shape",
-			frets: offsetFrets([-1, 3, 2, 0, 1, 0], cAnchor),
-		});
-
-		const gAnchor = movableFret(rootPc, 7, 1); // G open pc=7 -> G-shape anchor
-		candidates.push({
-			id: "g-shape",
-			name: "G-Shape",
-			frets: offsetFrets([3, 2, 0, 0, 0, -1], gAnchor),
-		});
-
-		candidates.push({
-			id: "d-shape",
-			name: "D-Shape Upper",
-			frets: offsetFrets([-1, -1, 0, 2, 3, 2], f4),
-		});
-	} else if (kind === "minor") {
-		if (rootPc === 4)
-			candidates.push({
-				id: "open-em",
-				name: "Open Em",
-				frets: [0, 2, 2, 0, 0, 0],
-			});
-		if (rootPc === 9)
-			candidates.push({
-				id: "open-am",
-				name: "Open Am",
-				frets: [-1, 0, 2, 2, 1, 0],
-			});
-		if (rootPc === 2)
-			candidates.push({
-				id: "open-dm",
-				name: "Open Dm",
-				frets: [-1, -1, 0, 2, 3, 1],
-			});
-
-		candidates.push({
-			id: "em-shape",
-			name: "Em-Shape Barre",
-			frets: offsetFrets([0, 2, 2, 0, 0, 0], f6),
-		});
-		candidates.push({
-			id: "am-shape",
-			name: "Am-Shape Barre",
-			frets: offsetFrets([-1, 0, 2, 2, 1, 0], f5),
-		});
-
-		const cmAnchor = mod12(rootPc - 0); // Cm shape anchor (0 for Cm = x3101x)
-		candidates.push({
-			id: "cm-shape",
-			name: "Cm-Shape",
-			frets: offsetFrets([-1, 3, 1, 0, 1, -1], cmAnchor),
-		});
-
-		const gmAnchor = mod12(rootPc - 7); // Gm shape anchor (0 for Gm = 3100xx)
-		candidates.push({
-			id: "gm-shape",
-			name: "Gm-Shape",
-			frets: offsetFrets([3, 1, 0, 0, -1, -1], gmAnchor),
-		});
-
-		candidates.push({
-			id: "dm-shape",
-			name: "Dm-Shape Upper",
-			frets: offsetFrets([-1, -1, 0, 2, 3, 1], f4),
-		});
-	} else if (kind === "7") {
-		if (rootPc === 4)
-			candidates.push({
-				id: "open-e7",
-				name: "Open E7",
-				frets: [0, 2, 0, 1, 0, 0],
-			});
-		if (rootPc === 9)
-			candidates.push({
-				id: "open-a7",
-				name: "Open A7",
-				frets: [-1, 0, 2, 0, 2, 0],
-			});
-		if (rootPc === 2)
-			candidates.push({
-				id: "open-d7",
-				name: "Open D7",
-				frets: [-1, -1, 0, 2, 1, 2],
-			});
-		if (rootPc === 7)
-			candidates.push({
-				id: "open-g7",
-				name: "Open G7",
-				frets: [3, 2, 0, 0, 0, 1],
-			});
-		if (rootPc === 0)
-			candidates.push({
-				id: "open-c7",
-				name: "Open C7",
-				frets: [-1, 3, 2, 3, 1, 0],
-			});
-		if (rootPc === 11)
-			candidates.push({
-				id: "open-b7",
-				name: "Open B7",
-				frets: [-1, 2, 1, 2, 0, 2],
-			});
-
-		candidates.push({
-			id: "e7-shape",
-			name: "E7-Shape Barre",
-			frets: offsetFrets([0, 2, 0, 1, 0, 0], f6),
-		});
-		candidates.push({
-			id: "a7-shape",
-			name: "A7-Shape Barre",
-			frets: offsetFrets([-1, 0, 2, 0, 2, 0], f5),
-		});
-
-		const c7Anchor = movableFret(rootPc, 0, 1);
-		candidates.push({
-			id: "c7-shape",
-			name: "C7-Shape",
-			frets: offsetFrets([-1, 3, 2, 3, 1, -1], c7Anchor),
-		});
-
-		candidates.push({
-			id: "d7-shape",
-			name: "D7-Shape Upper",
-			frets: offsetFrets([-1, -1, 0, 2, 1, 2], f4),
-		});
-	} else if (kind === "maj7") {
-		if (rootPc === 0)
-			candidates.push({
-				id: "open-cmaj7",
-				name: "Open Cmaj7",
-				frets: [-1, 3, 2, 0, 0, 0],
-			});
-		if (rootPc === 5)
-			candidates.push({
-				id: "open-fmaj7",
-				name: "Open Fmaj7",
-				frets: [-1, -1, 3, 2, 1, 0],
-			});
-		if (rootPc === 7)
-			candidates.push({
-				id: "open-gmaj7",
-				name: "Open Gmaj7",
-				frets: [3, 2, 0, 0, 0, 2],
-			});
-		if (rootPc === 2)
-			candidates.push({
-				id: "open-dmaj7",
-				name: "Open Dmaj7",
-				frets: [-1, -1, 0, 2, 2, 2],
-			});
-		if (rootPc === 9)
-			candidates.push({
-				id: "open-amaj7",
-				name: "Open Amaj7",
-				frets: [-1, 0, 2, 1, 2, 0],
-			});
-		if (rootPc === 4)
-			candidates.push({
-				id: "open-emaj7",
-				name: "Open Emaj7",
-				frets: [0, 2, 1, 1, 0, 0],
-			});
-
-		candidates.push({
-			id: "shell6-maj7",
-			name: "6th-Str Maj7",
-			frets: offsetFrets([0, -1, 1, 1, 0, -1], f6),
-		});
-		candidates.push({
-			id: "a-maj7-shape",
-			name: "A-Shape Maj7",
-			frets: offsetFrets([-1, 0, 2, 1, 2, 0], f5),
-		});
-		candidates.push({
-			id: "d-maj7-shape",
-			name: "D-Shape Maj7",
-			frets: offsetFrets([-1, -1, 0, 2, 2, 2], f4),
-		});
-	} else if (kind === "m7") {
-		if (rootPc === 4)
-			candidates.push({
-				id: "open-em7",
-				name: "Open Em7",
-				frets: [0, 2, 0, 0, 0, 0],
-			});
-		if (rootPc === 9)
-			candidates.push({
-				id: "open-am7",
-				name: "Open Am7",
-				frets: [-1, 0, 2, 0, 1, 0],
-			});
-		if (rootPc === 2)
-			candidates.push({
-				id: "open-dm7",
-				name: "Open Dm7",
-				frets: [-1, -1, 0, 2, 1, 1],
-			});
-
-		candidates.push({
-			id: "em7-shape",
-			name: "Em7-Shape Barre",
-			frets: offsetFrets([0, 2, 0, 0, 0, 0], f6),
-		});
-		candidates.push({
-			id: "shell6-m7",
-			name: "6th-Str Jazz m7",
-			frets: offsetFrets([0, -1, 0, 0, 0, -1], f6),
-		});
-		candidates.push({
-			id: "am7-shape",
-			name: "Am7-Shape Barre",
-			frets: offsetFrets([-1, 0, 2, 0, 1, 0], f5),
-		});
-		candidates.push({
-			id: "dm7-shape",
-			name: "Dm7-Shape Upper",
-			frets: offsetFrets([-1, -1, 0, 2, 1, 1], f4),
-		});
-	} else if (kind === "diminished") {
-		const d6 = mod12(rootPc - 4);
-		const d5 = mod12(rootPc - 9);
-		const d4 = mod12(rootPc - 2);
-
-		candidates.push({
-			id: "dim-6",
-			name: "6th-Str Dim",
-			frets: offsetFrets([0, 1, 2, 0, -1, -1], d6),
-		});
-		candidates.push({
-			id: "dim-5",
-			name: "5th-Str Dim",
-			frets: offsetFrets([-1, 0, 1, 2, 1, -1], d5),
-		});
-		candidates.push({
-			id: "dim-4",
-			name: "4th-Str Dim",
-			frets: offsetFrets([-1, -1, 0, 1, 3, 1], d4),
-		});
-		// Also offer upper octave position if low position was open/low
-		if (d6 <= 2) {
-			candidates.push({
-				id: "dim-6-hi",
-				name: "6th-Str High",
-				frets: offsetFrets([0, 1, 2, 0, -1, -1], d6 + 12),
-			});
-		}
-		if (d5 <= 2) {
-			candidates.push({
-				id: "dim-5-hi",
-				name: "5th-Str High",
-				frets: offsetFrets([-1, 0, 1, 2, 1, -1], d5 + 12),
-			});
-		}
-	} else if (kind === "m7♭5") {
-		const h6 = movableFret(rootPc, 4, 1);
-		const h5 = mod12(rootPc - 9);
-		const h4 = mod12(rootPc - 2);
-
-		candidates.push({
-			id: "halfdim-6",
-			name: "6th-Str m7♭5",
-			frets: [h6, -1, h6, h6, h6 - 1, -1],
-		});
-		candidates.push({
-			id: "halfdim-5",
-			name: "5th-Str m7♭5",
-			frets: offsetFrets([-1, 0, 1, 0, 1, -1], h5),
-		});
-		candidates.push({
-			id: "halfdim-4",
-			name: "4th-Str m7♭5",
-			frets: offsetFrets([-1, -1, 0, 1, 1, 1], h4),
-		});
-		if (h5 <= 2) {
-			candidates.push({
-				id: "halfdim-5-hi",
-				name: "5th-Str High",
-				frets: offsetFrets([-1, 0, 1, 0, 1, -1], h5 + 12),
-			});
-		}
+	switch (kind) {
+		case "major":
+			candidates.push(
+				["e-shape", "E-Shape Barre", offsetFrets([0, 2, 2, 1, 0, 0], f6)],
+				["a-shape", "A-Shape Barre", offsetFrets([-1, 0, 2, 2, 2, 0], f5)],
+				["c-shape", "C-Shape", offsetFrets([-1, 3, 2, 0, 1, 0], movableFret(rootPc, 0, 1))],
+				["g-shape", "G-Shape", offsetFrets([3, 2, 0, 0, 0, -1], movableFret(rootPc, 7, 1))],
+				["d-shape", "D-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 2], f4)],
+			);
+			break;
+		case "minor":
+			candidates.push(
+				["em-shape", "Em-Shape Barre", offsetFrets([0, 2, 2, 0, 0, 0], f6)],
+				["am-shape", "Am-Shape Barre", offsetFrets([-1, 0, 2, 2, 1, 0], f5)],
+				["cm-shape", "Cm-Shape", offsetFrets([-1, 3, 1, 0, 1, -1], mod12(rootPc))],
+				["gm-shape", "Gm-Shape", offsetFrets([3, 1, 0, 0, -1, -1], mod12(rootPc - 7))],
+				["dm-shape", "Dm-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 1], f4)],
+			);
+			break;
+		case "7":
+			candidates.push(
+				["e7-shape", "E7-Shape Barre", offsetFrets([0, 2, 0, 1, 0, 0], f6)],
+				["a7-shape", "A7-Shape Barre", offsetFrets([-1, 0, 2, 0, 2, 0], f5)],
+				["c7-shape", "C7-Shape", offsetFrets([-1, 3, 2, 3, 1, -1], movableFret(rootPc, 0, 1))],
+				["d7-shape", "D7-Shape Upper", offsetFrets([-1, -1, 0, 2, 1, 2], f4)],
+			);
+			break;
+		case "maj7":
+			candidates.push(
+				["shell6-maj7", "6th-Str Maj7", offsetFrets([0, -1, 1, 1, 0, -1], f6)],
+				["a-maj7-shape", "A-Shape Maj7", offsetFrets([-1, 0, 2, 1, 2, 0], f5)],
+				["d-maj7-shape", "D-Shape Maj7", offsetFrets([-1, -1, 0, 2, 2, 2], f4)],
+			);
+			break;
+		case "m7":
+			candidates.push(
+				["em7-shape", "Em7-Shape Barre", offsetFrets([0, 2, 0, 0, 0, 0], f6)],
+				["shell6-m7", "6th-Str Jazz m7", offsetFrets([0, -1, 0, 0, 0, -1], f6)],
+				["am7-shape", "Am7-Shape Barre", offsetFrets([-1, 0, 2, 0, 1, 0], f5)],
+				["dm7-shape", "Dm7-Shape Upper", offsetFrets([-1, -1, 0, 2, 1, 1], f4)],
+			);
+			break;
+		case "diminished":
+			candidates.push(
+				["dim-6", "6th-Str Dim", offsetFrets([0, 1, 2, 0, -1, -1], d6)],
+				["dim-5", "5th-Str Dim", offsetFrets([-1, 0, 1, 2, 1, -1], d5)],
+				["dim-4", "4th-Str Dim", offsetFrets([-1, -1, 0, 1, 3, 1], d4)],
+			);
+			if (d6 <= 2) {
+				candidates.push(["dim-6-hi", "6th-Str High", offsetFrets([0, 1, 2, 0, -1, -1], d6 + 12)]);
+			}
+			if (d5 <= 2) {
+				candidates.push(["dim-5-hi", "5th-Str High", offsetFrets([-1, 0, 1, 2, 1, -1], d5 + 12)]);
+			}
+			break;
+		case "m7♭5":
+			candidates.push(
+				["halfdim-6", "6th-Str m7♭5", [f6, -1, f6, f6, f6 - 1, -1]],
+				["halfdim-5", "5th-Str m7♭5", offsetFrets([-1, 0, 1, 0, 1, -1], d5)],
+				["halfdim-4", "4th-Str m7♭5", offsetFrets([-1, -1, 0, 1, 1, 1], d4)],
+			);
+			if (d5 <= 2) {
+				candidates.push(["halfdim-5-hi", "5th-Str High", offsetFrets([-1, 0, 1, 0, 1, -1], d5 + 12)]);
+			}
+			break;
 	}
 
 	const seenFrets = new Set<string>();
 	const built: GuitarVoicing[] = [];
 
-	for (const candidate of candidates) {
-		const key = candidate.frets.join(",");
+	for (const [id, name, frets] of candidates) {
+		const key = frets.join(",");
 		if (seenFrets.has(key)) continue;
-		const voicing = buildVoicing(candidate, rootPc, kind, resolveName);
+		const voicing = buildVoicing(id, name, frets, rootPc, kind, resolveName);
 		if (voicing) {
 			seenFrets.add(key);
 			built.push(voicing);
 		}
 	}
 
-	// Sort naturally from open / lowest neck position up to highest neck position
 	return built.sort((a, b) => a.baseFret - b.baseFret);
 }
