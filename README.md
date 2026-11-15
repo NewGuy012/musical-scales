@@ -1,90 +1,68 @@
-# React + Vite + Hono + Cloudflare Workers
+# Circle of Fifths — Interactive Musical Scales & Chords Explorer
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/vite-react-template)
+> **Live Preview:** [https://musical-scales.juyoung-m-yoo.workers.dev/](https://musical-scales.juyoung-m-yoo.workers.dev/)
 
-This template provides a minimal setup for building a React application with TypeScript and Vite, designed to run on Cloudflare Workers. It features hot module replacement, ESLint integration, and the flexibility of Workers deployments.
+An interactive web application built with **React**, **TypeScript**, **Vite**, **Hono**, and **Cloudflare Workers** for exploring the Circle of Fifths, fifths and fourths relationships, scales, and major/minor chords in real time.
 
-![React + TypeScript + Vite + Cloudflare Workers](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/fc7b4b62-442b-4769-641b-ad4422d74300/public)
+## Features
 
-<!-- dash-content-start -->
+- **Interactive Circle of Fifths Wheel**
+  - Dual concentric rings for **Major keys** (outer) and **Relative Minor keys** (inner), plus an outer key-signature perimeter (`0`, `1♯`–`7♯`, `1♭`–`7♭`) and diminished chord (`vii°` / `ii°`) marker.
+  - Highlights the active 6-chord diatonic neighborhood with Roman numeral overlays (`IV`, `I`, `V` / `ii`, `vi`, `iii` in Major; `VI`, `III`, `VII` / `iv`, `i`, `v` in Minor).
+  - Supports **Standard**, **Sharps (`♯`)**, and **Flats (`♭`)** enharmonic spellings (plus per-slot toggling for `B / C♭`, `F♯ / G♭`, and `D♭ / C♯`), optional wheel rotation to center the active key, and dark/light themes.
+  - Keyboard shortcuts: `←` (4th), `→` (5th), `Space` (play tonic), and `M` (toggle Major/Minor).
+- **Fifths & Fourths Relationship Explorer**
+  - Inspects both the counter-clockwise **Perfect 4th (`+5` semitones)** and clockwise **Perfect 5th (`+7` semitones)** neighbors, showing key signature deltas, `6/7` shared scale notes, and the single shifted pitch (such as `B → B♭` or `F → F♯`).
+  - Includes one-click cadence auditions (`I–IV–I` / `I–V–I`) and animated **Walk 4ths** / **Walk 5ths** playback around the full circle.
+- **Major & Minor Chords per Key**
+  - Groups each key's diatonic **Major Chords** and **Minor Chords**, alongside its diminished triad, Harmonic Minor `V` (in Minor mode), and direct **Root Parallel Pair** (`Major` vs. `Minor` sharing the same tonic note).
+  - Switch between **Triads** and **7th Chords** and toggle **Block Chord** vs. **Arpeggio** voicing.
+- **Key Signature Staff, Piano Voicing & Web Audio Synth**
+  - Treble-clef SVG staff rendering the exact sharps or flats of the selected key.
+  - Clickable 2-octave (`C4`–`B5`) piano keyboard highlighting active chord voicings and scale notes.
+  - Built-in Web Audio API polyphonic synthesizer (`Keys`, `Pad`, and `Mute` modes) with scale playback and common chord progressions.
 
-🚀 Supercharge your web development with this powerful stack:
+## Tech Stack
 
-- [**React**](https://react.dev/) - A modern UI library for building interactive interfaces
-- [**Vite**](https://vite.dev/) - Lightning-fast build tooling and development server
-- [**Hono**](https://hono.dev/) - Ultralight, modern backend framework
-- [**Cloudflare Workers**](https://developers.cloudflare.com/workers/) - Edge computing platform for global deployment
+- **Frontend:** React 19, TypeScript, Vite, SVG + Web Audio API
+- **Edge Runtime / API:** Hono on Cloudflare Workers
 
-### ✨ Key Features
-
-- 🔥 Hot Module Replacement (HMR) for rapid development
-- 📦 TypeScript support out of the box
-- 🛠️ ESLint configuration included
-- ⚡ Zero-config deployment to Cloudflare's global network
-- 🎯 API routes with Hono's elegant routing
-- 🔄 Full-stack development setup
-- 🔎 Built-in Observability to monitor your Worker
-
-Get started in minutes with local development or deploy directly via the Cloudflare dashboard. Perfect for building modern, performant web applications at the edge.
-
-<!-- dash-content-end -->
-
-## Getting Started
-
-To start a new project with this template, run:
-
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/vite-react-template
-```
-
-A live deployment of this template is available at:
-[https://react-vite-template.templates.workers.dev](https://react-vite-template.templates.workers.dev)
-
-## Development
+## Local Development
 
 Install dependencies:
 
 ```bash
-npm install
+bun install
+# or: npm install
 ```
 
-Start the development server with:
+Start the development server:
 
 ```bash
-npm run dev
+bun run dev
+# or: npm run dev
 ```
 
-Your application will be available at [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Production
+## Testing, Building & Deployment
 
-Build your project for production:
+Run unit and component render tests:
 
 ```bash
-npm run build
+bun test
 ```
 
-Preview your build locally:
+Typecheck, lint, and build for production:
 
 ```bash
-npm run preview
+bun run build
+bun run lint
 ```
 
-Deploy your project to Cloudflare Workers:
+Preview the production build locally or deploy to Cloudflare Workers:
 
 ```bash
-npm run build && npm run deploy
+bun run preview
+bun run build && bun run deploy
 ```
-
-Monitor your workers:
-
-```bash
-npx wrangler tail
-```
-
-## Additional Resources
-
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-- [Vite Documentation](https://vitejs.dev/guide/)
-- [React Documentation](https://reactjs.org/)
-- [Hono Documentation](https://hono.dev/)
