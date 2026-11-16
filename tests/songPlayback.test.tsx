@@ -1,15 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { playTimedSequence } from "../src/react-app/audio/synth";
-import { CelloFingerboard } from "../src/react-app/components/CelloFingerboard";
+import { BowedFingerboard } from "../src/react-app/components/BowedFingerboard";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
 import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
-import { ViolinFingerboard } from "../src/react-app/components/ViolinFingerboard";
-import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
+import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
-import { getViolinVoicings } from "../src/react-app/theory/violinFingerboard";
 import {
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
@@ -193,14 +191,16 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 	test("instrument visualizers render live song-hit markers and halos", () => {
 		const gMajor = analyzeKey(1, "major", "standard");
-		const celloVoicings = getCelloVoicings(
+		const celloVoicings = getBowedVoicings(
+			"cello",
 			"G",
 			"major",
 			["G", "B", "D"],
 			false,
 		);
 		const celloHtml = renderToStaticMarkup(
-			<CelloFingerboard
+			<BowedFingerboard
+				instrument="cello"
 				chordLabel="G (I)"
 				chordQuality="major"
 				chordKind="major"
@@ -255,14 +255,16 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(guitarHtml).toContain("song-hit-halo");
 
 		const dMajor = analyzeKey(2, "major", "standard");
-		const violinVoicings = getViolinVoicings(
+		const violinVoicings = getBowedVoicings(
+			"violin",
 			"D",
 			"major",
 			["D", "F♯", "A"],
 			false,
 		);
 		const violinHtml = renderToStaticMarkup(
-			<ViolinFingerboard
+			<BowedFingerboard
+				instrument="violin"
 				chordLabel="D (I)"
 				chordQuality="major"
 				chordKind="major"

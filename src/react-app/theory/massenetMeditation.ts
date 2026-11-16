@@ -10,7 +10,7 @@ import type {
 	CompactSongSpec,
 	SongNoteEvent,
 } from "./songExamples";
-import { MAX_VIOLIN_SEMITONE, VIOLIN_TUNING } from "./violinFingerboard";
+import { MAX_BOWED_SEMITONE, VIOLIN_TUNING } from "./celloFingerboard";
 
 const STEP_QUARTER_MS = 900; // ~66.7 BPM (Andante religioso)
 
@@ -107,12 +107,12 @@ function parseViolinNoteToken(token: string): {
 	if (harmonicTouch !== undefined) {
 		semitone = harmonicTouch;
 		finger = 4;
-	} else if (rawSemitone === MAX_VIOLIN_SEMITONE + 1 && stringIndex === 3) {
+	} else if (rawSemitone === MAX_BOWED_SEMITONE + 1 && stringIndex === 3) {
 		// G6 peak (Bar 32) sits 1 semitone above the 14-semitone visual neck limit.
-		semitone = MAX_VIOLIN_SEMITONE;
+		semitone = MAX_BOWED_SEMITONE;
 		finger = 4;
 	} else {
-		if (rawSemitone < 0 || rawSemitone > MAX_VIOLIN_SEMITONE) {
+		if (rawSemitone < 0 || rawSemitone > MAX_BOWED_SEMITONE) {
 			throw new Error(
 				`Note ${token} (MIDI ${midi}) exceeds violin fingerboard range on string ${stringIndex}`,
 			);

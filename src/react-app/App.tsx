@@ -8,7 +8,7 @@ import {
 	playTimedSequence,
 	stopAllAudio,
 } from "./audio/synth";
-import { CelloFingerboard } from "./components/CelloFingerboard";
+import { BowedFingerboard } from "./components/BowedFingerboard";
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
 import { CircleWheel, WheelChordHighlight } from "./components/CircleWheel";
 import { ColorHarmonyPanel } from "./components/ColorHarmonyPanel";
@@ -29,8 +29,7 @@ import {
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
 import { SongExamplesPanel } from "./components/SongExamplesPanel";
-import { ViolinFingerboard } from "./components/ViolinFingerboard";
-import { BowedVoicing, getCelloVoicings } from "./theory/celloFingerboard";
+import { BowedVoicing, getBowedVoicings } from "./theory/celloFingerboard";
 import {
 	HarmonyChordSpec,
 	analyzeColorHarmony,
@@ -70,7 +69,6 @@ import {
 	getSongBarStartTimes,
 	getSongsForInstrument,
 } from "./theory/songExamples";
-import { getViolinVoicings } from "./theory/violinFingerboard";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -365,7 +363,8 @@ export function App() {
 
 	const violinVoicings = useMemo(() => {
 		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) return [];
-		return getViolinVoicings(
+		return getBowedVoicings(
+			"violin",
 			activeVoicing.notes[0],
 			activeVoicing.guitarKind,
 			activeVoicing.notes,
@@ -383,7 +382,8 @@ export function App() {
 
 	const celloVoicings = useMemo(() => {
 		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) return [];
-		return getCelloVoicings(
+		return getBowedVoicings(
+			"cello",
 			activeVoicing.notes[0],
 			activeVoicing.guitarKind,
 			activeVoicing.notes,
@@ -415,9 +415,13 @@ export function App() {
 				const voicings =
 					instrumentView === "guitar"
 						? getGuitarVoicings(notes[0], guitarKind, notes, flatBias)
-						: instrumentView === "violin"
-							? getViolinVoicings(notes[0], guitarKind, notes, flatBias)
-							: getCelloVoicings(notes[0], guitarKind, notes, flatBias);
+						: getBowedVoicings(
+								instrumentView,
+								notes[0],
+								guitarKind,
+								notes,
+								flatBias,
+							);
 				const selectedId =
 					instrumentView === "guitar"
 						? selectedGuitarVoicingId
@@ -2249,28 +2253,9 @@ export function App() {
 									}
 									onPlayNoteSequence={handlePlayGuitarNoteSequence}
 								/>
-							) : instrumentView === "violin" ? (
-								<ViolinFingerboard
-									chordLabel={activeVoicing.label}
-									chordQuality={activeVoicing.quality}
-									chordKind={activeVoicing.guitarKind}
-									chordNotes={activeVoicing.notes}
-									scaleNotes={analysis.scaleNotes}
-									keyRootName={analysis.scaleNotes[0]}
-									preferFlats={preferFlats}
-									voicings={violinVoicings}
-									activeVoicing={activeViolinVoicing}
-									activeSongStops={
-										playingSongId !== null || cuedSongId !== null
-											? (activeSongEvent?.violinStops ?? null)
-											: null
-									}
-									onSelectVoicing={(v) => handleSelectBowedVoicing("violin", v)}
-									onRollVoicing={(v) => handleRollBowedVoicing("violin", v)}
-									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.8)}
-								/>
 							) : (
-								<CelloFingerboard
+								<BowedFingerboard
+									instrument={instrumentView}
 									chordLabel={activeVoicing.label}
 									chordQuality={activeVoicing.quality}
 									chordKind={activeVoicing.guitarKind}
@@ -2278,16 +2263,34 @@ export function App() {
 									scaleNotes={analysis.scaleNotes}
 									keyRootName={analysis.scaleNotes[0]}
 									preferFlats={preferFlats}
-									voicings={celloVoicings}
-									activeVoicing={activeCelloVoicing}
+									voicings={
+										instrumentView === "violin" ? violinVoicings : celloVoicings
+									}
+									activeVoicing={
+										instrumentView === "violin"
+											? activeViolinVoicing
+											: activeCelloVoicing
+									}
 									activeSongStops={
 										playingSongId !== null || cuedSongId !== null
-											? (activeSongEvent?.celloStops ?? null)
+											? ((instrumentView === "violin"
+													? activeSongEvent?.violinStops
+													: activeSongEvent?.celloStops) ?? null)
 											: null
 									}
-									onSelectVoicing={(v) => handleSelectBowedVoicing("cello", v)}
-									onRollVoicing={(v) => handleRollBowedVoicing("cello", v)}
-									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.85)}
+									onSelectVoicing={(v) =>
+										handleSelectBowedVoicing(instrumentView, v)
+									}
+									onRollVoicing={(v) =>
+										handleRollBowedVoicing(instrumentView, v)
+									}
+									onPlayNote={(midi) =>
+										playSingleNote(
+											midi,
+											soundPreset,
+											instrumentView === "violin" ? 0.8 : 0.85,
+										)
+									}
 								/>
 							)}
 						</div>

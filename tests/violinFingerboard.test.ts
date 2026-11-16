@@ -5,10 +5,10 @@ import {
 } from "../src/react-app/theory/circleOfFifths";
 import type { GuitarChordKind } from "../src/react-app/theory/guitarFretboard";
 import {
-	MAX_VIOLIN_SEMITONE,
+	MAX_BOWED_SEMITONE,
 	VIOLIN_TUNING,
-	getViolinVoicings,
-} from "../src/react-app/theory/violinFingerboard";
+	getBowedVoicings,
+} from "../src/react-app/theory/celloFingerboard";
 
 const CHORD_INTERVALS: Record<GuitarChordKind, number[]> = {
 	major: [0, 4, 7],
@@ -60,11 +60,17 @@ describe("violinFingerboard", () => {
 			"A:69",
 			"E:76",
 		]);
-		expect(MAX_VIOLIN_SEMITONE).toBe(14);
+		expect(MAX_BOWED_SEMITONE).toBe(14);
 	});
 
 	test("includes Open 4-Str [0, 0, 2, 3] for G major and Open D-Str [-1, 0, 0, 2] for D major", () => {
-		const gVoicings = getViolinVoicings("G", "major", ["G", "B", "D"], false);
+		const gVoicings = getBowedVoicings(
+			"violin",
+			"G",
+			"major",
+			["G", "B", "D"],
+			false,
+		);
 		expect(gVoicings.length).toBeGreaterThanOrEqual(3);
 		const openG = gVoicings.find((v) => v.semitones.join(",") === "0,0,2,3");
 		expect(openG).toBeDefined();
@@ -72,7 +78,13 @@ describe("violinFingerboard", () => {
 		expect(openG?.notes.map((n) => n.finger)).toEqual([0, 0, 1, 2]);
 		expect(openG?.soundingMidi).toEqual([55, 62, 71, 79]);
 
-		const dVoicings = getViolinVoicings("D", "major", ["D", "F♯", "A"], false);
+		const dVoicings = getBowedVoicings(
+			"violin",
+			"D",
+			"major",
+			["D", "F♯", "A"],
+			false,
+		);
 		const openD = dVoicings.find((v) => v.semitones.join(",") === "-1,0,0,2");
 		expect(openD).toBeDefined();
 		expect(openD?.name).toBe("Open D-Str");
@@ -94,7 +106,13 @@ describe("violinFingerboard", () => {
 					.filter((off) => !(OMIT_FIFTH_KINDS.has(kind) && off === 7))
 					.map((off) => mod12(rootPc + off));
 
-				const voicings = getViolinVoicings(root, kind, [root], preferFlats);
+				const voicings = getBowedVoicings(
+					"violin",
+					root,
+					kind,
+					[root],
+					preferFlats,
+				);
 				expect(voicings.length).toBeGreaterThanOrEqual(3);
 
 				for (const voicing of voicings) {
@@ -103,7 +121,7 @@ describe("violinFingerboard", () => {
 					const nonZeroSemitones = voicing.semitones.filter((s) => s > 0);
 					for (const semi of voicing.semitones) {
 						expect(semi).toBeGreaterThanOrEqual(-1);
-						expect(semi).toBeLessThanOrEqual(MAX_VIOLIN_SEMITONE);
+						expect(semi).toBeLessThanOrEqual(MAX_BOWED_SEMITONE);
 					}
 
 					if (nonZeroSemitones.length > 0) {

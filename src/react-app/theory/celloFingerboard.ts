@@ -5,8 +5,8 @@ import {
 	getIntervalLabel,
 } from "./guitarFretboard";
 
+export type BowedInstrument = "cello" | "violin";
 export type BowedSemitoneTuple = [number, number, number, number];
-export type CelloSemitoneTuple = BowedSemitoneTuple;
 
 export interface BowedStringInfo {
 	stringNumber: 4 | 3 | 2 | 1; // 4 = lowest string, 1 = highest string
@@ -14,7 +14,6 @@ export interface BowedStringInfo {
 	openMidi: number;
 	openPc: number;
 }
-export type CelloStringInfo = BowedStringInfo;
 
 export interface BowedVoicingNote {
 	stringIndex: number; // 0 (lowest string) .. 3 (highest string)
@@ -25,7 +24,6 @@ export interface BowedVoicingNote {
 	intervalLabel: string;
 	noteName: string | null;
 }
-export type CelloVoicingNote = BowedVoicingNote;
 
 export interface BowedVoicing {
 	id: string;
@@ -36,9 +34,10 @@ export interface BowedVoicing {
 	notes: BowedVoicingNote[];
 	soundingMidi: number[];
 }
-export type CelloVoicing = BowedVoicing;
 
-// Standard cello tuning in Perfect Fifths: C2 G2 D3 A3
+export const MAX_BOWED_SEMITONE = 14;
+
+// Perfect-fifths tunings: Cello C2-G2-D3-A3, Violin G3-D4-A4-E5
 export const CELLO_TUNING: BowedStringInfo[] = [
 	{ stringNumber: 4, label: "C", openMidi: 36, openPc: 0 },
 	{ stringNumber: 3, label: "G", openMidi: 43, openPc: 7 },
@@ -46,7 +45,20 @@ export const CELLO_TUNING: BowedStringInfo[] = [
 	{ stringNumber: 1, label: "A", openMidi: 57, openPc: 9 },
 ];
 
-export const MAX_CELLO_SEMITONE = 14;
+export const VIOLIN_TUNING: BowedStringInfo[] = [
+	{ stringNumber: 4, label: "G", openMidi: 55, openPc: 7 },
+	{ stringNumber: 3, label: "D", openMidi: 62, openPc: 2 },
+	{ stringNumber: 2, label: "A", openMidi: 69, openPc: 9 },
+	{ stringNumber: 1, label: "E", openMidi: 76, openPc: 4 },
+];
+
+export const BOWED_TUNINGS: Record<
+	BowedInstrument,
+	readonly BowedStringInfo[]
+> = {
+	cello: CELLO_TUNING,
+	violin: VIOLIN_TUNING,
+};
 
 function getPositionLabel(minNonZero: number, hasOpen: boolean): string {
 	if (minNonZero === 0) return "Open";
@@ -379,15 +391,16 @@ export function getBowedFifthsVoicings(
 	return built.sort((a, b) => a.handBaseSemitone - b.handBaseSemitone);
 }
 
-export function getCelloVoicings(
+export function getBowedVoicings(
+	instrument: BowedInstrument,
 	rootNote: string,
 	kind: GuitarChordKind,
 	chordNotes: string[],
 	preferFlats = false,
-): CelloVoicing[] {
+): BowedVoicing[] {
 	return getBowedFifthsVoicings(
-		CELLO_TUNING,
-		MAX_CELLO_SEMITONE,
+		BOWED_TUNINGS[instrument],
+		MAX_BOWED_SEMITONE,
 		rootNote,
 		kind,
 		chordNotes,

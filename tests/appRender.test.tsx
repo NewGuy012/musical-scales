@@ -1,18 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { App } from "../src/react-app/App";
-import { CelloFingerboard } from "../src/react-app/components/CelloFingerboard";
+import { BowedFingerboard } from "../src/react-app/components/BowedFingerboard";
 import { ChordsPanel } from "../src/react-app/components/ChordsPanel";
 import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
-import { ViolinFingerboard } from "../src/react-app/components/ViolinFingerboard";
-import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
+import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
-import { getViolinVoicings } from "../src/react-app/theory/violinFingerboard";
 
 describe("Musical Scales UI rendering", () => {
 	test("renders App with Musical Scales branding, table of contents, clearly labeled sections, and clean instrument dock", () => {
@@ -149,17 +147,19 @@ describe("Musical Scales UI rendering", () => {
 		expect(dmHtml).toContain("Chord");
 	});
 
-	test("renders CelloFingerboard with fretless positions, left-hand frame, and minor/7th chords", () => {
+	test("renders BowedFingerboard (cello) with fretless positions, left-hand frame, and minor/7th chords", () => {
 		const cMaj = analyzeKey(0, "major");
 		const tonic = cMaj.chords[0];
-		const cVoicings = getCelloVoicings(
+		const cVoicings = getBowedVoicings(
+			"cello",
 			tonic.root,
 			"major",
 			tonic.triadNotes,
 			false,
 		);
 		const cHtml = renderToStaticMarkup(
-			<CelloFingerboard
+			<BowedFingerboard
+				instrument="cello"
 				chordLabel="C (I)"
 				chordQuality="major"
 				chordKind="major"
@@ -188,14 +188,16 @@ describe("Musical Scales UI rendering", () => {
 
 		const aMin = analyzeKey(0, "minor");
 		const amTonic = aMin.chords[0];
-		const m7Voicings = getCelloVoicings(
+		const m7Voicings = getBowedVoicings(
+			"cello",
 			amTonic.root,
 			"m7",
 			amTonic.seventhNotes,
 			false,
 		);
 		const dmHtml = renderToStaticMarkup(
-			<CelloFingerboard
+			<BowedFingerboard
+				instrument="cello"
 				chordLabel="Am7 (i)"
 				chordQuality="minor"
 				chordKind="m7"
@@ -215,17 +217,19 @@ describe("Musical Scales UI rendering", () => {
 		expect(dmHtml).toContain("LH Frame");
 	});
 
-	test("renders ViolinFingerboard with G3-D4-A4-E5 tuning, open voicings, and left-hand frame", () => {
+	test("renders BowedFingerboard (violin) with G3-D4-A4-E5 tuning, open voicings, and left-hand frame", () => {
 		const dMaj = analyzeKey(2, "major");
 		const dTonic = dMaj.chords[0];
-		const dVoicings = getViolinVoicings(
+		const dVoicings = getBowedVoicings(
+			"violin",
 			dTonic.root,
 			"major",
 			dTonic.triadNotes,
 			false,
 		);
 		const dHtml = renderToStaticMarkup(
-			<ViolinFingerboard
+			<BowedFingerboard
+				instrument="violin"
 				chordLabel="D (I)"
 				chordQuality="major"
 				chordKind="major"

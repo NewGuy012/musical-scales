@@ -16,7 +16,6 @@ export interface BowedSongStop {
 	finger: number;
 	technique?: "normal" | "harmonic" | "portamento";
 }
-export type CelloSongStop = BowedSongStop;
 
 export type GuitarStopTechnique = "normal" | "harmonic" | "hammer" | "slide";
 

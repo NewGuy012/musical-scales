@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_CELLO_SEMITONE } from "../src/react-app/theory/celloFingerboard";
+import { MAX_BOWED_SEMITONE } from "../src/react-app/theory/celloFingerboard";
 import { getSongsForInstrument } from "../src/react-app/theory/songExamples";
 
 describe("haydnCelloConcerto2", () => {
@@ -48,7 +48,7 @@ describe("haydnCelloConcerto2", () => {
 					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
 					expect(stop.stringIndex).toBeLessThanOrEqual(3);
 					expect(stop.semitone).toBeGreaterThanOrEqual(0);
-					expect(stop.semitone).toBeLessThanOrEqual(MAX_CELLO_SEMITONE);
+					expect(stop.semitone).toBeLessThanOrEqual(MAX_BOWED_SEMITONE);
 					expect(stop.finger).toBeGreaterThanOrEqual(0);
 					expect(stop.finger).toBeLessThanOrEqual(4);
 				}

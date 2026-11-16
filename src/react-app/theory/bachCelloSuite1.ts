@@ -1,4 +1,4 @@
-import { CELLO_TUNING, MAX_CELLO_SEMITONE } from "./celloFingerboard";
+import { CELLO_TUNING, MAX_BOWED_SEMITONE } from "./celloFingerboard";
 import {
 	type ChordQuality,
 	NATURAL_PC,
@@ -7,7 +7,7 @@ import {
 } from "./circleOfFifths";
 import type { GuitarChordKind } from "./guitarFretboard";
 import type {
-	CelloSongStop,
+	BowedSongStop,
 	CompactSongSpec,
 	SongNoteEvent,
 } from "./songExamples";
@@ -43,7 +43,7 @@ function inferCelloFinger(semitone: number): number {
 function parseCelloNoteToken(token: string): {
 	midi: number;
 	pitchName: string;
-	stop: CelloSongStop;
+	stop: BowedSongStop;
 	label: string;
 } {
 	const [pitchPart, stringOverride] = token.split("@");
@@ -74,7 +74,7 @@ function parseCelloNoteToken(token: string): {
 
 	const openMidi = CELLO_TUNING[stringIndex].openMidi;
 	const semitone = midi - openMidi;
-	if (semitone < 0 || semitone > MAX_CELLO_SEMITONE) {
+	if (semitone < 0 || semitone > MAX_BOWED_SEMITONE) {
 		throw new Error(
 			`Note ${token} (MIDI ${midi}) exceeds cello fingerboard range on string ${stringIndex}`,
 		);

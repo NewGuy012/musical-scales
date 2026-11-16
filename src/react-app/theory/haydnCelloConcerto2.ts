@@ -1,4 +1,4 @@
-import { CELLO_TUNING, MAX_CELLO_SEMITONE } from "./celloFingerboard";
+import { CELLO_TUNING, MAX_BOWED_SEMITONE } from "./celloFingerboard";
 import type { ChordQuality } from "./circleOfFifths";
 import type { GuitarChordKind } from "./guitarFretboard";
 import type {
@@ -144,9 +144,9 @@ function parseCelloNoteToken(raw: string): ParsedStop {
 		);
 	}
 
-	// Thumb-position notes above B4 (MAX_CELLO_SEMITONE = 14) still sound their true pitch
+	// Thumb-position notes above B4 (MAX_BOWED_SEMITONE = 14) still sound their true pitch
 	// while omitting out-of-range neck dots so rendered fingerboard stops stay within 0..14.
-	if (interval > MAX_CELLO_SEMITONE) {
+	if (interval > MAX_BOWED_SEMITONE) {
 		return {
 			midi,
 			pitchName: baseLabel,

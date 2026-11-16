@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
 	CELLO_TUNING,
-	getCelloVoicings,
-	MAX_CELLO_SEMITONE,
+	MAX_BOWED_SEMITONE,
+	getBowedVoicings,
 } from "../src/react-app/theory/celloFingerboard";
 import {
 	mod12,
@@ -60,11 +60,17 @@ describe("celloFingerboard", () => {
 			"D:50",
 			"A:57",
 		]);
-		expect(MAX_CELLO_SEMITONE).toBe(14);
+		expect(MAX_BOWED_SEMITONE).toBe(14);
 	});
 
 	test("includes Open 4-Str [0, 0, 2, 3] voicing for C major", () => {
-		const voicings = getCelloVoicings("C", "major", ["C", "E", "G"], false);
+		const voicings = getBowedVoicings(
+			"cello",
+			"C",
+			"major",
+			["C", "E", "G"],
+			false,
+		);
 		expect(voicings.length).toBeGreaterThanOrEqual(3);
 		const openC = voicings.find((v) => v.semitones.join(",") === "0,0,2,3");
 		expect(openC).toBeDefined();
@@ -88,7 +94,13 @@ describe("celloFingerboard", () => {
 					.filter((off) => !(OMIT_FIFTH_KINDS.has(kind) && off === 7))
 					.map((off) => mod12(rootPc + off));
 
-				const voicings = getCelloVoicings(root, kind, [root], preferFlats);
+				const voicings = getBowedVoicings(
+					"cello",
+					root,
+					kind,
+					[root],
+					preferFlats,
+				);
 				expect(voicings.length).toBeGreaterThanOrEqual(3);
 
 				for (const voicing of voicings) {
@@ -97,7 +109,7 @@ describe("celloFingerboard", () => {
 					const nonZeroSemitones = voicing.semitones.filter((s) => s > 0);
 					for (const semi of voicing.semitones) {
 						expect(semi).toBeGreaterThanOrEqual(-1);
-						expect(semi).toBeLessThanOrEqual(MAX_CELLO_SEMITONE);
+						expect(semi).toBeLessThanOrEqual(MAX_BOWED_SEMITONE);
 					}
 
 					if (nonZeroSemitones.length > 0) {

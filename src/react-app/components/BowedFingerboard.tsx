@@ -1,5 +1,10 @@
 import { useState } from "react";
-import type { BowedStringInfo, BowedVoicing } from "../theory/celloFingerboard";
+import {
+	BOWED_TUNINGS,
+	type BowedInstrument,
+	type BowedVoicing,
+	MAX_BOWED_SEMITONE,
+} from "../theory/celloFingerboard";
 import {
 	type ChordQuality,
 	getGuitarQualityClass,
@@ -18,7 +23,8 @@ import { IconPlay } from "./Icons";
 export type BowedOverlayMode = "voicing" | "all-tones" | "scale";
 export type BowedLabelMode = "notes" | "intervals" | "fingers";
 
-export interface BowedFingerboardSharedProps {
+export interface BowedFingerboardProps {
+	instrument: BowedInstrument;
 	chordLabel: string;
 	chordQuality: ChordQuality;
 	chordKind: GuitarChordKind | null;
@@ -34,15 +40,28 @@ export interface BowedFingerboardSharedProps {
 	onPlayNote: (midi: number, noteName: string) => void;
 }
 
-export interface BowedFingerboardConfig extends BowedFingerboardSharedProps {
-	instrumentSlug: "cello" | "violin";
-	instrumentTitle: string;
-	tuning: readonly BowedStringInfo[];
-	maxSemitone: number;
-	stringSubscripts: readonly [string, string, string, string];
-	stringOctaveLabels: readonly [string, string, string, string];
-	stringWidths: readonly [number, number, number, number];
-}
+const BOWED_PRESETS: Record<
+	BowedInstrument,
+	{
+		title: string;
+		stringSubscripts: readonly [string, string, string, string];
+		stringOctaveLabels: readonly [string, string, string, string];
+		stringWidths: readonly [number, number, number, number];
+	}
+> = {
+	cello: {
+		title: "Cello",
+		stringSubscripts: ["IV · C", "III · G", "II · D", "I · A"],
+		stringOctaveLabels: ["C2", "G2", "D3", "A3"],
+		stringWidths: [2.84, 2.36, 1.88, 1.4],
+	},
+	violin: {
+		title: "Violin",
+		stringSubscripts: ["IV · G", "III · D", "II · A", "I · E"],
+		stringOctaveLabels: ["G3", "D4", "A4", "E5"],
+		stringWidths: [1.95, 1.65, 1.35, 1.08],
+	},
+};
 
 const INTONATION_GUIDE_SEMITONES = new Set([2, 4, 5, 7, 9, 12]);
 const HARMONIC_DOT_SEMITONES = new Set([5, 7, 12]);
@@ -58,13 +77,7 @@ const BOTTOM_PAD = 34;
 const ROW_STEP = (SVG_HEIGHT - TOP_PAD - BOTTOM_PAD) / 3;
 
 export function BowedFingerboard({
-	instrumentSlug,
-	instrumentTitle,
-	tuning,
-	maxSemitone,
-	stringSubscripts,
-	stringOctaveLabels,
-	stringWidths,
+	instrument,
 	chordLabel,
 	chordQuality,
 	chordKind,
@@ -78,7 +91,16 @@ export function BowedFingerboard({
 	onSelectVoicing,
 	onRollVoicing,
 	onPlayNote,
-}: BowedFingerboardConfig) {
+}: BowedFingerboardProps) {
+	const {
+		title: instrumentTitle,
+		stringSubscripts,
+		stringOctaveLabels,
+		stringWidths,
+	} = BOWED_PRESETS[instrument];
+	const instrumentSlug = instrument;
+	const tuning = BOWED_TUNINGS[instrument];
+	const maxSemitone = MAX_BOWED_SEMITONE;
 	const [overlayMode, setOverlayMode] = useState<BowedOverlayMode>("voicing");
 	const [labelMode, setLabelMode] = useState<BowedLabelMode>("notes");
 
