@@ -12,6 +12,7 @@ interface PianoKeyboardProps {
 	activeQuality?: ChordQuality;
 	scalePitchClasses: number[];
 	activeNoteNamesByMidi?: Record<number, string>;
+	embedded?: boolean;
 	onPlayNote: (midi: number) => void;
 }
 
@@ -46,12 +47,13 @@ export function PianoKeyboard({
 	activeQuality = "major",
 	scalePitchClasses,
 	activeNoteNamesByMidi = {},
+	embedded = false,
 	onPlayNote,
 }: PianoKeyboardProps) {
 	const whiteKeyWidth = 30;
-	const whiteKeyHeight = 104;
+	const whiteKeyHeight = 82;
 	const blackKeyWidth = 18;
-	const blackKeyHeight = 62;
+	const blackKeyHeight = 49;
 
 	const whiteKeys: { midi: number; x: number; pc: number; octave: number }[] =
 		[];
@@ -104,7 +106,7 @@ export function PianoKeyboard({
 		const width = isBlack ? blackKeyWidth : whiteKeyWidth;
 		const height = isBlack ? blackKeyHeight : whiteKeyHeight;
 		const centerX = key.x + width / 2;
-		const markerY = height - (isBlack ? 11 : 14);
+		const markerY = height - (isBlack ? 10 : 12);
 
 		return (
 			<g
@@ -146,7 +148,7 @@ export function PianoKeyboard({
 				{!isBlack && key.pc === 0 && !isActive && !isSongHit && (
 					<text
 						x={centerX}
-						y={height - 28}
+						y={height - 23}
 						textAnchor="middle"
 						className="piano-octave-tag"
 					>
@@ -159,17 +161,21 @@ export function PianoKeyboard({
 
 	return (
 		<div className="piano-wrap">
-			<div className="piano-header">
-				<span className="piano-title">
-					Piano Voicing{" "}
-					{activeLabel && (
-						<span className={`piano-badge ${qualityClass}`}>{activeLabel}</span>
-					)}
-				</span>
-				<span className="piano-hint">
-					Dots show scale notes · Click any key to play
-				</span>
-			</div>
+			{!embedded && (
+				<div className="piano-header">
+					<span className="piano-title">
+						Piano Voicing{" "}
+						{activeLabel && (
+							<span className={`piano-badge ${qualityClass}`}>
+								{activeLabel}
+							</span>
+						)}
+					</span>
+					<span className="piano-hint">
+						Dots show scale notes · Click any key to play
+					</span>
+				</div>
+			)}
 
 			<svg
 				viewBox={`0 0 ${totalWidth} ${whiteKeyHeight + 2}`}

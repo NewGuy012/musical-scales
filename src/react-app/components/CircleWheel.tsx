@@ -11,6 +11,7 @@ import {
 	mod12,
 	resolveSlotVariant,
 } from "../theory/circleOfFifths";
+import { IconPin, IconRotate } from "./Icons";
 
 interface CircleWheelProps {
 	analysis: KeyAnalysis;
@@ -156,24 +157,26 @@ export function CircleWheel({
 					</span>
 					<span className="legend-item">
 						<span className="legend-dot legend-fourth" />
-						4th (↺)
+						4th
 					</span>
 					<span className="legend-item">
 						<span className="legend-dot legend-fifth" />
-						5th (↻)
+						5th
 					</span>
 					<span className="legend-item">
 						<span className="legend-dot legend-diatonic" />
-						Key Chords
+						In Key
 					</span>
 				</div>
 				<button
 					type="button"
-					className="chip-btn"
+					className={`chip-btn chip-btn-compact ${rotateToSelected ? "is-on" : ""}`}
 					onClick={onToggleRotate}
-					title="Choose whether C stays pinned at 12 o'clock or the selected key rotates to the top"
+					aria-pressed={rotateToSelected}
+					title="Keep C pinned at 12 o'clock or rotate the selected key to the top"
 				>
-					{rotateToSelected ? "Selected at 12:00" : "C Pinned at 12:00"}
+					{rotateToSelected ? <IconRotate size={12} /> : <IconPin size={12} />}
+					<span>{rotateToSelected ? "Key at 12:00" : "C Pinned"}</span>
 				</button>
 			</div>
 
@@ -548,46 +551,6 @@ export function CircleWheel({
 						</g>
 					</g>
 				</svg>
-			</div>
-
-			<div className="wheel-quick-nav">
-				<button
-					type="button"
-					className="step-btn step-btn-fourth"
-					onClick={onStepFourth}
-				>
-					<span className="step-arrow">↺</span>
-					<span className="step-copy">
-						<span className="step-label">Perfect 4th</span>
-						<span className="step-value">
-							{analysis.fourthNeighbor.shortName}
-						</span>
-					</span>
-				</button>
-
-				<button
-					type="button"
-					className="step-btn step-btn-play"
-					onClick={onPlayTonic}
-					title="Play tonic chord (Space)"
-				>
-					<span className="step-label">Tonic</span>
-					<span className="step-value">{analysis.shortName}</span>
-				</button>
-
-				<button
-					type="button"
-					className="step-btn step-btn-fifth"
-					onClick={onStepFifth}
-				>
-					<span className="step-copy step-copy-right">
-						<span className="step-label">Perfect 5th</span>
-						<span className="step-value">
-							{analysis.fifthNeighbor.shortName}
-						</span>
-					</span>
-					<span className="step-arrow">↻</span>
-				</button>
 			</div>
 		</div>
 	);

@@ -17,6 +17,7 @@ export interface SongExamplesPanelProps {
 	activeChordStepIndex: number | null;
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
+	embedded?: boolean;
 	onTogglePlaySong: (song: SongExample) => void;
 	onStopSong?: () => void;
 	onSeekSong?: (
@@ -421,6 +422,7 @@ export function SongExamplesPanel({
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	embedded = false,
 	onTogglePlaySong,
 	onStopSong,
 	onSeekSong,
@@ -432,19 +434,24 @@ export function SongExamplesPanel({
 	if (songs.length === 0) return null;
 
 	return (
-		<div className="songs-wrap" aria-label="Real song chord examples">
-			<div className="songs-header">
-				<div className="songs-title-group">
-					<span className="songs-title">Learn from Real Songs</span>
-					<span className="songs-instrument-badge">
-						{INSTRUMENT_BADGE_LABELS[instrumentView]}
+		<div
+			className={`songs-wrap${embedded ? " is-embedded" : ""}`}
+			aria-label="Real song chord examples"
+		>
+			{!embedded && (
+				<div className="songs-header">
+					<div className="songs-title-group">
+						<span className="songs-title">Learn from Real Songs</span>
+						<span className="songs-instrument-badge">
+							{INSTRUMENT_BADGE_LABELS[instrumentView]}
+						</span>
+					</div>
+					<span className="songs-hint">
+						Play, scrub the timeline, or click any bar to jump and inspect hand
+						placement
 					</span>
 				</div>
-				<span className="songs-hint">
-					Play, scrub the timeline, or click any bar to jump and inspect hand
-					placement
-				</span>
-			</div>
+			)}
 
 			<div className="songs-list">
 				{songs.map((song) => (

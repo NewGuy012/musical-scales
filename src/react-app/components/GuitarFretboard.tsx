@@ -15,6 +15,7 @@ import {
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { GuitarSongStop } from "../theory/songExamples";
+import { IconPlay } from "./Icons";
 
 export type FretboardOverlayMode = "voicing" | "chordTones" | "scale";
 export type FretboardLabelMode = "notes" | "intervals";
@@ -31,6 +32,7 @@ interface GuitarFretboardProps {
 	scalePitchClasses: number[];
 	scaleNoteNames: string[];
 	preferFlats: boolean;
+	embedded?: boolean;
 	onSelectVoicing: (voicing: GuitarVoicing) => void;
 	onStrumVoicing: (voicing: GuitarVoicing) => void;
 	onPlayFretNote: (midi: number) => void;
@@ -52,6 +54,7 @@ export function GuitarFretboard({
 	scalePitchClasses,
 	scaleNoteNames,
 	preferFlats,
+	embedded = false,
 	onSelectVoicing,
 	onStrumVoicing,
 	onPlayFretNote,
@@ -127,17 +130,19 @@ export function GuitarFretboard({
 		<div className="guitar-wrap">
 			<div className="guitar-top-bar">
 				<div className="guitar-title-group">
-					<span className="guitar-title">
-						Guitar Fretboard{" "}
-						{activeLabel && (
-							<span className={`piano-badge ${qualityClass}`}>
-								{activeLabel}
-							</span>
-						)}
-					</span>
+					{!embedded && (
+						<span className="guitar-title">
+							Guitar Fretboard{" "}
+							{activeLabel && (
+								<span className={`piano-badge ${qualityClass}`}>
+									{activeLabel}
+								</span>
+							)}
+						</span>
+					)}
 					{selectedVoicing && (
 						<span className="guitar-voicing-summary">
-							{selectedVoicing.name} ·{" "}
+							<strong>{selectedVoicing.name}</strong> ·{" "}
 							<code>
 								{selectedVoicing.frets
 									.map((f) => (f < 0 ? "x" : String(f)))
@@ -155,9 +160,9 @@ export function GuitarFretboard({
 					>
 						{(
 							[
-								["voicing", "Voicing + Neck"],
-								["chordTones", "All Positions"],
-								["scale", "Key Scale"],
+								["voicing", "Voicing"],
+								["chordTones", "All Notes"],
+								["scale", "Scale"],
 							] as const
 						).map(([modeKey, label]) => (
 							<button
@@ -171,16 +176,27 @@ export function GuitarFretboard({
 						))}
 					</div>
 
-					<button
-						type="button"
-						className={`chip-btn ${labelMode === "intervals" ? "is-on" : ""}`}
-						onClick={() =>
-							setLabelMode((m) => (m === "notes" ? "intervals" : "notes"))
-						}
-						title="Toggle fret markers between note names and chord intervals"
+					<div
+						className="segmented-control"
+						role="group"
+						aria-label="Fret marker label mode"
 					>
-						{labelMode === "notes" ? "Notes" : "Intervals"}
-					</button>
+						{(
+							[
+								["notes", "Notes"],
+								["intervals", "Intervals"],
+							] as const
+						).map(([modeKey, label]) => (
+							<button
+								key={modeKey}
+								type="button"
+								className={`seg-btn ${labelMode === modeKey ? "is-active" : ""}`}
+								onClick={() => setLabelMode(modeKey)}
+							>
+								{label}
+							</button>
+						))}
+					</div>
 
 					{selectedVoicing && (
 						<button
@@ -189,7 +205,8 @@ export function GuitarFretboard({
 							onClick={() => onStrumVoicing(selectedVoicing)}
 							title="Strum the selected guitar chord voicing"
 						>
-							▶ Strum
+							<IconPlay size={11} />
+							<span>Strum</span>
 						</button>
 					)}
 				</div>

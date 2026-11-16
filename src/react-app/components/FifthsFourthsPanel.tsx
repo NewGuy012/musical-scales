@@ -1,4 +1,5 @@
 import { KeyAnalysis, KeyMode } from "../theory/circleOfFifths";
+import { IconPlay, IconRotateCcw, IconRotateCw, IconStop } from "./Icons";
 
 interface FifthsFourthsPanelProps {
 	analysis: KeyAnalysis;
@@ -20,44 +21,60 @@ export function FifthsFourthsPanel({
 	const neighbors = [
 		{
 			info: fourthNeighbor,
-			badge: "↺ 4th · +5 semitones",
-			moveLabel: `Move to ${fourthNeighbor.shortName} ↺`,
+			badge: "↺ 4th · +5st",
+			moveLabel: `Go to ${fourthNeighbor.shortName} ↺`,
 		},
 		{
 			info: fifthNeighbor,
-			badge: "5th ↻ · +7 semitones",
-			moveLabel: `Move to ${fifthNeighbor.shortName} ↻`,
+			badge: "5th ↻ · +7st",
+			moveLabel: `Go to ${fifthNeighbor.shortName} ↻`,
 		},
 	] as const;
 
 	return (
-		<section className="panel-card" aria-labelledby="rel-heading">
-			<div className="panel-header-row">
-				<div>
-					<h2 id="rel-heading" className="panel-title">
-						Fifths &amp; Fourths Relationships
+		<section
+			className="panel-card neighbors-panel"
+			aria-labelledby="rel-heading"
+		>
+			<div className="neighbors-header">
+				<div className="neighbors-title-wrap">
+					<h2 id="rel-heading" className="neighbors-title">
+						Neighbors
 					</h2>
-					<p className="panel-subtitle">
-						Adjacent keys share 6 of 7 notes — shifting only 1 pitch by a
-						half-step.
-					</p>
+					<span className="neighbors-meta">6/7 notes shared · 1 half-step</span>
 				</div>
 				<div className="walk-controls">
 					<button
 						type="button"
-						className={`pill-action-btn ${walkingDirection === "fourth" ? "is-walking-fourth" : ""}`}
+						className={`pill-action-btn pill-action-sm ${walkingDirection === "fourth" ? "is-walking-fourth" : ""}`}
 						onClick={() => onToggleWalk("fourth")}
-						title="Step continuously counter-clockwise through the Circle of Fourths"
+						title="Walk counter-clockwise through the Circle of Fourths"
 					>
-						{walkingDirection === "fourth" ? "■ Stop 4ths" : "↺ Walk 4ths"}
+						{walkingDirection === "fourth" ? (
+							<>
+								<IconStop size={10} /> Stop
+							</>
+						) : (
+							<>
+								<IconRotateCcw size={11} /> Walk 4ths
+							</>
+						)}
 					</button>
 					<button
 						type="button"
-						className={`pill-action-btn ${walkingDirection === "fifth" ? "is-walking-fifth" : ""}`}
+						className={`pill-action-btn pill-action-sm ${walkingDirection === "fifth" ? "is-walking-fifth" : ""}`}
 						onClick={() => onToggleWalk("fifth")}
-						title="Step continuously clockwise through the Circle of Fifths"
+						title="Walk clockwise through the Circle of Fifths"
 					>
-						{walkingDirection === "fifth" ? "■ Stop 5ths" : "Walk 5ths ↻"}
+						{walkingDirection === "fifth" ? (
+							<>
+								<IconStop size={10} /> Stop
+							</>
+						) : (
+							<>
+								Walk 5ths <IconRotateCw size={11} />
+							</>
+						)}
 					</button>
 				</div>
 			</div>
@@ -80,12 +97,9 @@ export function FifthsFourthsPanel({
 							</div>
 
 							<div className="rel-pitch-shift">
-								<span>{info.sharedCount}/7 shared</span>
-								<span className="shift-dot">·</span>
-								<span>
-									<strong>{info.removedNote}</strong> →{" "}
-									<strong className={`shift-${dir}`}>{info.addedNote}</strong>
-								</span>
+								<span className="rel-shift-note">{info.removedNote}</span>
+								<span aria-hidden="true">→</span>
+								<strong className={`shift-${dir}`}>{info.addedNote}</strong>
 							</div>
 
 							<div className="rel-actions">
@@ -95,7 +109,10 @@ export function FifthsFourthsPanel({
 									onClick={() => onAuditionRelationship(dir)}
 									title={`Hear ${analysis.shortName} → ${info.shortName} → ${analysis.shortName}`}
 								>
-									▶ Hear {tonicRoman}–{info.chordRoman}–{tonicRoman}
+									<IconPlay size={10} />
+									<span>
+										{tonicRoman}–{info.chordRoman}–{tonicRoman}
+									</span>
 								</button>
 								<button
 									type="button"

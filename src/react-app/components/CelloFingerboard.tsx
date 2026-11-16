@@ -18,6 +18,7 @@ import {
 	type GuitarChordKind,
 } from "../theory/guitarFretboard";
 import type { CelloSongStop } from "../theory/songExamples";
+import { IconPlay } from "./Icons";
 
 export type CelloOverlayMode = "voicing" | "all-tones" | "scale";
 export type CelloLabelMode = "notes" | "intervals" | "fingers";
@@ -34,6 +35,7 @@ export interface CelloFingerboardProps {
 	voicings: CelloVoicing[];
 	activeVoicing: CelloVoicing | null;
 	activeSongStops?: CelloSongStop[] | null;
+	embedded?: boolean;
 	onSelectVoicing: (voicing: CelloVoicing) => void;
 	onRollVoicing: (voicing: CelloVoicing) => void;
 	onPlayNote: (midi: number, noteName: string) => void;
@@ -75,6 +77,7 @@ export function CelloFingerboard({
 	voicings,
 	activeVoicing,
 	activeSongStops = null,
+	embedded = false,
 	onSelectVoicing,
 	onRollVoicing,
 	onPlayNote,
@@ -111,14 +114,20 @@ export function CelloFingerboard({
 		<div className="cello-panel">
 			<div className="cello-toolbar">
 				<div className="cello-chord-summary">
-					<span className={`piano-badge ${getPianoBadgeClass(chordQuality)}`}>
-						{chordLabel}
-					</span>
-					{chordRoleLabel && (
-						<span className="cello-role-pill">{chordRoleLabel}</span>
+					{!embedded && (
+						<>
+							<span
+								className={`piano-badge ${getPianoBadgeClass(chordQuality)}`}
+							>
+								{chordLabel}
+							</span>
+							{chordRoleLabel && (
+								<span className="cello-role-pill">{chordRoleLabel}</span>
+							)}
+						</>
 					)}
 					<span className="cello-notes-readout">
-						{chordNotes.join(" – ")}
+						<strong>{chordNotes.join(" – ")}</strong>
 						{activeVoicing
 							? ` · ${activeVoicing.name} (${activeVoicing.positionLabel}) · ${frameSummary}`
 							: ""}
@@ -126,16 +135,6 @@ export function CelloFingerboard({
 				</div>
 
 				<div className="cello-controls-group">
-					<button
-						type="button"
-						className="pill-action-btn cello-roll-btn"
-						disabled={!activeVoicing}
-						onClick={() => activeVoicing && onRollVoicing(activeVoicing)}
-						aria-label={`Bow roll ${chordLabel} cello chord`}
-					>
-						▶ Bow Roll
-					</button>
-
 					<div
 						className="segmented-control"
 						role="group"
@@ -143,9 +142,9 @@ export function CelloFingerboard({
 					>
 						{(
 							[
-								["voicing", "Voicing + Neck"],
-								["all-tones", "All Positions"],
-								["scale", "Key Scale"],
+								["voicing", "Voicing"],
+								["all-tones", "All Notes"],
+								["scale", "Scale"],
 							] as const
 						).map(([modeKey, label]) => (
 							<button
@@ -181,6 +180,17 @@ export function CelloFingerboard({
 							</button>
 						))}
 					</div>
+
+					<button
+						type="button"
+						className="pill-action-btn cello-roll-btn"
+						disabled={!activeVoicing}
+						onClick={() => activeVoicing && onRollVoicing(activeVoicing)}
+						aria-label={`Bow roll ${chordLabel} cello chord`}
+					>
+						<IconPlay size={11} />
+						<span>Bow Roll</span>
+					</button>
 				</div>
 			</div>
 
@@ -511,12 +521,9 @@ export function CelloFingerboard({
 			{activeVoicing && (
 				<div className="voicing-breakdown cello-breakdown-wrap">
 					<div className="cello-breakdown-header">
-						<span className="breakdown-label">
-							Hand placement &amp; string breakdown (Strings IV → I)
-						</span>
+						<span className="breakdown-label">Strings IV → I</span>
 						<span className="cello-breakdown-hint">
-							Click any string position above to audition pitch · Fingers 1–4
-							span a closed 4-semitone frame
+							Fingers 1–4 span a 4-semitone LH frame
 						</span>
 					</div>
 					<div className="cello-breakdown-strings">

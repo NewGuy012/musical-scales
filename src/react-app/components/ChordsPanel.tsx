@@ -11,6 +11,7 @@ interface ChordsPanelProps {
 	voicingMode: ChordVoicingMode;
 	arpeggiate: boolean;
 	activeChordId: string | null;
+	embedded?: boolean;
 	onChangeVoicingMode: (mode: ChordVoicingMode) => void;
 	onToggleArpeggiate: () => void;
 	onSelectChord: (chord: DiatonicChord, id: string) => void;
@@ -22,6 +23,7 @@ export function ChordsPanel({
 	voicingMode,
 	arpeggiate,
 	activeChordId,
+	embedded = false,
 	onChangeVoicingMode,
 	onToggleArpeggiate,
 	onSelectChord,
@@ -47,23 +49,12 @@ export function ChordsPanel({
 				onClick={() => onSelectChord(chord, id)}
 			>
 				<div className="chord-card-top">
-					<span className="chord-roman">{chord.roman}</span>
-					<span className={`quality-pill quality-pill-${chord.quality}`}>
-						{chord.quality === "major"
-							? "Major"
-							: chord.quality === "minor"
-								? "Minor"
-								: "Dim"}
+					<span className={`chord-roman chord-roman-${chord.quality}`}>
+						{chord.roman}
 					</span>
 				</div>
 				<div className="chord-symbol">{getSymbol(chord)}</div>
-				<div className="chord-notes">
-					{getNotes(chord).map((n, idx) => (
-						<span key={idx} className="chord-note-chip">
-							{n}
-						</span>
-					))}
-				</div>
+				<div className="chord-notes-line">{getNotes(chord).join(" · ")}</div>
 				<div className="chord-fn">{chord.functionLabel}</div>
 			</button>
 		);
@@ -99,51 +90,54 @@ export function ChordsPanel({
 		{ title: "Minor Chords", dot: "minor", chords: analysis.minorChords },
 	] as const;
 
-	return (
-		<section className="panel-card" aria-labelledby="chords-heading">
-			<div className="panel-header-row">
-				<div>
-					<h2 id="chords-heading" className="panel-title">
-						Major &amp; Minor Chords in {analysis.shortName}
-					</h2>
-					<p className="panel-subtitle">
-						Click any chord to hear its voicing and light up the wheel &amp;
-						keyboard.
-					</p>
-				</div>
-
-				<div className="chord-toolbar">
-					<div
-						className="segmented-control"
-						role="group"
-						aria-label="Chord extension"
-					>
-						<button
-							type="button"
-							className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-							onClick={() => onChangeVoicingMode("triad")}
-						>
-							Triads
-						</button>
-						<button
-							type="button"
-							className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-							onClick={() => onChangeVoicingMode("seventh")}
-						>
-							7ths
-						</button>
+	const body = (
+		<>
+			{!embedded && (
+				<div className="panel-header-row">
+					<div>
+						<h2 id="chords-heading" className="panel-title">
+							Major &amp; Minor Chords in {analysis.shortName}
+						</h2>
+						<p className="panel-subtitle">
+							Click any chord to hear its voicing and light up the wheel &amp;
+							instrument.
+						</p>
 					</div>
 
-					<button
-						type="button"
-						className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-						onClick={onToggleArpeggiate}
-						title="Roll chord notes one by one vs. playing together"
-					>
-						{arpeggiate ? "Arpeggio On" : "Block Chord"}
-					</button>
+					<div className="chord-toolbar">
+						<div
+							className="segmented-control"
+							role="group"
+							aria-label="Chord extension"
+						>
+							<button
+								type="button"
+								className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
+								onClick={() => onChangeVoicingMode("triad")}
+							>
+								Triads
+							</button>
+							<button
+								type="button"
+								className={`seg-btn ${isSeventh ? "is-active" : ""}`}
+								onClick={() => onChangeVoicingMode("seventh")}
+							>
+								7ths
+							</button>
+						</div>
+
+						<button
+							type="button"
+							className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+							aria-pressed={arpeggiate}
+							onClick={onToggleArpeggiate}
+							title="Roll chord notes sequentially vs. block chord"
+						>
+							Arpeggio
+						</button>
+					</div>
 				</div>
-			</div>
+			)}
 
 			<div className="chord-groups">
 				{groups.map(({ title, dot, chords }) => (
@@ -165,7 +159,7 @@ export function ChordsPanel({
 			<div className="chords-extras-row">
 				{renderExtraPill(
 					analysis.diminishedChord,
-					`Diminished (${analysis.diminishedChord.roman})`,
+					`Dim (${analysis.diminishedChord.roman})`,
 					"extra-dim",
 				)}
 				{analysis.harmonicMinorV &&
@@ -178,9 +172,7 @@ export function ChordsPanel({
 					)}
 
 				<div className="root-pair-box">
-					<span className="extra-label">
-						Root {analysis.root} Parallel Pair
-					</span>
+					<span className="extra-label">Parallel {analysis.root}</span>
 					<div className="root-pair-btns">
 						{(["major", "minor"] as const).map((kind) => {
 							const target = analysis.tonicPair[kind];
@@ -193,7 +185,7 @@ export function ChordsPanel({
 										activeChordId === id ? "is-selected" : ""
 									}`}
 									onClick={() => onPlayRootPairChord(kind)}
-									title={target.noteLabel}
+									title={target.noteLabel ?? target.notes.join(" · ")}
 								>
 									<strong>{target.symbol}</strong>
 									<span>{target.notes.join("·")}</span>
@@ -203,6 +195,16 @@ export function ChordsPanel({
 					</div>
 				</div>
 			</div>
+		</>
+	);
+
+	if (embedded) {
+		return <div className="chords-embedded">{body}</div>;
+	}
+
+	return (
+		<section className="panel-card" aria-labelledby="chords-heading">
+			{body}
 		</section>
 	);
 }
