@@ -37,6 +37,7 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('href="#section-key-scale"');
 		expect(html).toContain('href="#section-exploration"');
 		expect(html).toContain('href="#section-instruments"');
+		expect(html).toContain('href="#section-real-songs"');
 		expect(html).toContain("Major Chords");
 		expect(html).toContain("Minor Chords");
 		expect(html).toContain("Dm");
@@ -62,8 +63,15 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("is-in-chord");
 		expect(html).toContain("is-chord-root");
 		expect(html).toContain("Keyboard shortcuts");
-		// Real Songs are cleanly separated into the Real Songs tab by default
-		expect(html).not.toContain("Clair de lune");
+		// Real Songs is a dedicated section below Instruments, showing the active instrument's repertoire
+		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
+		const realSongsSectionIdx = html.indexOf('id="section-real-songs"');
+		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
+		expect(realSongsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
+		expect(html).not.toContain('id="tab-harmony-songs"');
+		expect(html).toContain("Piano Repertoire");
+		expect(html).toContain("Synced with Piano above");
+		expect(html).toContain("Clair de lune");
 		expect(html).not.toContain("Méditation");
 		expect(html).not.toContain("Cello Suite No. 1");
 		expect(html).not.toContain("Amazing Grace");

@@ -376,17 +376,17 @@
 	color: var(--text-primary);
 }
 
-.toc-sub-songs {
+.toc-link-songs > svg {
 	color: var(--color-fifth);
-	border-color: rgba(56, 189, 248, 0.28);
-	background: var(--color-fifth-soft);
+	flex-shrink: 0;
 }
 
-.toc-sub-songs:hover,
-.toc-sub-songs.is-active {
-	color: var(--color-fifth);
+.toc-link-songs.is-live {
 	border-color: var(--color-fifth);
-	background: var(--color-fifth-soft);
+}
+
+.toc-link-songs .tab-live-dot {
+	margin-left: 0;
 }
 
 .toc-count-pill {
@@ -421,6 +421,22 @@
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+}
+
+.section-title-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.section-title-row > svg {
+	color: var(--color-fifth);
+	flex-shrink: 0;
+}
+
+.section-title-row .tab-count-pill,
+.section-title-row .tab-live-dot {
+	margin-left: 0;
 }
 
 .section-title {
@@ -1491,14 +1507,6 @@
 
 .instrument-tab:hover {
 	color: var(--text-primary);
-}
-
-.instrument-tab-songs {
-	gap: 5px;
-}
-
-.instrument-tab-songs:not(.is-active) {
-	color: var(--color-fifth);
 }
 
 .instrument-tab.is-active {

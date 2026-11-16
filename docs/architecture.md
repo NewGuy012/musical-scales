@@ -148,7 +148,7 @@ flowchart TD
 ### 3. UI & State Management (`src/react-app/`)
 
 - **[`App.tsx`](../src/react-app/App.tsx)**:
-  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony tab (`chords`, `color`, `songs`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), and active chord/song state (`ActiveVoicing`, `WheelChordHighlight`).
+  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony tab (`chords`, `color`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), and active chord/song state (`ActiveVoicing`, `WheelChordHighlight`).
   - Manages scheduled sequences via `cancelSequenceRef` and cancels both sequence scheduling and active Web Audio voices (`stopActiveSequence()`, `stopAllAudio()`) whenever playback stops, resets, or changes keys.
 - **[`CircleWheel.tsx`](../src/react-app/components/CircleWheel.tsx)**:
   - Computes shortest-path cumulative rotation (`±180°` delta normalization) so stepping clockwise/counter-clockwise smoothly animates the selected tonic to 12 o'clock while counter-rotating text labels to remain upright.

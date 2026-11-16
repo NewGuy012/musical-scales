@@ -33,16 +33,16 @@
 
 ## What's Inside
 
-Use the **Contents** bar at the top of the app to jump straight to any section—including a direct **Real Songs** shortcut:
+Use the **Contents** bar at the top of the app to jump straight to any section:
 
 1. **Circle of Fifths** — Click the outer **Major** or inner **Relative Minor** ring to switch keys and hear the tonic chord. Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or rotate the active key to the top.
 2. **Neighbors** — Compare adjacent **4th** and **5th** keys side by side (`6/7` shared notes, single half-step change), audition `I–IV–I` / `I–V–I` cadences, or walk smoothly around the circle.
 3. **Key & Scale** — View the treble **Key Signature** staff, jump to **Relative** or **Parallel** keys, flip enharmonic spellings (`B/C♭`, `F♯/G♭`, `D♭/C♯`), and play the 7-note scale.
-4. **Exploration** — Switch across three focused tabs:
+4. **Exploration** — Switch between two focused tabs:
    - **Chords & Progressions**: Diatonic Major, Minor, Diminished, Harmonic `V`, and Parallel chords (Triads or 7ths, block or Arpeggio) plus curated chord progressions.
    - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
-   - **Real Songs**: Full bar-by-bar arrangements with study guides, section jumps, practice tips, and a scrubbable transport bar synced to the instrument below.
 5. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
+6. **Real Songs** — Dedicated section below **Instruments** featuring full bar-by-bar arrangements with study guides, section jumps, practice tips, and a scrubbable transport bar synced to the active instrument above.
 
 ---
 

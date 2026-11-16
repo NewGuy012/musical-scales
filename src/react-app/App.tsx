@@ -136,9 +136,7 @@ export function App() {
 	const [rotateToSelected, setRotateToSelected] = useState<boolean>(false);
 	const [theme, setTheme] = useState<"dark" | "light">("dark");
 	const [instrumentView, setInstrumentView] = useState<InstrumentTab>("piano");
-	const [harmonyTab, setHarmonyTab] = useState<"chords" | "color" | "songs">(
-		"chords",
-	);
+	const [harmonyTab, setHarmonyTab] = useState<"chords" | "color">("chords");
 	const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
 	const shortcutsContainerRef = useRef<HTMLDivElement | null>(null);
 	const soundPreset: SoundPreset =
@@ -217,7 +215,7 @@ export function App() {
 	}, []);
 
 	const jumpToExplorationTab = useCallback(
-		(tab: "chords" | "color" | "songs") => {
+		(tab: "chords" | "color") => {
 			setHarmonyTab(tab);
 			jumpToSection("section-exploration");
 		},
@@ -1607,7 +1605,7 @@ export function App() {
 								e.preventDefault();
 								jumpToSection("section-exploration");
 							}}
-							title="Chords, progressions, passing harmony & real songs"
+							title="Chords, progressions & passing harmony"
 						>
 							<span className="toc-num">4</span>
 							<span>Exploration</span>
@@ -1631,18 +1629,6 @@ export function App() {
 						>
 							Passing
 						</button>
-						<button
-							type="button"
-							className={`toc-sub-btn toc-sub-songs ${harmonyTab === "songs" ? "is-active" : ""}`}
-							onClick={() => jumpToExplorationTab("songs")}
-							title="Jump directly to Real Songs bar-by-bar arrangements"
-						>
-							<IconMusic size={11} />
-							<span>Real Songs</span>
-							<span className="toc-count-pill">
-								{songsForInstrument.length}
-							</span>
-						</button>
 					</div>
 					<a
 						href="#section-instruments"
@@ -1651,10 +1637,29 @@ export function App() {
 							e.preventDefault();
 							jumpToSection("section-instruments");
 						}}
-						title="Piano, Guitar, and Cello voicings & chord variations"
+						title="Piano, Guitar, Violin, and Cello voicings & chord variations"
 					>
 						<span className="toc-num">5</span>
 						<span>Instruments</span>
+					</a>
+					<a
+						href="#section-real-songs"
+						className={`toc-link toc-link-songs${
+							playingSongId !== null || cuedSongId !== null ? " is-live" : ""
+						}`}
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-real-songs");
+						}}
+						title="Jump to Real Songs bar-by-bar arrangements"
+					>
+						<span className="toc-num">6</span>
+						<IconMusic size={12} />
+						<span>Real Songs</span>
+						<span className="toc-count-pill">{songsForInstrument.length}</span>
+						{(playingSongId !== null || cuedSongId !== null) && (
+							<span className="tab-live-dot" aria-hidden="true" />
+						)}
 					</a>
 				</div>
 			</nav>
@@ -1868,7 +1873,7 @@ export function App() {
 									Exploration
 								</h2>
 								<p className="section-desc">
-									Chords &amp; progressions, passing harmony, and real songs
+									Chords &amp; progressions and passing harmony
 								</p>
 							</div>
 						</div>
@@ -1908,69 +1913,42 @@ export function App() {
 										<span className="tab-live-dot" aria-hidden="true" />
 									)}
 								</button>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-songs"
-									aria-selected={harmonyTab === "songs"}
-									aria-controls="panel-harmony"
-									className={`instrument-tab instrument-tab-songs ${
-										harmonyTab === "songs" ? "is-active" : ""
-									}`}
-									onClick={() => setHarmonyTab("songs")}
-								>
-									<IconMusic size={13} />
-									<span>Real Songs</span>
-									<span className="tab-count-pill">
-										{songsForInstrument.length}
-									</span>
-									{(playingSongId !== null || cuedSongId !== null) && (
-										<span className="tab-live-dot" aria-hidden="true" />
-									)}
-								</button>
 							</div>
 
-							{harmonyTab !== "songs" ? (
-								<div className="chord-toolbar">
-									{harmonyTab === "chords" && (
-										<div
-											className="segmented-control"
-											role="group"
-											aria-label="Chord extension"
-										>
-											<button
-												type="button"
-												className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-												onClick={() => setVoicingMode("triad")}
-											>
-												Triads
-											</button>
-											<button
-												type="button"
-												className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-												onClick={() => setVoicingMode("seventh")}
-											>
-												7ths
-											</button>
-										</div>
-									)}
-
-									<button
-										type="button"
-										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-										aria-pressed={arpeggiate}
-										onClick={() => setArpeggiate((a) => !a)}
-										title="Roll chord notes sequentially vs. block chord"
+							<div className="chord-toolbar">
+								{harmonyTab === "chords" && (
+									<div
+										className="segmented-control"
+										role="group"
+										aria-label="Chord extension"
 									>
-										Arpeggio
-									</button>
-								</div>
-							) : (
-								<span className="instrument-tab-meta">
-									{INSTRUMENT_META[instrumentView].repertoire} · Synced with
-									instrument below
-								</span>
-							)}
+										<button
+											type="button"
+											className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
+											onClick={() => setVoicingMode("triad")}
+										>
+											Triads
+										</button>
+										<button
+											type="button"
+											className={`seg-btn ${isSeventh ? "is-active" : ""}`}
+											onClick={() => setVoicingMode("seventh")}
+										>
+											7ths
+										</button>
+									</div>
+								)}
+
+								<button
+									type="button"
+									className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+									aria-pressed={arpeggiate}
+									onClick={() => setArpeggiate((a) => !a)}
+									title="Roll chord notes sequentially vs. block chord"
+								>
+									Arpeggio
+								</button>
+							</div>
 						</div>
 
 						<div
@@ -2099,7 +2077,7 @@ export function App() {
 										</div>
 									</div>
 								</>
-							) : harmonyTab === "color" ? (
+							) : (
 								<ColorHarmonyPanel
 									colorAnalysis={colorAnalysis}
 									activeChordId={activeVoicing.id}
@@ -2107,23 +2085,6 @@ export function App() {
 									activeSequenceStepIdx={activeColorStepIdx}
 									onSelectChord={handleSelectColorChord}
 									onPlaySequence={handlePlayColorSequence}
-								/>
-							) : (
-								<SongExamplesPanel
-									songs={songsForInstrument}
-									playingSongId={playingSongId}
-									cuedSongId={cuedSongId}
-									songPositionMs={songPositionMs}
-									activeChordStepIndex={activeSongStepIndex}
-									activeNoteLabel={activeSongNoteLabel}
-									selectedPreviewStepId={selectedSongPreviewId}
-									onTogglePlaySong={handleTogglePlaySong}
-									onStopSong={handleStopSong}
-									onSeekSong={handleSeekSong}
-									onBeginScrubSong={handleBeginScrubSong}
-									onSkipSongBar={handleSkipSongBar}
-									onPlayFromSongBar={handlePlayFromSongBar}
-									onSelectSongChordStep={handleSelectSongChordStep}
 								/>
 							)}
 						</div>
@@ -2307,6 +2268,59 @@ export function App() {
 								/>
 							)}
 						</div>
+					</section>
+
+					<section
+						id="section-real-songs"
+						className={`panel-card songs-section-card${
+							highlightedSectionId === "section-real-songs"
+								? " is-toc-targeted"
+								: ""
+						}`}
+						aria-labelledby="real-songs-heading"
+					>
+						<div className="section-header">
+							<div className="section-heading">
+								<div className="section-title-row">
+									<IconMusic size={15} />
+									<h2 id="real-songs-heading" className="section-title">
+										Real Songs
+									</h2>
+									<span className="tab-count-pill">
+										{songsForInstrument.length}
+									</span>
+									{(playingSongId !== null || cuedSongId !== null) && (
+										<span className="tab-live-dot" aria-hidden="true" />
+									)}
+								</div>
+								<p className="section-desc">
+									Bar-by-bar arrangements, study guides &amp; interactive
+									playback
+								</p>
+							</div>
+
+							<span className="instrument-tab-meta">
+								{INSTRUMENT_META[instrumentView].repertoire} · Synced with{" "}
+								{INSTRUMENT_META[instrumentView].label} above
+							</span>
+						</div>
+
+						<SongExamplesPanel
+							songs={songsForInstrument}
+							playingSongId={playingSongId}
+							cuedSongId={cuedSongId}
+							songPositionMs={songPositionMs}
+							activeChordStepIndex={activeSongStepIndex}
+							activeNoteLabel={activeSongNoteLabel}
+							selectedPreviewStepId={selectedSongPreviewId}
+							onTogglePlaySong={handleTogglePlaySong}
+							onStopSong={handleStopSong}
+							onSeekSong={handleSeekSong}
+							onBeginScrubSong={handleBeginScrubSong}
+							onSkipSongBar={handleSkipSongBar}
+							onPlayFromSongBar={handlePlayFromSongBar}
+							onSelectSongChordStep={handleSelectSongChordStep}
+						/>
 					</section>
 				</div>
 			</main>
