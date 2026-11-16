@@ -1,11 +1,9 @@
-import type { ChordQuality } from "./circleOfFifths";
-import { type GuitarChordKind, STANDARD_TUNING } from "./guitarFretboard";
-import type {
-	CompactSongBar,
-	CompactSongSpec,
-	GuitarSongStop,
-	GuitarStopTechnique,
-	SongNoteEvent,
+import { STANDARD_TUNING, parseGuitarStops } from "./guitarFretboard";
+import {
+	type CompactSongSpec,
+	type NotationBarSpec,
+	type SongNoteEvent,
+	mapNotationBars,
 } from "./songExamples";
 
 const EIGHTH_MS = 160; // 4/4 Ragtime at 188 BPM (160ms per eighth note, 1280ms per bar)
@@ -15,26 +13,6 @@ const QUARTER_MS = EIGHTH_MS * 2;
 const DOTTED_QUARTER_MS = EIGHTH_MS * 3;
 const HALF_MS = EIGHTH_MS * 4;
 const WHOLE_MS = EIGHTH_MS * 8;
-
-const TECH_MAP: Record<string, GuitarStopTechnique> = {
-	h: "harmonic",
-	p: "hammer",
-	s: "slide",
-};
-
-function stopMidi(
-	stringIndex: number,
-	fret: number,
-	technique?: GuitarStopTechnique,
-): number {
-	const openMidi = STANDARD_TUNING[stringIndex].openMidi;
-	if (technique === "harmonic") {
-		if (fret === 12) return openMidi + 12;
-		if (fret === 7) return openMidi + 19;
-		if (fret === 5) return openMidi + 24;
-	}
-	return openMidi + fret;
-}
 
 function durToMs(dur: string, tripletSlot: number): number {
 	switch (dur) {
@@ -71,19 +49,7 @@ function parseGuitarBar(notation: string): SongNoteEvent[] {
 			if (dur === "t") {
 				tripletSlot = (tripletSlot + 1) % 3;
 			}
-			const guitarStops: GuitarSongStop[] = chordExpr.split("+").map((tok) => {
-				const [strRaw, rest] = tok.split(":");
-				const tech = TECH_MAP[rest.slice(-1)];
-				const fret = Number(tech ? rest.slice(0, -1) : rest);
-				return {
-					stringIndex: Number(strRaw),
-					fret,
-					...(tech ? { technique: tech } : {}),
-				};
-			});
-			const midi = guitarStops.map((s) =>
-				stopMidi(s.stringIndex, s.fret, s.technique),
-			);
+			const { guitarStops, midi } = parseGuitarStops(chordExpr);
 			const isChord = guitarStops.length > 1;
 			const label = guitarStops
 				.map((s) => {
@@ -112,20 +78,7 @@ function parseGuitarBar(notation: string): SongNoteEvent[] {
 		});
 }
 
-interface RagBarSpec {
-	barNumber: number;
-	chordSymbol: string;
-	roman: string;
-	quality: ChordQuality;
-	guitarKind: GuitarChordKind;
-	chordNotes: string[];
-	circleDegree: number;
-	circleSlotIndex?: number;
-	cue: string;
-	notation: string;
-}
-
-const CANNONBALL_BARS: RagBarSpec[] = [
+const CANNONBALL_BARS: NotationBarSpec[] = [
 	{
 		barNumber: 1,
 		chordSymbol: "D7",
@@ -1098,34 +1051,9 @@ export const CANNONBALL_RAG_SPEC: CompactSongSpec = {
 		],
 	},
 	idPrefix: "cb",
-	bars: CANNONBALL_BARS.map((bar): CompactSongBar => {
-		const events = parseGuitarBar(bar.notation);
-		const displayMidi = events[0]?.midi ?? [43, 55, 59, 62];
-		return bar.circleSlotIndex !== undefined
-			? [
-					bar.barNumber,
-					bar.chordSymbol,
-					bar.roman,
-					bar.quality,
-					bar.guitarKind,
-					bar.chordNotes,
-					displayMidi,
-					bar.circleDegree,
-					bar.cue,
-					events,
-					bar.circleSlotIndex,
-				]
-			: [
-					bar.barNumber,
-					bar.chordSymbol,
-					bar.roman,
-					bar.quality,
-					bar.guitarKind,
-					bar.chordNotes,
-					displayMidi,
-					bar.circleDegree,
-					bar.cue,
-					events,
-				];
-	}),
+	bars: mapNotationBars(
+		CANNONBALL_BARS,
+		parseGuitarBar,
+		(_, events) => events[0]?.midi ?? [43, 55, 59, 62],
+	),
 };

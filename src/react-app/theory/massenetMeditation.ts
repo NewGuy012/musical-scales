@@ -1,33 +1,20 @@
 import {
-	type ChordQuality,
-	NATURAL_PC,
-	ascendingNotesToMidi,
-	noteOffset,
-} from "./circleOfFifths";
-import type { GuitarChordKind } from "./guitarFretboard";
-import type {
-	BowedSongStop,
-	CompactSongSpec,
-	SongNoteEvent,
+	BOWED_HARMONIC_TOUCH_SEMITONES,
+	BOWED_STRING_ROMAN,
+	MAX_BOWED_SEMITONE,
+	VIOLIN_TUNING,
+	resolveBowedStringIndex,
+} from "./celloFingerboard";
+import { parsePitchToMidi } from "./circleOfFifths";
+import {
+	type BowedSongStop,
+	type CompactSongSpec,
+	type NotationBarSpec,
+	type SongNoteEvent,
+	mapNotationBars,
 } from "./songExamples";
-import { MAX_BOWED_SEMITONE, VIOLIN_TUNING } from "./celloFingerboard";
 
 const STEP_QUARTER_MS = 900; // ~66.7 BPM (Andante religioso)
-
-const STRING_MAP: Record<string, { stringIndex: number; label: string }> = {
-	G: { stringIndex: 0, label: "IV" },
-	D: { stringIndex: 1, label: "III" },
-	A: { stringIndex: 2, label: "II" },
-	E: { stringIndex: 3, label: "I" },
-};
-
-const STRING_ROMAN = ["IV", "III", "II", "I"] as const;
-
-const HARMONIC_TOUCH_SEMITONES: Record<number, number> = {
-	12: 12, // 1/2 string: +1 octave
-	19: 7, // 1/3 string: +octave + fifth
-	24: 5, // 1/4 string: +2 octaves
-};
 
 /**
  * Estimates an idiomatic violin left-hand finger number (0 = open, 1..4 = closed
@@ -71,35 +58,16 @@ function parseViolinNoteToken(token: string): {
 	const isHarmonic = token.endsWith("*");
 	const cleanToken = isHarmonic ? token.slice(0, -1) : token;
 	const [pitchPart, stringOverride] = cleanToken.split("@");
-	const letter = pitchPart[0];
-	const octave = Number(pitchPart.slice(-1));
-	const basePc = NATURAL_PC[letter];
-	if (basePc === undefined || Number.isNaN(octave)) {
-		throw new Error(`Invalid Massenet violin note token: ${token}`);
-	}
+	const { midi } = parsePitchToMidi(pitchPart);
+	const stringIndex = resolveBowedStringIndex(
+		VIOLIN_TUNING,
+		stringOverride,
+		midi,
+	);
 
-	const midi = (octave + 1) * 12 + basePc + noteOffset(pitchPart.slice(0, -1));
-	let stringIndex: number;
-	if (stringOverride) {
-		const mapped = STRING_MAP[stringOverride];
-		if (!mapped) {
-			throw new Error(`Unknown violin string override: ${stringOverride}`);
-		}
-		stringIndex = mapped.stringIndex;
-	} else if (midi < 62) {
-		stringIndex = 0;
-	} else if (midi < 69) {
-		stringIndex = 1;
-	} else if (midi < 76) {
-		stringIndex = 2;
-	} else {
-		stringIndex = 3;
-	}
-
-	const openMidi = VIOLIN_TUNING[stringIndex].openMidi;
-	const rawSemitone = midi - openMidi;
+	const rawSemitone = midi - VIOLIN_TUNING[stringIndex].openMidi;
 	const harmonicTouch = isHarmonic
-		? HARMONIC_TOUCH_SEMITONES[rawSemitone]
+		? BOWED_HARMONIC_TOUCH_SEMITONES[rawSemitone]
 		: undefined;
 
 	let semitone: number;
@@ -121,7 +89,7 @@ function parseViolinNoteToken(token: string): {
 		finger = inferViolinFinger(semitone);
 	}
 
-	const stringRoman = STRING_ROMAN[stringIndex];
+	const stringRoman = BOWED_STRING_ROMAN[stringIndex];
 	const label = isHarmonic
 		? `${pitchPart} (${stringRoman} · Harm)`
 		: semitone === 0
@@ -167,20 +135,7 @@ function parseViolinBarNotation(notation: string): SongNoteEvent[] {
 		});
 }
 
-interface MeditationBarSpec {
-	barNumber: number;
-	chordSymbol: string;
-	roman: string;
-	quality: ChordQuality;
-	guitarKind: GuitarChordKind;
-	chordNotes: string[];
-	circleDegree: number;
-	circleSlotIndex?: number;
-	cue: string;
-	notation: string;
-}
-
-const MEDITATION_BARS: MeditationBarSpec[] = [
+const MEDITATION_BARS: NotationBarSpec[] = [
 	{
 		barNumber: 1,
 		chordSymbol: "D",
@@ -1057,17 +1012,5 @@ export const MASSENET_MEDITATION_SPEC: CompactSongSpec = {
 			},
 		],
 	},
-	bars: MEDITATION_BARS.map((spec) => [
-		spec.barNumber,
-		spec.chordSymbol,
-		spec.roman,
-		spec.quality,
-		spec.guitarKind,
-		spec.chordNotes,
-		ascendingNotesToMidi(spec.chordNotes),
-		spec.circleDegree,
-		spec.cue,
-		parseViolinBarNotation(spec.notation),
-		spec.circleSlotIndex,
-	]),
+	bars: mapNotationBars(MEDITATION_BARS, parseViolinBarNotation),
 };

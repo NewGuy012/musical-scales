@@ -1,12 +1,22 @@
 import { BACH_CELLO_SUITE_1_SPEC } from "./bachCelloSuite1";
 import { CANNONBALL_RAG_SPEC } from "./cannonballRag";
-import type { ChordQuality, KeyMode } from "./circleOfFifths";
+import {
+	type ChordQuality,
+	type KeyMode,
+	ascendingNotesToMidi,
+} from "./circleOfFifths";
 import { DEBUSSY_CLAIR_DE_LUNE_SPEC } from "./debussyClairDeLune";
-import type { GuitarChordKind } from "./guitarFretboard";
+import type {
+	GuitarChordKind,
+	GuitarSongStop,
+	GuitarStopTechnique,
+} from "./guitarFretboard";
 import { HAYDN_CELLO_CONCERTO_2_SPEC } from "./haydnCelloConcerto2";
 import { MASSENET_MEDITATION_SPEC } from "./massenetMeditation";
 import { SCHUBERT_MOMENT_MUSICAUX_3_SPEC } from "./schubertMomentMusicaux3";
 import { TOMMY_AMAZING_GRACE_SPEC } from "./tommyAmazingGrace";
+
+export type { GuitarSongStop, GuitarStopTechnique };
 
 export type InstrumentTab = "piano" | "guitar" | "violin" | "cello";
 
@@ -15,14 +25,6 @@ export interface BowedSongStop {
 	semitone: number;
 	finger: number;
 	technique?: "normal" | "harmonic" | "portamento";
-}
-
-export type GuitarStopTechnique = "normal" | "harmonic" | "hammer" | "slide";
-
-export interface GuitarSongStop {
-	stringIndex: number;
-	fret: number;
-	technique?: GuitarStopTechnique;
 }
 
 export interface SongNoteEvent {
@@ -114,6 +116,45 @@ export type CompactSongBar = [
 export interface CompactSongSpec extends Omit<SongExample, "steps"> {
 	idPrefix: string;
 	bars: CompactSongBar[];
+}
+
+export interface NotationBarSpec {
+	barNumber: number;
+	chordSymbol: string;
+	roman: string;
+	quality: ChordQuality;
+	guitarKind: GuitarChordKind;
+	chordNotes: string[];
+	circleDegree: number;
+	circleSlotIndex?: number;
+	cue: string;
+	notation: string;
+}
+
+export function mapNotationBars(
+	bars: NotationBarSpec[],
+	parseBar: (notation: string) => SongNoteEvent[],
+	resolveDisplayMidi: (
+		bar: NotationBarSpec,
+		events: SongNoteEvent[],
+	) => number[] = (bar) => ascendingNotesToMidi(bar.chordNotes),
+): CompactSongBar[] {
+	return bars.map((bar) => {
+		const events = parseBar(bar.notation);
+		return [
+			bar.barNumber,
+			bar.chordSymbol,
+			bar.roman,
+			bar.quality,
+			bar.guitarKind,
+			bar.chordNotes,
+			resolveDisplayMidi(bar, events),
+			bar.circleDegree,
+			bar.cue,
+			events,
+			bar.circleSlotIndex,
+		];
+	});
 }
 
 function hydrateSong({

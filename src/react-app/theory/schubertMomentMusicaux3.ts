@@ -1,24 +1,12 @@
+import { parsePitchToMidi } from "./circleOfFifths";
 import {
-	type ChordQuality,
-	NATURAL_PC,
-	ascendingNotesToMidi,
-	noteOffset,
-} from "./circleOfFifths";
-import type { GuitarChordKind } from "./guitarFretboard";
-import type { CompactSongSpec, SongNoteEvent } from "./songExamples";
+	type CompactSongSpec,
+	type NotationBarSpec,
+	type SongNoteEvent,
+	mapNotationBars,
+} from "./songExamples";
 
 const STEP_QUARTER_MS = 750; // 80 BPM (Allegro moderato in 2/4)
-
-function parsePianoToken(token: string): { midi: number; pitchName: string } {
-	const letter = token[0];
-	const octave = Number(token.slice(-1));
-	const basePc = NATURAL_PC[letter];
-	if (basePc === undefined || Number.isNaN(octave)) {
-		throw new Error(`Invalid Schubert piano note token: ${token}`);
-	}
-	const midi = (octave + 1) * 12 + basePc + noteOffset(token.slice(0, -1));
-	return { midi, pitchName: token };
-}
 
 function parsePianoBarNotation(notation: string): SongNoteEvent[] {
 	return notation
@@ -30,7 +18,7 @@ function parsePianoBarNotation(notation: string): SongNoteEvent[] {
 			if (!Number.isFinite(beats) || beats <= 0) {
 				throw new Error(`Invalid Schubert beat duration: ${durRaw}`);
 			}
-			const parts = notesRaw.split("+").map(parsePianoToken);
+			const parts = notesRaw.split("+").map(parsePitchToMidi);
 			const stepDurationMs = Math.max(85, Math.round(beats * STEP_QUARTER_MS));
 			const isGrace = beats <= 0.15;
 			const durationSec = isGrace
@@ -54,20 +42,7 @@ function parsePianoBarNotation(notation: string): SongNoteEvent[] {
 		});
 }
 
-interface MomentBarSpec {
-	barNumber: number;
-	chordSymbol: string;
-	roman: string;
-	quality: ChordQuality;
-	guitarKind: GuitarChordKind;
-	chordNotes: string[];
-	circleDegree: number;
-	circleSlotIndex?: number;
-	cue: string;
-	notation: string;
-}
-
-const MOMENT_BARS: MomentBarSpec[] = [
+const MOMENT_BARS: NotationBarSpec[] = [
 	{
 		barNumber: 1,
 		chordSymbol: "Fm",
@@ -1101,17 +1076,5 @@ export const SCHUBERT_MOMENT_MUSICAUX_3_SPEC: CompactSongSpec = {
 			},
 		],
 	},
-	bars: MOMENT_BARS.map((spec) => [
-		spec.barNumber,
-		spec.chordSymbol,
-		spec.roman,
-		spec.quality,
-		spec.guitarKind,
-		spec.chordNotes,
-		ascendingNotesToMidi(spec.chordNotes),
-		spec.circleDegree,
-		spec.cue,
-		parsePianoBarNotation(spec.notation),
-		spec.circleSlotIndex,
-	]),
+	bars: mapNotationBars(MOMENT_BARS, parsePianoBarNotation),
 };

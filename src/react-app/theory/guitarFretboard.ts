@@ -19,6 +19,14 @@ export type FretboardOverlayMode =
 export type PentatonicKind = "major" | "minor" | "diminished";
 export type PentatonicScope = "auto" | "key" | "chord";
 
+export type GuitarStopTechnique = "normal" | "harmonic" | "hammer" | "slide";
+
+export interface GuitarSongStop {
+	stringIndex: number;
+	fret: number;
+	technique?: GuitarStopTechnique;
+}
+
 export type GuitarChordKind =
 	| "major"
 	| "minor"
@@ -189,6 +197,47 @@ export const STANDARD_TUNING: GuitarStringInfo[] = [
 ];
 
 export const MAX_GUITAR_FRET = 15;
+
+const GUITAR_TECH_MAP: Record<string, GuitarStopTechnique> = {
+	h: "harmonic",
+	p: "hammer",
+	s: "slide",
+};
+
+export const GUITAR_HARMONIC_OFFSETS: Record<number, number> = {
+	12: 12,
+	7: 19,
+	5: 24,
+};
+
+export function parseGuitarStops(stopTokens: string): {
+	guitarStops: GuitarSongStop[];
+	midi: number[];
+} {
+	const guitarStops = stopTokens
+		.trim()
+		.split(/[\s+]+/)
+		.map((tok): GuitarSongStop => {
+			const [strRaw, rest] = tok.split(":");
+			const tech = GUITAR_TECH_MAP[rest.slice(-1)];
+			const fret = Number(tech ? rest.slice(0, -1) : rest);
+			return {
+				stringIndex: Number(strRaw),
+				fret,
+				...(tech ? { technique: tech } : {}),
+			};
+		});
+	const midi = guitarStops.map(({ stringIndex, fret, technique }) => {
+		const openMidi = STANDARD_TUNING[stringIndex].openMidi;
+		return (
+			openMidi +
+			(technique === "harmonic"
+				? (GUITAR_HARMONIC_OFFSETS[fret] ?? fret)
+				: fret)
+		);
+	});
+	return { guitarStops, midi };
+}
 
 const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
 	major: { 0: "R", 4: "3", 7: "5" },

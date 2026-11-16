@@ -60,6 +60,33 @@ export const BOWED_TUNINGS: Record<
 	violin: VIOLIN_TUNING,
 };
 
+export const BOWED_STRING_ROMAN = ["IV", "III", "II", "I"] as const;
+
+// Natural harmonics above open string sounding pitch -> touch node semitone.
+export const BOWED_HARMONIC_TOUCH_SEMITONES: Record<number, number> = {
+	12: 12,
+	19: 7,
+	24: 5,
+};
+
+export function resolveBowedStringIndex(
+	tuning: readonly BowedStringInfo[],
+	stringOverride: string | undefined,
+	midi: number,
+): number {
+	if (stringOverride) {
+		const idx = tuning.findIndex((s) => s.label === stringOverride);
+		if (idx === -1) {
+			throw new Error(`Unknown string override: ${stringOverride}`);
+		}
+		return idx;
+	}
+	for (let i = tuning.length - 1; i >= 0; i--) {
+		if (midi >= tuning[i].openMidi) return i;
+	}
+	return 0;
+}
+
 function getPositionLabel(minNonZero: number, hasOpen: boolean): string {
 	if (minNonZero === 0) return "Open";
 	const prefix = hasOpen ? "Open + " : "";

@@ -1,11 +1,17 @@
-import { CELLO_TUNING, MAX_BOWED_SEMITONE } from "./celloFingerboard";
-import type { ChordQuality } from "./circleOfFifths";
-import type { GuitarChordKind } from "./guitarFretboard";
-import type {
-	BowedSongStop,
-	CompactSongBar,
-	CompactSongSpec,
-	SongNoteEvent,
+import {
+	BOWED_HARMONIC_TOUCH_SEMITONES,
+	BOWED_STRING_ROMAN,
+	CELLO_TUNING,
+	MAX_BOWED_SEMITONE,
+	resolveBowedStringIndex,
+} from "./celloFingerboard";
+import { parsePitchToMidi } from "./circleOfFifths";
+import {
+	type BowedSongStop,
+	type CompactSongSpec,
+	type NotationBarSpec,
+	type SongNoteEvent,
+	mapNotationBars,
 } from "./songExamples";
 
 const EIGHTH_MS = 250; // 6/8 Allegro at dotted-quarter = 80 BPM (250ms per eighth note)
@@ -13,54 +19,6 @@ const SIXTEENTH_MS = EIGHTH_MS / 2;
 const QUARTER_MS = EIGHTH_MS * 2;
 const DOTTED_QUARTER_MS = EIGHTH_MS * 3;
 const DOTTED_HALF_MS = EIGHTH_MS * 6;
-
-const STRING_MAP: Record<string, { index: number; roman: string }> = {
-	C: { index: 0, roman: "IV" },
-	G: { index: 1, roman: "III" },
-	D: { index: 2, roman: "II" },
-	A: { index: 3, roman: "I" },
-};
-
-// Natural harmonics above open string sounding pitch -> fingerboard touch node semitone.
-const HARMONIC_TOUCH_SEMITONES: Record<number, number> = {
-	12: 12,
-	19: 7,
-	24: 5,
-};
-
-const NOTE_PC: Record<string, number> = {
-	C: 0,
-	"C♯": 1,
-	"C#": 1,
-	"D♭": 1,
-	Db: 1,
-	D: 2,
-	"D♯": 3,
-	"D#": 3,
-	"E♭": 3,
-	Eb: 3,
-	E: 4,
-	F: 5,
-	"F♯": 6,
-	"F#": 6,
-	"G♭": 6,
-	Gb: 6,
-	G: 7,
-	"G♯": 8,
-	"G#": 8,
-	"A♭": 8,
-	Ab: 8,
-	A: 9,
-	"A♯": 10,
-	"A#": 10,
-	"B♭": 10,
-	Bb: 10,
-	B: 11,
-};
-
-function normalizeAccidental(name: string): string {
-	return name.replace("#", "♯").replace(/([A-G])b/, "$1♭");
-}
 
 function inferCelloFinger(semitone: number): number {
 	if (semitone === 0) return 0;
@@ -74,22 +32,6 @@ function inferCelloFinger(semitone: number): number {
 	return 4;
 }
 
-function chooseDefaultString(
-	midi: number,
-	preferHarmonic: boolean,
-): { index: number; roman: string } {
-	if (preferHarmonic) {
-		if (midi === 69 || midi === 76 || midi === 81)
-			return { index: 3, roman: "I" };
-		if (midi === 62 || midi === 74) return { index: 2, roman: "II" };
-		if (midi === 55) return { index: 1, roman: "III" };
-	}
-	if (midi >= 57) return { index: 3, roman: "I" };
-	if (midi >= 50) return { index: 2, roman: "II" };
-	if (midi >= 43) return { index: 1, roman: "III" };
-	return { index: 0, roman: "IV" };
-}
-
 interface ParsedStop {
 	midi: number;
 	pitchName: string;
@@ -98,40 +40,42 @@ interface ParsedStop {
 }
 
 function parseCelloNoteToken(raw: string): ParsedStop {
-	const match = /^([A-G](?:[#♯b♭])?)(\d)(\*)?(?:@(C|G|D|A)(?::F(\d))?)?$/.exec(
+	const match = /^([A-G](?:[#♯b♭])?\d)(\*)?(?:@(C|G|D|A)(?::F(\d))?)?$/.exec(
 		raw.trim(),
 	);
 	if (!match) {
 		throw new Error(`Invalid Haydn cello token: "${raw}"`);
 	}
-	const [, rawName, octStr, harmMark, strKey, fingerStr] = match;
-	const pitchName = normalizeAccidental(rawName);
-	const pc = NOTE_PC[rawName] ?? NOTE_PC[pitchName];
-	const octave = Number(octStr);
-	const midi = (octave + 1) * 12 + pc;
+	const [, pitchRaw, harmMark, strKey, fingerStr] = match;
+	const { midi, pitchName: baseLabel } = parsePitchToMidi(pitchRaw);
 	const isHarmonic = Boolean(harmMark);
 
-	const strInfo = strKey
-		? STRING_MAP[strKey]
-		: chooseDefaultString(midi, isHarmonic);
-	const openMidi = CELLO_TUNING[strInfo.index].openMidi;
+	const stringIndex =
+		!strKey && isHarmonic && (midi === 69 || midi === 76 || midi === 81)
+			? 3
+			: !strKey && isHarmonic && (midi === 62 || midi === 74)
+				? 2
+				: !strKey && isHarmonic && midi === 55
+					? 1
+					: resolveBowedStringIndex(CELLO_TUNING, strKey, midi);
+	const stringRoman = BOWED_STRING_ROMAN[stringIndex];
+	const openMidi = CELLO_TUNING[stringIndex].openMidi;
 	const interval = midi - openMidi;
-	const baseLabel = `${pitchName}${octave}`;
 
 	if (isHarmonic) {
-		const touchSemitone = HARMONIC_TOUCH_SEMITONES[interval];
+		const touchSemitone = BOWED_HARMONIC_TOUCH_SEMITONES[interval];
 		if (touchSemitone === undefined) {
 			throw new Error(
-				`Token "${raw}" (MIDI ${midi}) is not a natural harmonic on ${CELLO_TUNING[strInfo.index].label}`,
+				`Token "${raw}" (MIDI ${midi}) is not a natural harmonic on ${CELLO_TUNING[stringIndex].label}`,
 			);
 		}
 		const finger = fingerStr !== undefined ? Number(fingerStr) : 3;
 		return {
 			midi,
 			pitchName: baseLabel,
-			label: `${baseLabel} Harm. (${strInfo.roman})`,
+			label: `${baseLabel} Harm. (${stringRoman})`,
 			stop: {
-				stringIndex: strInfo.index,
+				stringIndex,
 				semitone: touchSemitone,
 				finger,
 			},
@@ -140,7 +84,7 @@ function parseCelloNoteToken(raw: string): ParsedStop {
 
 	if (interval < 0) {
 		throw new Error(
-			`Token "${raw}" (MIDI ${midi}) is below ${CELLO_TUNING[strInfo.index].label} string`,
+			`Token "${raw}" (MIDI ${midi}) is below ${CELLO_TUNING[stringIndex].label} string`,
 		);
 	}
 
@@ -150,7 +94,7 @@ function parseCelloNoteToken(raw: string): ParsedStop {
 		return {
 			midi,
 			pitchName: baseLabel,
-			label: `${baseLabel} (${strInfo.roman} Thumb Pos)`,
+			label: `${baseLabel} (${stringRoman} Thumb Pos)`,
 		};
 	}
 
@@ -159,9 +103,9 @@ function parseCelloNoteToken(raw: string): ParsedStop {
 	return {
 		midi,
 		pitchName: baseLabel,
-		label: `${baseLabel} (${strInfo.roman} F${finger})`,
+		label: `${baseLabel} (${stringRoman} F${finger})`,
 		stop: {
-			stringIndex: strInfo.index,
+			stringIndex,
 			semitone: interval,
 			finger,
 		},
@@ -216,20 +160,7 @@ function parseHaydnBarNotation(notation: string): SongNoteEvent[] {
 		});
 }
 
-interface HaydnBarSpec {
-	barNumber: number;
-	chordSymbol: string;
-	roman: string;
-	quality: ChordQuality;
-	guitarKind: GuitarChordKind;
-	chordNotes: string[];
-	circleDegree: number;
-	circleSlotIndex?: number;
-	cue: string;
-	notation: string;
-}
-
-const HAYDN_RONDO_BARS: HaydnBarSpec[] = [
+const HAYDN_RONDO_BARS: NotationBarSpec[] = [
 	{
 		barNumber: 1,
 		chordSymbol: "D",
@@ -907,37 +838,14 @@ export const HAYDN_CELLO_CONCERTO_2_SPEC: CompactSongSpec = {
 		],
 	},
 	idPrefix: "hc",
-	bars: HAYDN_RONDO_BARS.map((bar): CompactSongBar => {
-		const events = parseHaydnBarNotation(bar.notation);
-		const firstStop = events[0]?.celloStops?.[0];
-		const displayMidi = firstStop
-			? [CELLO_TUNING[firstStop.stringIndex].openMidi + firstStop.semitone]
-			: (events[0]?.midi.slice(0, 1) ?? [62]);
-		return bar.circleSlotIndex !== undefined
-			? [
-					bar.barNumber,
-					bar.chordSymbol,
-					bar.roman,
-					bar.quality,
-					bar.guitarKind,
-					bar.chordNotes,
-					displayMidi,
-					bar.circleDegree,
-					bar.cue,
-					events,
-					bar.circleSlotIndex,
-				]
-			: [
-					bar.barNumber,
-					bar.chordSymbol,
-					bar.roman,
-					bar.quality,
-					bar.guitarKind,
-					bar.chordNotes,
-					displayMidi,
-					bar.circleDegree,
-					bar.cue,
-					events,
-				];
-	}),
+	bars: mapNotationBars(
+		HAYDN_RONDO_BARS,
+		parseHaydnBarNotation,
+		(_, events) => {
+			const firstStop = events[0]?.celloStops?.[0];
+			return firstStop
+				? [CELLO_TUNING[firstStop.stringIndex].openMidi + firstStop.semitone]
+				: (events[0]?.midi.slice(0, 1) ?? [62]);
+		},
+	),
 };

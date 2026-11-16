@@ -1,30 +1,5 @@
-import { STANDARD_TUNING } from "./guitarFretboard";
-import type {
-	CompactSongSpec,
-	GuitarSongStop,
-	GuitarStopTechnique,
-	SongNoteEvent,
-} from "./songExamples";
-
-const TECH_MAP: Record<string, GuitarStopTechnique> = {
-	h: "harmonic",
-	p: "hammer",
-	s: "slide",
-};
-
-function stopMidi(
-	stringIndex: number,
-	fret: number,
-	technique?: GuitarStopTechnique,
-): number {
-	const openMidi = STANDARD_TUNING[stringIndex].openMidi;
-	if (technique === "harmonic") {
-		if (fret === 12) return openMidi + 12;
-		if (fret === 7) return openMidi + 19;
-		if (fret === 5) return openMidi + 24;
-	}
-	return openMidi + fret;
-}
+import { parseGuitarStops } from "./guitarFretboard";
+import type { CompactSongSpec, SongNoteEvent } from "./songExamples";
 
 function g(
 	stopTokens: string,
@@ -33,21 +8,9 @@ function g(
 	noteLabel: string,
 	spreadSec?: number,
 ): SongNoteEvent {
-	const guitarStops: GuitarSongStop[] = stopTokens
-		.trim()
-		.split(/\s+/)
-		.map((tok) => {
-			const [strRaw, rest] = tok.split(":");
-			const tech = TECH_MAP[rest.slice(-1)];
-			const fret = Number(tech ? rest.slice(0, -1) : rest);
-			return {
-				stringIndex: Number(strRaw),
-				fret,
-				...(tech ? { technique: tech } : {}),
-			};
-		});
+	const { guitarStops, midi } = parseGuitarStops(stopTokens);
 	return {
-		midi: guitarStops.map((s) => stopMidi(s.stringIndex, s.fret, s.technique)),
+		midi,
 		durationSec,
 		stepDurationMs,
 		noteLabel,

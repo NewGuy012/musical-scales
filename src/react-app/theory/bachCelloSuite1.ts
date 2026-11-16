@@ -1,28 +1,20 @@
-import { CELLO_TUNING, MAX_BOWED_SEMITONE } from "./celloFingerboard";
 import {
-	type ChordQuality,
-	NATURAL_PC,
-	ascendingNotesToMidi,
-	noteOffset,
-} from "./circleOfFifths";
-import type { GuitarChordKind } from "./guitarFretboard";
-import type {
-	BowedSongStop,
-	CompactSongSpec,
-	SongNoteEvent,
+	BOWED_STRING_ROMAN,
+	CELLO_TUNING,
+	MAX_BOWED_SEMITONE,
+	resolveBowedStringIndex,
+} from "./celloFingerboard";
+import { parsePitchToMidi } from "./circleOfFifths";
+import {
+	type BowedSongStop,
+	type CompactSongSpec,
+	type NotationBarSpec,
+	type SongNoteEvent,
+	mapNotationBars,
 } from "./songExamples";
 
 const STEP_16TH_MS = 152;
 const LEGATO_16TH_SEC = 0.25;
-
-const STRING_MAP: Record<string, { stringIndex: number; label: string }> = {
-	C: { stringIndex: 0, label: "IV" },
-	G: { stringIndex: 1, label: "III" },
-	D: { stringIndex: 2, label: "II" },
-	A: { stringIndex: 3, label: "I" },
-};
-
-const STRING_ROMAN = ["IV", "III", "II", "I"] as const;
 
 /**
  * Estimates an idiomatic cello left-hand finger number (0 = open, 1..4 = closed
@@ -47,33 +39,14 @@ function parseCelloNoteToken(token: string): {
 	label: string;
 } {
 	const [pitchPart, stringOverride] = token.split("@");
-	const letter = pitchPart[0];
-	const octave = Number(pitchPart.slice(-1));
-	const basePc = NATURAL_PC[letter];
-	if (basePc === undefined || Number.isNaN(octave)) {
-		throw new Error(`Invalid Bach cello note token: ${token}`);
-	}
+	const { midi } = parsePitchToMidi(pitchPart);
+	const stringIndex = resolveBowedStringIndex(
+		CELLO_TUNING,
+		stringOverride,
+		midi,
+	);
 
-	const midi = (octave + 1) * 12 + basePc + noteOffset(pitchPart.slice(0, -1));
-	let stringIndex: number;
-	if (stringOverride) {
-		const mapped = STRING_MAP[stringOverride];
-		if (!mapped) {
-			throw new Error(`Unknown cello string override: ${stringOverride}`);
-		}
-		stringIndex = mapped.stringIndex;
-	} else if (midi < 43) {
-		stringIndex = 0;
-	} else if (midi < 50) {
-		stringIndex = 1;
-	} else if (midi < 57) {
-		stringIndex = 2;
-	} else {
-		stringIndex = 3;
-	}
-
-	const openMidi = CELLO_TUNING[stringIndex].openMidi;
-	const semitone = midi - openMidi;
+	const semitone = midi - CELLO_TUNING[stringIndex].openMidi;
 	if (semitone < 0 || semitone > MAX_BOWED_SEMITONE) {
 		throw new Error(
 			`Note ${token} (MIDI ${midi}) exceeds cello fingerboard range on string ${stringIndex}`,
@@ -81,7 +54,7 @@ function parseCelloNoteToken(token: string): {
 	}
 
 	const finger = inferCelloFinger(semitone);
-	const stringRoman = STRING_ROMAN[stringIndex];
+	const stringRoman = BOWED_STRING_ROMAN[stringIndex];
 	const label =
 		semitone === 0
 			? `${pitchPart} (Open ${stringRoman})`
@@ -126,20 +99,7 @@ function parseBachBarNotation(notation: string): SongNoteEvent[] {
 		});
 }
 
-interface BachBarSpec {
-	barNumber: number;
-	chordSymbol: string;
-	roman: string;
-	quality: ChordQuality;
-	guitarKind: GuitarChordKind;
-	chordNotes: string[];
-	circleDegree: number;
-	circleSlotIndex?: number;
-	cue: string;
-	notation: string;
-}
-
-const BACH_PRELUDE_BARS: BachBarSpec[] = [
+const BACH_PRELUDE_BARS: NotationBarSpec[] = [
 	{
 		barNumber: 1,
 		chordSymbol: "G",
@@ -679,17 +639,5 @@ export const BACH_CELLO_SUITE_1_SPEC: CompactSongSpec = {
 			},
 		],
 	},
-	bars: BACH_PRELUDE_BARS.map((spec) => [
-		spec.barNumber,
-		spec.chordSymbol,
-		spec.roman,
-		spec.quality,
-		spec.guitarKind,
-		spec.chordNotes,
-		ascendingNotesToMidi(spec.chordNotes),
-		spec.circleDegree,
-		spec.cue,
-		parseBachBarNotation(spec.notation),
-		spec.circleSlotIndex,
-	]),
+	bars: mapNotationBars(BACH_PRELUDE_BARS, parseBachBarNotation),
 };

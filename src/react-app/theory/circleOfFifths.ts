@@ -598,6 +598,23 @@ export function noteToPitchClass(note: string): number {
 	return mod12(base + noteOffset(note));
 }
 
+export function parsePitchToMidi(token: string): {
+	midi: number;
+	pitchName: string;
+} {
+	const match = /^([A-G][#♯b♭𝄪𝄫]*)(-?\d+)$/.exec(token.trim());
+	if (!match) {
+		throw new Error(`Invalid pitch token: ${token}`);
+	}
+	const [, rawNote, octaveStr] = match;
+	const octave = Number(octaveStr);
+	const acc = rawNote.slice(1).replace(/#/g, "♯").replace(/b/g, "♭");
+	return {
+		midi: (octave + 1) * 12 + NATURAL_PC[rawNote[0]] + noteOffset(rawNote),
+		pitchName: `${rawNote[0]}${acc}${octave}`,
+	};
+}
+
 export function formatKeyIdentity(root: string, mode: KeyMode) {
 	return {
 		root,
