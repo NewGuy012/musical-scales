@@ -1,7 +1,11 @@
 import {
 	ChordQuality,
 	DiatonicChord,
+	FLAT_CHROMATIC,
 	KeyMode,
+	LETTERS,
+	NATURAL_PC,
+	SHARP_CHROMATIC,
 	ascendingNotesToMidi,
 	buildScale,
 	mod12,
@@ -185,36 +189,6 @@ export const STANDARD_TUNING: GuitarStringInfo[] = [
 ];
 
 export const MAX_GUITAR_FRET = 15;
-
-const SHARP_CHROMATIC = [
-	"C",
-	"C♯",
-	"D",
-	"D♯",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"G♯",
-	"A",
-	"A♯",
-	"B",
-] as const;
-
-const FLAT_CHROMATIC = [
-	"C",
-	"D♭",
-	"D",
-	"E♭",
-	"E",
-	"F",
-	"G♭",
-	"G",
-	"A♭",
-	"A",
-	"B♭",
-	"B",
-] as const;
 
 const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
 	major: { 0: "R", 4: "3", 7: "5" },
@@ -433,18 +407,6 @@ export function inferGuitarChordKind(
 	return quality;
 }
 
-export function getChordToneNameMap(
-	chordNotes: string[],
-	preferFlats: boolean,
-): (pc: number) => string {
-	const pcToSpelled = new Map<number, string>();
-	for (const n of chordNotes) {
-		pcToSpelled.set(noteToPitchClass(n), n);
-	}
-	const fallback = preferFlats ? FLAT_CHROMATIC : SHARP_CHROMATIC;
-	return (pc: number) => pcToSpelled.get(mod12(pc)) ?? fallback[mod12(pc)];
-}
-
 /**
  * Resolves any pitch class to a spelled note name, preferring chord tones first,
  * then scale degrees, then chromatic sharp/flat fallback.
@@ -454,16 +416,13 @@ export function createPitchClassNameResolver(
 	scaleNotes: string[],
 	preferFlats: boolean,
 ): (pc: number) => string {
-	const chordLookup = getChordToneNameMap(chordNotes, preferFlats);
-	const chordPcs = new Set(chordNotes.map(noteToPitchClass));
-	const scaleMap = new Map<number, string>();
-	for (const n of scaleNotes) {
-		scaleMap.set(noteToPitchClass(n), n);
-	}
+	const map = new Map<number, string>();
+	for (const n of scaleNotes) map.set(noteToPitchClass(n), n);
+	for (const n of chordNotes) map.set(noteToPitchClass(n), n);
+	const fallback = preferFlats ? FLAT_CHROMATIC : SHARP_CHROMATIC;
 	return (pc: number) => {
 		const norm = mod12(pc);
-		if (chordPcs.has(norm)) return chordLookup(norm);
-		return scaleMap.get(norm) ?? chordLookup(norm);
+		return map.get(norm) ?? fallback[norm];
 	};
 }
 
@@ -549,7 +508,7 @@ export function getGuitarVoicings(
 	preferFlats = false,
 ): GuitarVoicing[] {
 	const rootPc = noteToPitchClass(rootNote);
-	const resolveName = getChordToneNameMap(chordNotes, preferFlats);
+	const resolveName = createPitchClassNameResolver(chordNotes, [], preferFlats);
 	const candidates: [string, string, FretTuple][] = [];
 
 	const openMatch = OPEN_SHAPES[kind]?.[rootPc];
@@ -821,17 +780,6 @@ export function getGuitarVoicings(
 	return built.sort((a, b) => a.baseFret - b.baseFret);
 }
 
-const SCALE_LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
-const NATURAL_LETTER_PC: Record<string, number> = {
-	C: 0,
-	D: 2,
-	E: 4,
-	F: 5,
-	G: 7,
-	A: 9,
-	B: 11,
-};
-
 const CHROMATIC_DEGREES_SHARP = [
 	"1",
 	"♭2",
@@ -911,25 +859,6 @@ export function getChromaticDegreeLabel(
 	return (preferFlats ? CHROMATIC_DEGREES_FLAT : CHROMATIC_DEGREES_SHARP)[semi];
 }
 
-export function notesToGuitarMidi(
-	notes: string[],
-	appendOctaveRoot = false,
-): number[] {
-	if (notes.length === 0) return [];
-	const firstPc = noteToPitchClass(notes[0]);
-	const result = [48 + firstPc];
-	for (let i = 1; i < notes.length; i++) {
-		const pc = noteToPitchClass(notes[i]);
-		const prev = result[i - 1];
-		const step = mod12(pc - mod12(prev)) || 12;
-		result.push(prev + step);
-	}
-	if (appendOctaveRoot) {
-		result.push(result[0] + 12);
-	}
-	return result;
-}
-
 function resolveRelativeRoot(
 	rootNote: string,
 	targetKind: "minor" | "major",
@@ -938,13 +867,11 @@ function resolveRelativeRoot(
 	const rootPc = noteToPitchClass(rootNote);
 	const targetPc =
 		targetKind === "minor" ? mod12(rootPc - 3) : mod12(rootPc + 3);
-	const letterIdx = SCALE_LETTERS.indexOf(
-		rootNote[0] as (typeof SCALE_LETTERS)[number],
-	);
+	const letterIdx = LETTERS.indexOf(rootNote[0] as (typeof LETTERS)[number]);
 	if (letterIdx !== -1) {
 		const targetLetter =
-			SCALE_LETTERS[(letterIdx + (targetKind === "minor" ? 5 : 2)) % 7];
-		let diff = mod12(targetPc - NATURAL_LETTER_PC[targetLetter]);
+			LETTERS[(letterIdx + (targetKind === "minor" ? 5 : 2)) % 7];
+		let diff = mod12(targetPc - NATURAL_PC[targetLetter]);
 		if (diff > 6) diff -= 12;
 		if (diff === 0) return targetLetter;
 		if (diff === 1) return `${targetLetter}♯`;
@@ -1128,7 +1055,7 @@ export function buildGuitarScalePassGuide(params: {
 				: [0, 2, 3, 4, 6].map((idx) => scaleNotes[idx])
 			: pentatonicPcs.map((pc) => resolveName(pc));
 
-	const pentatonicMidi = notesToGuitarMidi(pentatonicNotes, true);
+	const pentatonicMidi = ascendingNotesToMidi(pentatonicNotes, 48, true);
 	const pentatonicName = `${pentatonicRoot} ${spec.label}`;
 	const keyPentatonicName = `${keyPentRoot} ${PENTATONIC_SPECS[keyPentKind].label}`;
 	const chordPentatonicName = `${chordPentRoot} ${PENTATONIC_SPECS[chordPentKind].label}`;
@@ -1166,6 +1093,22 @@ export function buildGuitarScalePassGuide(params: {
 
 	const r = (semi: number) => resolveName(mod12(pentatonicRootPc + semi));
 	const pcAt = (semi: number) => mod12(pentatonicRootPc + semi);
+	const makePhrase = (
+		id: string,
+		label: string,
+		tag: string,
+		notes: string[],
+		passingPc: number,
+		tip: string,
+	): ChromaticPassingPhrase => ({
+		id,
+		label,
+		tag,
+		notes,
+		midi: ascendingNotesToMidi(notes, 48),
+		passingPcs: [passingPc],
+		tip,
+	});
 
 	let featuredPassingTones: ChromaticPassingTone[];
 	let passingPhrases: ChromaticPassingPhrase[];
@@ -1200,47 +1143,40 @@ export function buildGuitarScalePassGuide(params: {
 					},
 		];
 
-		const p1 = [r(2), r(3), r(4)];
-		const p2 = [r(5), r(6), r(7)];
-		const p3 = isDom ? [r(9), r(10), r(11), r(0)] : [r(7), r(8), r(9)];
 		passingPhrases = [
-			{
-				id: "maj-b3-scoop",
-				label: "♭3 → 3 Scoop",
-				tag: "2 → ♭3 → 3",
-				notes: p1,
-				midi: notesToGuitarMidi(p1),
-				passingPcs: [pcAt(3)],
-				tip: `Slide or hammer-on 1 fret from ${r(3)} directly onto the major 3rd (${r(4)}).`,
-			},
-			{
-				id: "maj-b5-bridge",
-				label: "♯4 / ♭5 Blue Bridge",
-				tag: "4 → ♯4 → 5",
-				notes: p2,
-				midi: notesToGuitarMidi(p2),
-				passingPcs: [pcAt(6)],
-				tip: `Pass lightly through ${r(6)} on an upstroke between ${r(5)} and the stable 5th (${r(7)}).`,
-			},
+			makePhrase(
+				"maj-b3-scoop",
+				"♭3 → 3 Scoop",
+				"2 → ♭3 → 3",
+				[r(2), r(3), r(4)],
+				pcAt(3),
+				`Slide or hammer-on 1 fret from ${r(3)} directly onto the major 3rd (${r(4)}).`,
+			),
+			makePhrase(
+				"maj-b5-bridge",
+				"♯4 / ♭5 Blue Bridge",
+				"4 → ♯4 → 5",
+				[r(5), r(6), r(7)],
+				pcAt(6),
+				`Pass lightly through ${r(6)} on an upstroke between ${r(5)} and the stable 5th (${r(7)}).`,
+			),
 			isDom
-				? {
-						id: "maj-dom7-walk",
-						label: "♭7 → 7 → 1 Walk",
-						tag: "6 → ♭7 → 7 → 1",
-						notes: p3,
-						midi: notesToGuitarMidi(p3),
-						passingPcs: [pcAt(11)],
-						tip: `Chromatically connect chord tone ♭7 (${r(10)}) straight up into tonic ${r(0)}.`,
-					}
-				: {
-						id: "maj-s5-walk",
-						label: "5 → ♯5 → 6 Link",
-						tag: "5 → ♯5 → 6",
-						notes: p3,
-						midi: notesToGuitarMidi(p3),
-						passingPcs: [pcAt(8)],
-						tip: `Fills the whole step between ${r(7)} and ${r(9)} with classic fingerstyle voice-leading.`,
-					},
+				? makePhrase(
+						"maj-dom7-walk",
+						"♭7 → 7 → 1 Walk",
+						"6 → ♭7 → 7 → 1",
+						[r(9), r(10), r(11), r(0)],
+						pcAt(11),
+						`Chromatically connect chord tone ♭7 (${r(10)}) straight up into tonic ${r(0)}.`,
+					)
+				: makePhrase(
+						"maj-s5-walk",
+						"5 → ♯5 → 6 Link",
+						"5 → ♯5 → 6",
+						[r(7), r(8), r(9)],
+						pcAt(8),
+						`Fills the whole step between ${r(7)} and ${r(9)} with classic fingerstyle voice-leading.`,
+					),
 		];
 	} else if (pentatonicKind === "minor") {
 		featuredPassingTones = [
@@ -1264,37 +1200,31 @@ export function buildGuitarScalePassGuide(params: {
 			},
 		];
 
-		const p1 = [r(5), r(6), r(7)];
-		const p2 = [r(3), r(4), r(5)];
-		const p3 = [r(10), r(11), r(0)];
 		passingPhrases = [
-			{
-				id: "min-b5-blue",
-				label: "♭5 Blue Note",
-				tag: "4 → ♭5 → 5",
-				notes: p1,
-				midi: notesToGuitarMidi(p1),
-				passingPcs: [pcAt(6)],
-				tip: `Keep ${r(6)} in motion with a quick slide or micro-bend up into ${r(7)} or back to ${r(5)}.`,
-			},
-			{
-				id: "min-nat3-pass",
-				label: "♭3 → ♮3 → 4 Pass",
-				tag: "♭3 → 3 → 4",
-				notes: p2,
-				midi: notesToGuitarMidi(p2),
-				passingPcs: [pcAt(4)],
-				tip: `Bridges minor ${r(3)} to 4th (${r(5)}) — brightens the minor box on passing beats.`,
-			},
-			{
-				id: "min-lead7-pull",
-				label: "♭7 → 7 → 1 Pull",
-				tag: "♭7 → 7 → 1",
-				notes: p3,
-				midi: notesToGuitarMidi(p3),
-				passingPcs: [pcAt(11)],
-				tip: `One-fret leading-tone pull from ${r(11)} directly resolves onto tonic ${r(0)}.`,
-			},
+			makePhrase(
+				"min-b5-blue",
+				"♭5 Blue Note",
+				"4 → ♭5 → 5",
+				[r(5), r(6), r(7)],
+				pcAt(6),
+				`Keep ${r(6)} in motion with a quick slide or micro-bend up into ${r(7)} or back to ${r(5)}.`,
+			),
+			makePhrase(
+				"min-nat3-pass",
+				"♭3 → ♮3 → 4 Pass",
+				"♭3 → 3 → 4",
+				[r(3), r(4), r(5)],
+				pcAt(4),
+				`Bridges minor ${r(3)} to 4th (${r(5)}) — brightens the minor box on passing beats.`,
+			),
+			makePhrase(
+				"min-lead7-pull",
+				"♭7 → 7 → 1 Pull",
+				"♭7 → 7 → 1",
+				[r(10), r(11), r(0)],
+				pcAt(11),
+				`One-fret leading-tone pull from ${r(11)} directly resolves onto tonic ${r(0)}.`,
+			),
 		];
 	} else {
 		featuredPassingTones = [
@@ -1317,37 +1247,31 @@ export function buildGuitarScalePassGuide(params: {
 				role: "Half-step approach into root",
 			},
 		];
-		const p1 = [r(0), r(1), r(2), r(3)];
-		const p2 = [r(5), r(6), r(7)];
-		const p3 = [r(10), r(11), r(0)];
 		passingPhrases = [
-			{
-				id: "dim-climb",
-				label: "1 → ♭3 Chromatic Climb",
-				tag: "1 → ♭2 → 2 → ♭3",
-				notes: p1,
-				midi: notesToGuitarMidi(p1),
-				passingPcs: [pcAt(1)],
-				tip: `Walks step-by-step up adjacent frets straight into the minor 3rd (${r(3)}).`,
-			},
-			{
-				id: "dim-b5-turn",
-				label: "4 → ♭5 → ♮5 Link",
-				tag: "4 → ♭5 → 5",
-				notes: p2,
-				midi: notesToGuitarMidi(p2),
-				passingPcs: [pcAt(7)],
-				tip: `Balances the tritone chord tone (${r(6)}) by sliding smoothly onto ${r(7)}.`,
-			},
-			{
-				id: "dim-lead",
-				label: "♭7 → 7 → 1 Resolution",
-				tag: "♭7 → 7 → 1",
-				notes: p3,
-				midi: notesToGuitarMidi(p3),
-				passingPcs: [pcAt(11)],
-				tip: `Half-step resolution back into ${r(0)} calms the diminished tension.`,
-			},
+			makePhrase(
+				"dim-climb",
+				"1 → ♭3 Chromatic Climb",
+				"1 → ♭2 → 2 → ♭3",
+				[r(0), r(1), r(2), r(3)],
+				pcAt(1),
+				`Walks step-by-step up adjacent frets straight into the minor 3rd (${r(3)}).`,
+			),
+			makePhrase(
+				"dim-b5-turn",
+				"4 → ♭5 → ♮5 Link",
+				"4 → ♭5 → 5",
+				[r(5), r(6), r(7)],
+				pcAt(7),
+				`Balances the tritone chord tone (${r(6)}) by sliding smoothly onto ${r(7)}.`,
+			),
+			makePhrase(
+				"dim-lead",
+				"♭7 → 7 → 1 Resolution",
+				"♭7 → 7 → 1",
+				[r(10), r(11), r(0)],
+				pcAt(11),
+				`Half-step resolution back into ${r(0)} calms the diminished tension.`,
+			),
 		];
 	}
 

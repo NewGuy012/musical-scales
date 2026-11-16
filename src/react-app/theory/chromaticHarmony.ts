@@ -1,13 +1,20 @@
 import {
 	ChordQuality,
+	FLAT_CHROMATIC,
 	KeyAnalysis,
 	KeyMode,
+	READABLE_CHROMATIC,
+	SHARP_CHROMATIC,
 	ascendingNotesToMidi,
 	mod12,
 	noteOffset,
 	noteToPitchClass,
 } from "./circleOfFifths";
-import { GuitarChordKind, buildChordVariation } from "./guitarFretboard";
+import {
+	GuitarChordKind,
+	buildChordVariation,
+	inferGuitarChordKind,
+} from "./guitarFretboard";
 
 export interface HarmonyChordSpec {
 	id: string;
@@ -23,24 +30,14 @@ export interface HarmonyChordSpec {
 	borrowedNotes: string[];
 }
 
-export interface ChromaticPassingPattern {
+export interface ColorHarmonyPattern {
 	id: string;
 	title: string;
 	formula: string;
 	kindLabel: string;
 	explanation: string;
 	steps: HarmonyChordSpec[];
-	passingStepIndex: number;
-}
-
-export interface DiminishedChordPattern {
-	id: string;
-	title: string;
-	formula: string;
-	kindLabel: string;
-	explanation: string;
-	steps: HarmonyChordSpec[];
-	dimStepIndex: number;
+	targetStepIndex: number;
 }
 
 export interface SecondaryDominantEntry {
@@ -71,14 +68,14 @@ export interface ColorHarmonyAnalysis {
 	mode: KeyMode;
 	chromaticPassing: {
 		overview: string;
-		patterns: ChromaticPassingPattern[];
+		patterns: ColorHarmonyPattern[];
 	};
 	diminishedHarmony: {
 		overview: string;
 		symmetryFamilyTitle: string;
 		symmetryNote: string;
 		symmetryFamilyChords: HarmonyChordSpec[];
-		patterns: DiminishedChordPattern[];
+		patterns: ColorHarmonyPattern[];
 	};
 	secondaryDominants: {
 		overview: string;
@@ -90,51 +87,6 @@ export interface ColorHarmonyAnalysis {
 		secondarySubs: TritoneSubPair[];
 	};
 }
-
-const SHARP_ROOTS = [
-	"C",
-	"C♯",
-	"D",
-	"D♯",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"G♯",
-	"A",
-	"A♯",
-	"B",
-] as const;
-
-const FLAT_ROOTS = [
-	"C",
-	"D♭",
-	"D",
-	"E♭",
-	"E",
-	"F",
-	"G♭",
-	"G",
-	"A♭",
-	"A",
-	"B♭",
-	"B",
-] as const;
-
-const READABLE_ROOTS_SHARP = [
-	"C",
-	"C♯",
-	"D",
-	"E♭",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"G♯",
-	"A",
-	"B♭",
-	"B",
-] as const;
 
 function pcToCircleIndex(pc: number, quality: ChordQuality): number {
 	const base = mod12(pc * 7);
@@ -150,9 +102,9 @@ function cleanRoot(
 	bias: "sharp" | "flat" | "readable-sharp",
 ): string {
 	const norm = mod12(pc);
-	if (bias === "flat") return FLAT_ROOTS[norm];
-	if (bias === "readable-sharp") return READABLE_ROOTS_SHARP[norm];
-	return SHARP_ROOTS[norm];
+	if (bias === "flat") return FLAT_CHROMATIC[norm];
+	if (bias === "readable-sharp") return READABLE_CHROMATIC[norm];
+	return SHARP_CHROMATIC[norm];
 }
 
 function normalizePracticalChordRoot(
@@ -172,7 +124,7 @@ function normalizePracticalChordRoot(
 	) {
 		return note;
 	}
-	return bias === "flat" ? FLAT_ROOTS[pc] : READABLE_ROOTS_SHARP[pc];
+	return bias === "flat" ? FLAT_CHROMATIC[pc] : READABLE_CHROMATIC[pc];
 }
 
 function makeChordSpec(params: {
@@ -224,14 +176,6 @@ function diatonicSeventhSpec(
 	idPrefix: string,
 ): HarmonyChordSpec {
 	const c = analysis.chords[degreeIdx];
-	const kind: GuitarChordKind = c.seventhSymbol.endsWith("maj7")
-		? "maj7"
-		: c.seventhSymbol.endsWith("m7♭5")
-			? "m7♭5"
-			: c.seventhSymbol.endsWith("m7")
-				? "m7"
-				: "7";
-
 	return {
 		id: `${idPrefix}-${c.symbol}-${c.degree}`,
 		symbol: c.seventhSymbol,
@@ -240,7 +184,7 @@ function diatonicSeventhSpec(
 			: c.roman,
 		root: c.root,
 		quality: c.quality,
-		guitarKind: kind,
+		guitarKind: inferGuitarChordKind(c, c.quality, true),
 		notes: [...c.seventhNotes],
 		midi: [...c.seventhMidi],
 		circleIndex: c.circleIndex,
@@ -274,8 +218,50 @@ export function analyzeColorHarmony(
 		"color-tonic",
 	);
 
+	const getDominantV7 = (id: string, roleTag?: string): HarmonyChordSpec =>
+		!isMajor && analysis.harmonicMinorV
+			? makeChordSpec({
+					id,
+					root: normalizePracticalChordRoot(
+						analysis.harmonicMinorV.root,
+						keyIsFlat ? "flat" : "sharp",
+					),
+					kind: "7",
+					romanLabel: "V7",
+					keyScalePcs,
+					preferFlats: keyIsFlat,
+					roleTag,
+					notesOverride: [...analysis.harmonicMinorV.seventhNotes],
+				})
+			: diatonicSeventhSpec(analysis, 4, keyScalePcs, id);
+
+	const minorTonicTriad: HarmonyChordSpec | null = isMajor
+		? null
+		: {
+				id: "minor-i-triad",
+				symbol: analysis.chords[0].symbol,
+				romanLabel: "i",
+				root: analysis.chords[0].root,
+				quality: "minor",
+				guitarKind: "minor",
+				notes: [...analysis.chords[0].triadNotes],
+				midi: [...analysis.chords[0].triadMidi],
+				circleIndex: analysis.chords[0].circleIndex,
+				borrowedNotes: [],
+			};
+
+	const s4Pass = makeChordSpec({
+		id: "pass-sivm7b5",
+		root: cleanRoot(tonicPc + 6, "readable-sharp"),
+		kind: "m7♭5",
+		romanLabel: "♯ivm7♭5",
+		keyScalePcs,
+		preferFlats: false,
+		roleTag: "Passing",
+	});
+
 	// --- 1. Chromatic Passing Chords ---
-	const chromaticPassingPatterns: ChromaticPassingPattern[] = [];
+	const chromaticPassingPatterns: ColorHarmonyPattern[] = [];
 
 	if (isMajor) {
 		const ii7 = diatonicSeventhSpec(analysis, 1, keyScalePcs, "pass-ii");
@@ -283,10 +269,9 @@ export function analyzeColorHarmony(
 		const ivMaj7 = diatonicSeventhSpec(analysis, 3, keyScalePcs, "pass-iv");
 		const v7 = diatonicSeventhSpec(analysis, 4, keyScalePcs, "pass-v");
 
-		const b3Root = cleanRoot(tonicPc + 3, "flat");
 		const b3Pass = makeChordSpec({
 			id: "pass-biiim7",
-			root: b3Root,
+			root: cleanRoot(tonicPc + 3, "flat"),
 			kind: "m7",
 			romanLabel: "♭iiim7",
 			keyScalePcs,
@@ -294,24 +279,9 @@ export function analyzeColorHarmony(
 			roleTag: "Passing",
 		});
 
-		const s4Root = cleanRoot(tonicPc + 6, "readable-sharp");
-		const s4Pass = makeChordSpec({
-			id: "pass-sivm7b5",
-			root: s4Root,
-			kind: "m7♭5",
-			romanLabel: "♯ivm7♭5",
-			keyScalePcs,
-			preferFlats: false,
-			roleTag: "Passing",
-		});
-
-		const minorIvRoot = normalizePracticalChordRoot(
-			analysis.chords[3].root,
-			"flat",
-		);
 		const minorIvPass = makeChordSpec({
 			id: "pass-ivm7",
-			root: minorIvRoot,
+			root: normalizePracticalChordRoot(analysis.chords[3].root, "flat"),
 			kind: "m7",
 			romanLabel: "ivm7",
 			keyScalePcs,
@@ -327,7 +297,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Chromatic Planing",
 				explanation: `Slides the exact same m7 grip down 1 fret (${iii7.root} → ${b3Pass.root} → ${ii7.root}) to link iiim7 smoothly into iim7.`,
 				steps: [iii7, b3Pass, ii7, tonicMaj7],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "maj-bass-climb",
@@ -336,7 +306,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Bass Walkup",
 				explanation: `Raises the 4th degree by 1 semitone (${ivMaj7.root} → ${s4Pass.root} → ${v7.root}) for classic gospel, soul & jazz upward momentum into V7.`,
 				steps: [ivMaj7, s4Pass, v7, tonicMaj7],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "maj-minor-plagal",
@@ -345,39 +315,14 @@ export function analyzeColorHarmony(
 				kindLabel: "Inner Voice Line",
 				explanation: `Flips IV to minor ivm7 before resolving home, pulling degree 6 chromatically down through ♭6 onto the 5th of ${tonicMaj7.symbol}.`,
 				steps: [ivMaj7, minorIvPass, tonicMaj7],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 		);
 	} else {
-		const iTriad: HarmonyChordSpec = {
-			id: "pass-minor-i",
-			symbol: analysis.chords[0].symbol,
-			romanLabel: "i",
-			root: analysis.chords[0].root,
-			quality: "minor",
-			guitarKind: "minor",
-			notes: [...analysis.chords[0].triadNotes],
-			midi: [...analysis.chords[0].triadMidi],
-			circleIndex: analysis.chords[0].circleIndex,
-			borrowedNotes: [],
-		};
+		const iTriad = minorTonicTriad!;
 		const iv7 = diatonicSeventhSpec(analysis, 3, keyScalePcs, "min-pass-iv");
 		const v7Min = diatonicSeventhSpec(analysis, 4, keyScalePcs, "min-pass-v");
-		const harmonicV = analysis.harmonicMinorV
-			? makeChordSpec({
-					id: "min-pass-domV",
-					root: normalizePracticalChordRoot(
-						analysis.harmonicMinorV.root,
-						keyIsFlat ? "flat" : "sharp",
-					),
-					kind: "7",
-					romanLabel: "V7",
-					keyScalePcs,
-					preferFlats: keyIsFlat,
-					roleTag: "Harmonic V7",
-					notesOverride: [...analysis.harmonicMinorV.seventhNotes],
-				})
-			: v7Min;
+		const harmonicV = getDominantV7("min-pass-domV", "Harmonic V7");
 
 		// Minor Line Cliché: i → ♭IIIaug (i(maj7) color) → i7 → vim7♭5
 		const b3MajRoot = normalizePracticalChordRoot(
@@ -393,10 +338,9 @@ export function analyzeColorHarmony(
 			preferFlats: !keyIsFlat,
 			roleTag: "Chromatic ♮7",
 		});
-		const viHalfDimRoot = cleanRoot(tonicPc + 9, "readable-sharp");
 		const viHalfDim = makeChordSpec({
 			id: "min-line-vim7b5",
-			root: viHalfDimRoot,
+			root: cleanRoot(tonicPc + 9, "readable-sharp"),
 			kind: "m7♭5",
 			romanLabel: "♯vim7♭5",
 			keyScalePcs,
@@ -404,25 +348,13 @@ export function analyzeColorHarmony(
 			roleTag: "Dorian ♮6",
 		});
 
-		const flatVRoot = cleanRoot(tonicPc + 6, "flat");
 		const flatVPass = makeChordSpec({
 			id: "min-pass-bvm7",
-			root: flatVRoot,
+			root: cleanRoot(tonicPc + 6, "flat"),
 			kind: "m7",
 			romanLabel: "♭vm7",
 			keyScalePcs,
 			preferFlats: true,
-			roleTag: "Passing",
-		});
-
-		const s4Root = cleanRoot(tonicPc + 6, "readable-sharp");
-		const s4Pass = makeChordSpec({
-			id: "min-pass-sivm7b5",
-			root: s4Root,
-			kind: "m7♭5",
-			romanLabel: "♯ivm7♭5",
-			keyScalePcs,
-			preferFlats: false,
 			roleTag: "Passing",
 		});
 
@@ -434,7 +366,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Inner Chromatic Line",
 				explanation: `Keeps ${analysis.chords[2].root} & ${analysis.scaleNotes[4]} steady while a chromatic voice descends 1 → ♮7 → ♭7 → ♮6.`,
 				steps: [iTriad, lineClicheAug, tonicMaj7, viHalfDim],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "min-m7-slide",
@@ -443,7 +375,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Chromatic Planing",
 				explanation: `Glides down 1 semitone (${v7Min.root} → ${flatVPass.root} → ${iv7.root}) using one movable m7 shape.`,
 				steps: [v7Min, flatVPass, iv7, tonicMaj7],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "min-bass-climb",
@@ -452,7 +384,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Bass Walkup",
 				explanation: `Uses ${s4Pass.symbol} to bridge the 4th chromatically up to the dominant ${harmonicV.symbol}.`,
 				steps: [iv7, s4Pass, harmonicV, iTriad],
-				passingStepIndex: 1,
+				targetStepIndex: 1,
 			},
 		);
 	}
@@ -460,15 +392,13 @@ export function analyzeColorHarmony(
 	// --- 2. Diminished Chords (Symmetrical Dim7 & Passing Bridges) ---
 	const dimAnchorPc = isMajor ? mod12(tonicPc + 1) : mod12(tonicPc + 11);
 	const symmetryRoots = [0, 3, 6, 9].map((step) =>
-		cleanRoot(dimAnchorPc + step, step % 2 === 1 ? "flat" : "readable-sharp"),
+		step === 0
+			? cleanRoot(dimAnchorPc, !isMajor && keyIsFlat ? "flat" : "sharp")
+			: cleanRoot(
+					dimAnchorPc + step,
+					step % 2 === 1 ? "flat" : "readable-sharp",
+				),
 	);
-	// In minor keys where dimAnchorPc + 0 is the raised leading tone (e.g., G♯ in A Minor),
-	// keep exact sharp name for the leading tone when key prefers sharps/natural
-	if (!isMajor) {
-		symmetryRoots[0] = cleanRoot(dimAnchorPc, keyIsFlat ? "flat" : "sharp");
-	} else {
-		symmetryRoots[0] = cleanRoot(dimAnchorPc, "sharp");
-	}
 
 	const symmetryFamilyChords = symmetryRoots.map((root, idx) =>
 		makeChordSpec({
@@ -482,23 +412,24 @@ export function analyzeColorHarmony(
 		}),
 	);
 
-	const dimPatterns: DiminishedChordPattern[] = [];
+	const sharp4DimRoot = cleanRoot(tonicPc + 6, "sharp");
+	const sharp4Dim = makeChordSpec({
+		id: `dim-s4-${sharp4DimRoot}`,
+		root: sharp4DimRoot,
+		kind: "dim7",
+		romanLabel: "♯iv°7",
+		keyScalePcs,
+		preferFlats: false,
+		roleTag: "Passing Dim7",
+	});
+
+	const dimPatterns: ColorHarmonyPattern[] = [];
 	if (isMajor) {
 		const ii7 = diatonicSeventhSpec(analysis, 1, keyScalePcs, "dim-ii");
 		const ivMaj7 = diatonicSeventhSpec(analysis, 3, keyScalePcs, "dim-iv");
 		const v7 = diatonicSeventhSpec(analysis, 4, keyScalePcs, "dim-v");
 
 		const sharp1Dim = symmetryFamilyChords[0];
-		const sharp4DimRoot = cleanRoot(tonicPc + 6, "sharp");
-		const sharp4Dim = makeChordSpec({
-			id: `dim-s4-${sharp4DimRoot}`,
-			root: sharp4DimRoot,
-			kind: "dim7",
-			romanLabel: "♯iv°7",
-			keyScalePcs,
-			preferFlats: false,
-			roleTag: "Passing Dim7",
-		});
 		const viiDimRoot = normalizePracticalChordRoot(
 			analysis.chords[6].root,
 			keyIsFlat ? "flat" : "sharp",
@@ -521,7 +452,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Ascending Bass",
 				explanation: `Connects ${tonicMaj7.root} up by half step through ${sharp1Dim.symbol} into ${ii7.symbol}. Built with 3-semitone spacing so all 4 notes push inward.`,
 				steps: [tonicMaj7, sharp1Dim, ii7],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "dim-maj-s4",
@@ -530,7 +461,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Gospel / Jazz Walk",
 				explanation: `Chromatic ${ivMaj7.root} → ${sharp4Dim.root} → ${v7.root} bass walk into the dominant — one of the signature turnaround engines in Broadway & acoustic standards.`,
 				steps: [ivMaj7, sharp4Dim, v7, tonicMaj7],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "dim-maj-vii",
@@ -539,38 +470,14 @@ export function analyzeColorHarmony(
 				kindLabel: "Dominant Substitute",
 				explanation: `${viiDim7.symbol} equals ${v7.symbol}♭9 without its ${v7.root} bass — adding dramatic dark tension that resolves a half step into ${tonicMaj7.symbol}.`,
 				steps: [v7, viiDim7, tonicMaj7],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 		);
 	} else {
-		const iMin: HarmonyChordSpec = {
-			id: "dim-minor-i",
-			symbol: analysis.chords[0].symbol,
-			romanLabel: "i",
-			root: analysis.chords[0].root,
-			quality: "minor",
-			guitarKind: "minor",
-			notes: [...analysis.chords[0].triadNotes],
-			midi: [...analysis.chords[0].triadMidi],
-			circleIndex: analysis.chords[0].circleIndex,
-			borrowedNotes: [],
-		};
+		const iMin = minorTonicTriad!;
 		const iiiMaj7 = diatonicSeventhSpec(analysis, 2, keyScalePcs, "dim-iii");
 		const iv7 = diatonicSeventhSpec(analysis, 3, keyScalePcs, "dim-iv");
-		const harmonicV = analysis.harmonicMinorV
-			? makeChordSpec({
-					id: "dim-harmV",
-					root: normalizePracticalChordRoot(
-						analysis.harmonicMinorV.root,
-						keyIsFlat ? "flat" : "sharp",
-					),
-					kind: "7",
-					romanLabel: "V7",
-					keyScalePcs,
-					preferFlats: keyIsFlat,
-					notesOverride: [...analysis.harmonicMinorV.seventhNotes],
-				})
-			: diatonicSeventhSpec(analysis, 4, keyScalePcs, "dim-v");
+		const harmonicV = getDominantV7("dim-harmV");
 
 		const viiDim7 = symmetryFamilyChords[0];
 		const sharp3DimRoot = cleanRoot(tonicPc + 4, "sharp");
@@ -579,16 +486,6 @@ export function analyzeColorHarmony(
 			root: sharp3DimRoot,
 			kind: "dim7",
 			romanLabel: "♯iii°7",
-			keyScalePcs,
-			preferFlats: false,
-			roleTag: "Passing Dim7",
-		});
-		const sharp4DimRoot = cleanRoot(tonicPc + 6, "sharp");
-		const sharp4Dim = makeChordSpec({
-			id: `dim-s4-${sharp4DimRoot}`,
-			root: sharp4DimRoot,
-			kind: "dim7",
-			romanLabel: "♯iv°7",
 			keyScalePcs,
 			preferFlats: false,
 			roleTag: "Passing Dim7",
@@ -602,7 +499,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Minor Cadence",
 				explanation: `${viiDim7.symbol} contains the top 4 tension notes of ${harmonicV.symbol}♭9 (${viiDim7.notes.join("·")}) — resolving a half step up to ${iMin.symbol}.`,
 				steps: [iv7, viiDim7, iMin],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "dim-min-s4",
@@ -611,7 +508,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Ascending Bass",
 				explanation: `Climbs chromatically from ${iv7.root} through ${sharp4Dim.symbol} straight onto the dominant ${harmonicV.symbol}.`,
 				steps: [iv7, sharp4Dim, harmonicV, iMin],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 			{
 				id: "dim-min-s3",
@@ -620,7 +517,7 @@ export function analyzeColorHarmony(
 				kindLabel: "Passing Dim7",
 				explanation: `Walks smoothly from the relative major (${iiiMaj7.symbol}) through ${sharp3Dim.symbol} into ${iv7.symbol}.`,
 				steps: [iiiMaj7, sharp3Dim, iv7],
-				dimStepIndex: 1,
+				targetStepIndex: 1,
 			},
 		);
 	}
@@ -688,21 +585,7 @@ export function analyzeColorHarmony(
 				roleTag: entry.romanLabel,
 			});
 
-			const vChordForChain =
-				!isMajor && analysis.harmonicMinorV
-					? makeChordSpec({
-							id: `sec-chain-v-${entry.targetRoman}`,
-							root: normalizePracticalChordRoot(
-								analysis.harmonicMinorV.root,
-								keyIsFlat ? "flat" : "sharp",
-							),
-							kind: "7",
-							romanLabel: "V7",
-							keyScalePcs,
-							preferFlats: keyIsFlat,
-							notesOverride: [...analysis.harmonicMinorV.seventhNotes],
-						})
-					: diatonicSeventhSpec(analysis, 4, keyScalePcs, "sec-chain-v");
+			const vChordForChain = getDominantV7(`sec-chain-v-${entry.targetRoman}`);
 
 			let resolutionSteps: HarmonyChordSpec[];
 			if (entry.resolveHomeAfter && entry.targetDegIdx === 4) {
@@ -789,25 +672,14 @@ export function analyzeColorHarmony(
 		};
 	};
 
-	const prepChordPrimary = isMajor
-		? diatonicSeventhSpec(analysis, 1, keyScalePcs, "tri-ii")
-		: diatonicSeventhSpec(analysis, 1, keyScalePcs, "tri-min-ii");
+	const prepChordPrimary = diatonicSeventhSpec(
+		analysis,
+		1,
+		keyScalePcs,
+		isMajor ? "tri-ii" : "tri-min-ii",
+	);
 
-	const origPrimaryV7 =
-		!isMajor && analysis.harmonicMinorV
-			? makeChordSpec({
-					id: "tri-orig-harmV",
-					root: normalizePracticalChordRoot(
-						analysis.harmonicMinorV.root,
-						keyIsFlat ? "flat" : "sharp",
-					),
-					kind: "7",
-					romanLabel: "V7",
-					keyScalePcs,
-					preferFlats: keyIsFlat,
-					notesOverride: [...analysis.harmonicMinorV.seventhNotes],
-				})
-			: diatonicSeventhSpec(analysis, 4, keyScalePcs, "tri-orig-v");
+	const origPrimaryV7 = getDominantV7("tri-orig-v");
 
 	const primaryTritoneSub = buildTritonePair({
 		id: "primary-bII7",
@@ -818,85 +690,75 @@ export function analyzeColorHarmony(
 		subRoman: "♭II7 (subV)",
 	});
 
-	const secondarySubs: TritoneSubPair[] = [];
-	if (isMajor) {
-		const secV = secondaryItems.find((s) => s.targetRoman === "V");
-		const secII = secondaryItems.find((s) => s.targetRoman === "ii");
-		const secVI = secondaryItems.find((s) => s.targetRoman === "vi");
-		if (secV) {
-			secondarySubs.push(
-				buildTritonePair({
+	const secondarySubSpecs = isMajor
+		? [
+				{
+					targetRoman: "V",
 					id: "sub-of-v",
 					label: "subV7/V (♭VI7 → V7)",
-					prepChord: diatonicSeventhSpec(analysis, 3, keyScalePcs, "tri-iv"),
-					origDom: secV.dominantChord,
-					targetChord: secV.targetChord,
 					subRoman: "♭VI7 (subV/V)",
-				}),
-			);
-		}
-		if (secII) {
-			secondarySubs.push(
-				buildTritonePair({
+					prepChord: diatonicSeventhSpec(analysis, 3, keyScalePcs, "tri-iv"),
+				},
+				{
+					targetRoman: "ii",
 					id: "sub-of-ii",
 					label: "subV7/ii (♭III7 → iim7)",
-					prepChord: diatonicSeventhSpec(analysis, 2, keyScalePcs, "tri-iii"),
-					origDom: secII.dominantChord,
-					targetChord: secII.targetChord,
 					subRoman: "♭III7 (subV/ii)",
-				}),
-			);
-		}
-		if (secVI) {
-			secondarySubs.push(
-				buildTritonePair({
+					prepChord: diatonicSeventhSpec(analysis, 2, keyScalePcs, "tri-iii"),
+				},
+				{
+					targetRoman: "vi",
 					id: "sub-of-vi",
 					label: "subV7/vi (♭VII7 → vim7)",
-					prepChord: tonicMaj7,
-					origDom: secVI.dominantChord,
-					targetChord: secVI.targetChord,
 					subRoman: "♭VII7 (subV/vi)",
-				}),
-			);
-		}
-	} else {
-		const secIV = secondaryItems.find((s) => s.targetRoman === "iv");
-		const secV = secondaryItems.find((s) => s.targetRoman === "v");
-		if (secIV) {
-			secondarySubs.push(
-				buildTritonePair({
+					prepChord: tonicMaj7,
+				},
+			]
+		: [
+				{
+					targetRoman: "iv",
 					id: "min-sub-of-iv",
 					label: "subV7/iv (♭V7 → ivm7)",
+					subRoman: "♭V7 (subV/iv)",
 					prepChord: diatonicSeventhSpec(
 						analysis,
 						2,
 						keyScalePcs,
 						"tri-min-iii",
 					),
-					origDom: secIV.dominantChord,
-					targetChord: secIV.targetChord,
-					subRoman: "♭V7 (subV/iv)",
-				}),
-			);
-		}
-		if (secV) {
-			secondarySubs.push(
-				buildTritonePair({
+				},
+				{
+					targetRoman: "v",
 					id: "min-sub-of-v",
 					label: "subV7/v (♭VI7 → V7)",
+					subRoman: "♭VI7 (subV/v)",
 					prepChord: diatonicSeventhSpec(
 						analysis,
 						3,
 						keyScalePcs,
 						"tri-min-iv",
 					),
-					origDom: secV.dominantChord,
-					targetChord: origPrimaryV7,
-					subRoman: "♭VI7 (subV/v)",
-				}),
-			);
-		}
-	}
+					targetOverride: origPrimaryV7,
+				},
+			];
+
+	const secondarySubs: TritoneSubPair[] = secondarySubSpecs.flatMap((spec) => {
+		const sec = secondaryItems.find((s) => s.targetRoman === spec.targetRoman);
+		if (!sec) return [];
+		return [
+			buildTritonePair({
+				id: spec.id,
+				label: spec.label,
+				prepChord: spec.prepChord,
+				origDom: sec.dominantChord,
+				targetChord:
+					"targetOverride" in spec && spec.targetOverride
+						? spec.targetOverride
+						: sec.targetChord,
+				subRoman: spec.subRoman,
+			}),
+		];
+	});
 
 	return {
 		keyShortName: analysis.shortName,

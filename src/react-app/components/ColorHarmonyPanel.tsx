@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
 	ColorHarmonyAnalysis,
+	ColorHarmonyPattern,
 	HarmonyChordSpec,
 	TritoneSubPair,
 } from "../theory/chromaticHarmony";
@@ -76,17 +77,16 @@ export function ColorHarmonyPanel({
 		);
 	};
 
-	const renderPatternCard = (params: {
-		id: string;
-		title: string;
-		kindLabel: string;
-		formula: string;
-		explanation: string;
-		steps: HarmonyChordSpec[];
-		targetIdx: number;
-	}) => {
-		const { id, title, kindLabel, formula, explanation, steps, targetIdx } =
-			params;
+	const renderPatternCard = (pattern: ColorHarmonyPattern) => {
+		const {
+			id,
+			title,
+			kindLabel,
+			formula,
+			explanation,
+			steps,
+			targetStepIndex,
+		} = pattern;
 		const isPlaying = activeSequenceId === id;
 
 		return (
@@ -122,7 +122,7 @@ export function ColorHarmonyPanel({
 					aria-label={`${title} chords`}
 				>
 					{steps.map((step, idx) =>
-						renderStepChip(step, id, idx, idx === targetIdx),
+						renderStepChip(step, id, idx, idx === targetStepIndex),
 					)}
 				</div>
 
@@ -252,17 +252,7 @@ export function ColorHarmonyPanel({
 						{colorAnalysis.chromaticPassing.overview}
 					</p>
 					<div className="color-cards-stack">
-						{colorAnalysis.chromaticPassing.patterns.map((p) =>
-							renderPatternCard({
-								id: p.id,
-								title: p.title,
-								kindLabel: p.kindLabel,
-								formula: p.formula,
-								explanation: p.explanation,
-								steps: p.steps,
-								targetIdx: p.passingStepIndex,
-							}),
-						)}
+						{colorAnalysis.chromaticPassing.patterns.map(renderPatternCard)}
 					</div>
 				</div>
 			)}
@@ -316,17 +306,7 @@ export function ColorHarmonyPanel({
 					</section>
 
 					<div className="color-cards-stack">
-						{colorAnalysis.diminishedHarmony.patterns.map((p) =>
-							renderPatternCard({
-								id: p.id,
-								title: p.title,
-								kindLabel: p.kindLabel,
-								formula: p.formula,
-								explanation: p.explanation,
-								steps: p.steps,
-								targetIdx: p.dimStepIndex,
-							}),
-						)}
+						{colorAnalysis.diminishedHarmony.patterns.map(renderPatternCard)}
 					</div>
 				</div>
 			)}

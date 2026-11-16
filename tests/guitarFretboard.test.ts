@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	analyzeKey,
+	ascendingNotesToMidi,
 	mod12,
 	noteToPitchClass,
 } from "../src/react-app/theory/circleOfFifths";
@@ -11,7 +12,6 @@ import {
 	buildGuitarScalePassGuide,
 	getChromaticDegreeLabel,
 	getGuitarVoicings,
-	notesToGuitarMidi,
 } from "../src/react-app/theory/guitarFretboard";
 
 const ALL_ROOTS = [
@@ -256,10 +256,10 @@ describe("Guitar fretboard chord voicing generator", () => {
 		expect(aGuide.cagedBoxTip).toContain("5–8");
 	});
 
-	test("getChromaticDegreeLabel and notesToGuitarMidi stay consistent across sharp and flat contexts", () => {
+	test("getChromaticDegreeLabel and ascendingNotesToMidi stay consistent across sharp and flat contexts", () => {
 		expect(getChromaticDegreeLabel(0, 6, false)).toBe("♯4");
 		expect(getChromaticDegreeLabel(0, 6, true)).toBe("♭5");
 		expect(getChromaticDegreeLabel(9, 7, false)).toBe("♭7");
-		expect(notesToGuitarMidi(["G", "G♯", "A"], false)).toEqual([55, 56, 57]);
+		expect(ascendingNotesToMidi(["G", "G♯", "A"], 48)).toEqual([55, 56, 57]);
 	});
 });

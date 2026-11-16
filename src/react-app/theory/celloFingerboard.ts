@@ -1,7 +1,7 @@
 import { mod12, noteToPitchClass } from "./circleOfFifths";
 import {
 	GuitarChordKind,
-	getChordToneNameMap,
+	createPitchClassNameResolver,
 	getIntervalLabel,
 } from "./guitarFretboard";
 
@@ -121,7 +121,7 @@ export function getCelloVoicings(
 	preferFlats = false,
 ): CelloVoicing[] {
 	const rootPc = noteToPitchClass(rootNote);
-	const resolveName = getChordToneNameMap(chordNotes, preferFlats);
+	const resolveName = createPitchClassNameResolver(chordNotes, [], preferFlats);
 	const candidates: [string, string, CelloSemitoneTuple][] = [];
 
 	const f4 = mod12(rootPc); // C string (0)

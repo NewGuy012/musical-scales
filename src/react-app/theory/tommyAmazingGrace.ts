@@ -1,3 +1,4 @@
+import { STANDARD_TUNING } from "./guitarFretboard";
 import type {
 	GuitarSongStop,
 	GuitarStopTechnique,
@@ -5,14 +6,12 @@ import type {
 	SongNoteEvent,
 } from "./songExamples";
 
-const OPEN_STRING_MIDI = [40, 45, 50, 55, 59, 64] as const;
-
 function stopMidi(
 	stringIndex: number,
 	fret: number,
 	technique: GuitarStopTechnique = "normal",
 ): number {
-	const openMidi = OPEN_STRING_MIDI[stringIndex];
+	const openMidi = STANDARD_TUNING[stringIndex].openMidi;
 	if (technique === "harmonic") {
 		if (fret === 12) return openMidi + 12;
 		if (fret === 7) return openMidi + 19;

@@ -1,5 +1,6 @@
 import {
 	ChordQuality,
+	READABLE_CHROMATIC,
 	getPianoBadgeClass,
 	handleSvgButtonKeyDown,
 	mod12,
@@ -21,21 +22,6 @@ const BLACK_KEY_OFFSETS = [
 	{ pc: 6, afterWhiteIndex: 3 },
 	{ pc: 8, afterWhiteIndex: 4 },
 	{ pc: 10, afterWhiteIndex: 5 },
-] as const;
-
-const FALLBACK_NOTE_NAMES = [
-	"C",
-	"C♯",
-	"D",
-	"E♭",
-	"E",
-	"F",
-	"F♯",
-	"G",
-	"A♭",
-	"A",
-	"B♭",
-	"B",
 ] as const;
 
 export function PianoKeyboard({
@@ -98,7 +84,7 @@ export function PianoKeyboard({
 		const isSongHit = songMidiSet.has(key.midi);
 		const inScale = scaleSet.has(key.pc);
 		const label =
-			activeNoteNamesByMidi[key.midi] ?? FALLBACK_NOTE_NAMES[mod12(key.pc)];
+			activeNoteNamesByMidi[key.midi] ?? READABLE_CHROMATIC[mod12(key.pc)];
 		const width = isBlack ? blackKeyWidth : whiteKeyWidth;
 		const height = isBlack ? blackKeyHeight : whiteKeyHeight;
 		const centerX = key.x + width / 2;

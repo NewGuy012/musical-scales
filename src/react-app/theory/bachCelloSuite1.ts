@@ -1,5 +1,10 @@
 import { CELLO_TUNING, MAX_CELLO_SEMITONE } from "./celloFingerboard";
-import { type ChordQuality, ascendingNotesToMidi } from "./circleOfFifths";
+import {
+	type ChordQuality,
+	NATURAL_PC,
+	ascendingNotesToMidi,
+	noteOffset,
+} from "./circleOfFifths";
 import type { GuitarChordKind } from "./guitarFretboard";
 import type {
 	CelloSongStop,
@@ -10,16 +15,6 @@ import type {
 
 const STEP_16TH_MS = 152;
 const LEGATO_16TH_SEC = 0.25;
-
-const LETTER_PC: Record<string, number> = {
-	C: 0,
-	D: 2,
-	E: 4,
-	F: 5,
-	G: 7,
-	A: 9,
-	B: 11,
-};
 
 const STRING_MAP: Record<string, { stringIndex: number; label: string }> = {
 	C: { stringIndex: 0, label: "IV" },
@@ -55,16 +50,12 @@ function parseCelloNoteToken(token: string): {
 	const [pitchPart, stringOverride] = token.split("@");
 	const letter = pitchPart[0];
 	const octave = Number(pitchPart.slice(-1));
-	const accidental = pitchPart.slice(1, -1);
-	const accOffset =
-		(accidental.match(/♯/g)?.length ?? 0) -
-		(accidental.match(/♭/g)?.length ?? 0);
-	const basePc = LETTER_PC[letter];
+	const basePc = NATURAL_PC[letter];
 	if (basePc === undefined || Number.isNaN(octave)) {
 		throw new Error(`Invalid Bach cello note token: ${token}`);
 	}
 
-	const midi = (octave + 1) * 12 + basePc + accOffset;
+	const midi = (octave + 1) * 12 + basePc + noteOffset(pitchPart.slice(0, -1));
 	let stringIndex: number;
 	if (stringOverride) {
 		const mapped = STRING_MAP[stringOverride];

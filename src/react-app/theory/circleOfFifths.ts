@@ -121,8 +121,8 @@ export interface KeyAnalysis {
 	progressions: ChordProgression[];
 }
 
-const LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
-const NATURAL_PC: Record<string, number> = {
+export const LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
+export const NATURAL_PC: Record<string, number> = {
 	C: 0,
 	D: 2,
 	E: 4,
@@ -131,6 +131,51 @@ const NATURAL_PC: Record<string, number> = {
 	A: 9,
 	B: 11,
 };
+
+export const SHARP_CHROMATIC = [
+	"C",
+	"C♯",
+	"D",
+	"D♯",
+	"E",
+	"F",
+	"F♯",
+	"G",
+	"G♯",
+	"A",
+	"A♯",
+	"B",
+] as const;
+
+export const FLAT_CHROMATIC = [
+	"C",
+	"D♭",
+	"D",
+	"E♭",
+	"E",
+	"F",
+	"G♭",
+	"G",
+	"A♭",
+	"A",
+	"B♭",
+	"B",
+] as const;
+
+export const READABLE_CHROMATIC = [
+	"C",
+	"C♯",
+	"D",
+	"E♭",
+	"E",
+	"F",
+	"F♯",
+	"G",
+	"G♯",
+	"A",
+	"B♭",
+	"B",
+] as const;
 
 const ACCIDENTAL_BY_OFFSET: Record<number, string> = {
 	[-2]: "𝄫",
@@ -604,18 +649,25 @@ export function buildScale(root: string, mode: KeyMode): string[] {
 }
 
 /**
- * Maps ascending note names onto MIDI pitches starting in C4..B4 (60..71)
- * so every triad, 7th chord, and 1-octave scale stays within C4..B5 (60..83).
+ * Maps ascending note names onto MIDI pitches starting from baseMidi (default C4 = 60),
+ * keeping triads, 7ths, and 1-octave scales inside C4..B5 (60..83).
  */
-export function ascendingNotesToMidi(notes: string[]): number[] {
+export function ascendingNotesToMidi(
+	notes: string[],
+	baseMidi = 60,
+	appendOctaveRoot = false,
+): number[] {
 	if (notes.length === 0) return [];
-	const result = [60 + noteToPitchClass(notes[0])];
+	const result = [baseMidi + noteToPitchClass(notes[0])];
 
 	for (let i = 1; i < notes.length; i++) {
 		const pc = noteToPitchClass(notes[i]);
 		const prev = result[i - 1];
 		const step = mod12(pc - mod12(prev)) || 12;
 		result.push(prev + step);
+	}
+	if (appendOctaveRoot) {
+		result.push(result[0] + 12);
 	}
 	return result;
 }
@@ -858,15 +910,6 @@ export function analyzeKey(
 	const harmonicMinorV =
 		mode === "minor" ? buildHarmonicMinorV(scaleNotes, idx) : null;
 
-	const majorRootTriad: [string, string, string] =
-		mode === "major"
-			? chords[0].triadNotes
-			: [scaleNotes[0], alterNote(scaleNotes[2], 1), scaleNotes[4]];
-	const minorRootTriad: [string, string, string] =
-		mode === "minor"
-			? chords[0].triadNotes
-			: [scaleNotes[0], alterNote(scaleNotes[2], -1), scaleNotes[4]];
-
 	const oppositeMode: KeyMode = mode === "major" ? "minor" : "major";
 	const allParallelCandidates = getAllSlotVariants(oppositeMode);
 	const exactParallel =
@@ -891,13 +934,13 @@ export function analyzeKey(
 	];
 
 	const cleanMajorNotes =
-		mode === "minor" && !exactParallel
-			? extractTriad(buildScale(parallelRoot, "major"))
-			: majorRootTriad;
+		mode === "major"
+			? chords[0].triadNotes
+			: extractTriad(buildScale(parallelRoot, "major"));
 	const cleanMinorNotes =
-		mode === "major" && !exactParallel
-			? extractTriad(buildScale(parallelRoot, "minor"))
-			: minorRootTriad;
+		mode === "minor"
+			? chords[0].triadNotes
+			: extractTriad(buildScale(parallelRoot, "minor"));
 
 	const enharmonicVariant = slot.enharmonic
 		? variant === slot.primary
