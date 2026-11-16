@@ -10,7 +10,7 @@ import {
 } from "./audio/synth";
 import { CelloFingerboard } from "./components/CelloFingerboard";
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
-import { CircleWheel } from "./components/CircleWheel";
+import { CircleWheel, WheelChordHighlight } from "./components/CircleWheel";
 import { ColorHarmonyPanel } from "./components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
@@ -44,6 +44,7 @@ import {
 	ProgressionCategory,
 	analyzeKey,
 	getChordCardId,
+	getPianoBadgeClass,
 	mod12,
 	noteToPitchClass,
 } from "./theory/circleOfFifths";
@@ -75,8 +76,8 @@ interface ActiveVoicing {
 	guitarKind: GuitarChordKind | null;
 	midi: number[];
 	notes: string[];
-	chord: DiatonicChord | null;
-	preserveVoicing?: boolean;
+	diatonicChord: DiatonicChord | null;
+	wheelHighlight: WheelChordHighlight | null;
 }
 
 const MAJOR_DEGREES = ["1", "2", "3", "4", "5", "6", "7"] as const;
@@ -180,12 +181,18 @@ export function App() {
 		}
 	}, []);
 
-	const stopActiveSequence = useCallback(() => {
-		cancelActivePlaybackEngine();
+	const clearTransientSequences = useCallback(() => {
 		setActiveScaleIndex(null);
 		setActiveProgressionId(null);
 		setActiveProgressionStepIdx(null);
 		setWalkingDirection(null);
+		setSelectedSongPreviewId(null);
+		setActiveGuitarRunMidi(null);
+		setActiveColorSeqId(null);
+		setActiveColorStepIdx(null);
+	}, []);
+
+	const resetSongPlaybackState = useCallback(() => {
 		setPlayingSongId(null);
 		setCuedSongId(null);
 		songPositionMsRef.current = 0;
@@ -194,11 +201,17 @@ export function App() {
 		setActiveSongStepIndex(null);
 		setActiveSongNoteLabel(null);
 		setActiveSongEvent(null);
-		setSelectedSongPreviewId(null);
-		setActiveGuitarRunMidi(null);
-		setActiveColorSeqId(null);
-		setActiveColorStepIdx(null);
-	}, [cancelActivePlaybackEngine]);
+	}, []);
+
+	const stopActiveSequence = useCallback(() => {
+		cancelActivePlaybackEngine();
+		clearTransientSequences();
+		resetSongPlaybackState();
+	}, [
+		cancelActivePlaybackEngine,
+		clearTransientSequences,
+		resetSongPlaybackState,
+	]);
 
 	useEffect(() => {
 		document.documentElement.setAttribute("data-theme", theme);
@@ -216,7 +229,7 @@ export function App() {
 		(
 			chord: DiatonicChord,
 			idOverride?: string,
-			includeChordRef = true,
+			highlightWheel = true,
 		): ActiveVoicing => {
 			const symbol = isSeventh ? chord.seventhSymbol : chord.symbol;
 			return {
@@ -226,7 +239,15 @@ export function App() {
 				guitarKind: inferGuitarChordKind(chord, chord.quality, isSeventh),
 				midi: isSeventh ? chord.seventhMidi : chord.triadMidi,
 				notes: isSeventh ? chord.seventhNotes : chord.triadNotes,
-				chord: includeChordRef ? chord : null,
+				diatonicChord: chord,
+				wheelHighlight: highlightWheel
+					? {
+							circleIndex: chord.circleIndex,
+							quality: chord.quality,
+							roman: chord.roman,
+							symbol,
+						}
+					: null,
 			};
 		},
 		[isSeventh],
@@ -235,9 +256,9 @@ export function App() {
 	const tonicChord = analysis.chords[0];
 	const activeVoicing = useMemo<ActiveVoicing>(() => {
 		if (auditionOverride) {
-			if (auditionOverride.chord && !auditionOverride.preserveVoicing) {
+			if (auditionOverride.diatonicChord) {
 				return toChordVoicing(
-					auditionOverride.chord,
+					auditionOverride.diatonicChord,
 					auditionOverride.id ?? undefined,
 				);
 			}
@@ -301,28 +322,16 @@ export function App() {
 			pianoMidi: number[],
 			flatBias: boolean,
 		): { midi: number[]; spreadSec?: number } => {
-			if (instrumentView === "guitar" && guitarKind && notes.length >= 3) {
-				const voicings = getGuitarVoicings(
-					notes[0],
-					guitarKind,
-					notes,
-					flatBias,
-				);
-				const chosen =
-					voicings.find((v) => v.id === selectedGuitarVoicingId) ?? voicings[0];
-				if (chosen) {
-					return { midi: chosen.soundingMidi, spreadSec: instrumentSpreadSec };
-				}
-			}
-			if (instrumentView === "cello" && guitarKind && notes.length >= 3) {
-				const voicings = getCelloVoicings(
-					notes[0],
-					guitarKind,
-					notes,
-					flatBias,
-				);
-				const chosen =
-					voicings.find((v) => v.id === selectedCelloVoicingId) ?? voicings[0];
+			if (instrumentView !== "piano" && guitarKind && notes.length >= 3) {
+				const voicings =
+					instrumentView === "guitar"
+						? getGuitarVoicings(notes[0], guitarKind, notes, flatBias)
+						: getCelloVoicings(notes[0], guitarKind, notes, flatBias);
+				const selectedId =
+					instrumentView === "guitar"
+						? selectedGuitarVoicingId
+						: selectedCelloVoicingId;
+				const chosen = voicings.find((v) => v.id === selectedId) ?? voicings[0];
 				if (chosen) {
 					return { midi: chosen.soundingMidi, spreadSec: instrumentSpreadSec };
 				}
@@ -335,6 +344,28 @@ export function App() {
 			selectedCelloVoicingId,
 			instrumentSpreadSec,
 		],
+	);
+
+	const playInstrumentChord = useCallback(
+		(
+			notes: string[],
+			guitarKind: GuitarChordKind | null,
+			pianoMidi: number[],
+			flatBias: boolean,
+		) => {
+			const pb = resolvePlaybackForInstrument(
+				notes,
+				guitarKind,
+				pianoMidi,
+				flatBias,
+			);
+			playChordNotes(pb.midi, {
+				preset: soundPreset,
+				arpeggiate,
+				spreadSec: pb.spreadSec,
+			});
+		},
+		[resolvePlaybackForInstrument, soundPreset, arpeggiate],
 	);
 
 	const resolveDiatonicPlayback = useCallback(
@@ -401,46 +432,40 @@ export function App() {
 					preference,
 					slotOverrides,
 				);
-				const pb = resolveDiatonicPlayback(
-					nextAnalysis.chords[0],
+				const v = toChordVoicing(nextAnalysis.chords[0]);
+				playInstrumentChord(
+					v.notes,
+					v.guitarKind,
+					v.midi,
 					nextAnalysis.accidentalsCount < 0,
 				);
-				playChordNotes(pb.midi, {
-					preset: soundPreset,
-					arpeggiate,
-					spreadSec: pb.spreadSec,
-				});
 			}
 		},
 		[
 			stopActiveSequence,
 			preference,
 			slotOverrides,
-			resolveDiatonicPlayback,
-			soundPreset,
-			arpeggiate,
+			toChordVoicing,
+			playInstrumentChord,
 		],
 	);
 
 	const handlePlayTonic = useCallback(() => {
 		stopActiveSequence();
 		setAuditionOverride(null);
-		const pb = resolveDiatonicPlayback(
-			tonicChord,
+		const v = toChordVoicing(tonicChord);
+		playInstrumentChord(
+			v.notes,
+			v.guitarKind,
+			v.midi,
 			analysis.accidentalsCount < 0,
 		);
-		playChordNotes(pb.midi, {
-			preset: soundPreset,
-			arpeggiate,
-			spreadSec: pb.spreadSec,
-		});
 	}, [
 		stopActiveSequence,
-		resolveDiatonicPlayback,
+		toChordVoicing,
 		tonicChord,
+		playInstrumentChord,
 		analysis.accidentalsCount,
-		soundPreset,
-		arpeggiate,
 	]);
 
 	const handleSelectChord = useCallback(
@@ -448,25 +473,18 @@ export function App() {
 			stopActiveSequence();
 			const v = toChordVoicing(chord, id);
 			setAuditionOverride(v);
-			const pb = resolvePlaybackForInstrument(
+			playInstrumentChord(
 				v.notes,
 				v.guitarKind,
 				v.midi,
 				analysis.accidentalsCount < 0 || v.notes.some((n) => n.includes("♭")),
 			);
-			playChordNotes(pb.midi, {
-				preset: soundPreset,
-				arpeggiate,
-				spreadSec: pb.spreadSec,
-			});
 		},
 		[
 			stopActiveSequence,
 			toChordVoicing,
-			resolvePlaybackForInstrument,
+			playInstrumentChord,
 			analysis.accidentalsCount,
-			soundPreset,
-			arpeggiate,
 		],
 	);
 
@@ -481,27 +499,17 @@ export function App() {
 				guitarKind: kind,
 				midi: target.midi,
 				notes: target.notes,
-				chord: null,
+				diatonicChord: null,
+				wheelHighlight: null,
 			});
-			const pb = resolvePlaybackForInstrument(
+			playInstrumentChord(
 				target.notes,
 				kind,
 				target.midi,
 				target.notes.some((n) => n.includes("♭")),
 			);
-			playChordNotes(pb.midi, {
-				preset: soundPreset,
-				arpeggiate,
-				spreadSec: pb.spreadSec,
-			});
 		},
-		[
-			stopActiveSequence,
-			analysis.tonicPair,
-			resolvePlaybackForInstrument,
-			soundPreset,
-			arpeggiate,
-		],
+		[stopActiveSequence, analysis.tonicPair, playInstrumentChord],
 	);
 
 	const handlePlayScale = useCallback(() => {
@@ -529,7 +537,8 @@ export function App() {
 					guitarKind: null,
 					midi: [analysis.scaleMidi[idx]],
 					notes: [noteLabel],
-					chord: null,
+					diatonicChord: null,
+					wheelHighlight: null,
 				});
 			},
 			onDone: () => {
@@ -639,44 +648,10 @@ export function App() {
 								: s.primary.majorRoot,
 						) === rootPc,
 				)?.index ??
-				activeVoicing.chord?.circleIndex ??
+				activeVoicing.wheelHighlight?.circleIndex ??
 				selectedSlot;
 
 			const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
-			const existingChord = activeVoicing.chord;
-			const chordShim: DiatonicChord = {
-				degree: existingChord?.degree ?? 1,
-				roman: spec ? spec.label : variation.symbol,
-				root: activeRootNote,
-				quality: variation.quality,
-				symbol: variation.symbol,
-				seventhSymbol: variation.symbol,
-				triadNotes: [
-					variation.notes[0] ?? activeRootNote,
-					variation.notes[1] ?? activeRootNote,
-					variation.notes[2] ?? activeRootNote,
-				],
-				seventhNotes: [
-					variation.notes[0] ?? activeRootNote,
-					variation.notes[1] ?? activeRootNote,
-					variation.notes[2] ?? activeRootNote,
-					variation.notes[3] ?? variation.notes[0] ?? activeRootNote,
-				],
-				triadMidi: [
-					variation.midi[0] ?? 60,
-					variation.midi[1] ?? 64,
-					variation.midi[2] ?? 67,
-				],
-				seventhMidi: [
-					variation.midi[0] ?? 60,
-					variation.midi[1] ?? 64,
-					variation.midi[2] ?? 67,
-					variation.midi[3] ?? 72,
-				],
-				circleIndex: targetSlotMatch,
-				functionLabel: spec?.description ?? "Chord variation",
-			};
-
 			setAuditionOverride({
 				id: `var-${activeRootNote}-${kind}`,
 				label: variation.symbol,
@@ -684,31 +659,29 @@ export function App() {
 				guitarKind: kind,
 				midi: variation.midi,
 				notes: variation.notes,
-				chord: chordShim,
-				preserveVoicing: true,
+				diatonicChord: null,
+				wheelHighlight: {
+					circleIndex: targetSlotMatch,
+					quality: variation.quality,
+					roman: spec ? spec.label : variation.symbol,
+					symbol: variation.symbol,
+				},
 			});
 
-			const pb = resolvePlaybackForInstrument(
+			playInstrumentChord(
 				variation.notes,
 				kind,
 				variation.midi,
 				preferFlats || activeRootNote.includes("♭"),
 			);
-			playChordNotes(pb.midi, {
-				preset: soundPreset,
-				arpeggiate,
-				spreadSec: pb.spreadSec,
-			});
 		},
 		[
 			stopActiveSequence,
 			activeRootNote,
 			preferFlats,
-			activeVoicing.chord,
+			activeVoicing.wheelHighlight,
 			selectedSlot,
-			resolvePlaybackForInstrument,
-			soundPreset,
-			arpeggiate,
+			playInstrumentChord,
 		],
 	);
 
@@ -782,50 +755,21 @@ export function App() {
 	);
 
 	const toColorChordVoicing = useCallback(
-		(chord: HarmonyChordSpec): ActiveVoicing => {
-			const chordShim: DiatonicChord = {
-				degree: 1,
-				roman: chord.romanLabel,
-				root: chord.root,
-				quality: chord.quality,
-				symbol: chord.symbol,
-				seventhSymbol: chord.symbol,
-				triadNotes: [
-					chord.notes[0] ?? chord.root,
-					chord.notes[1] ?? chord.root,
-					chord.notes[2] ?? chord.root,
-				],
-				seventhNotes: [
-					chord.notes[0] ?? chord.root,
-					chord.notes[1] ?? chord.root,
-					chord.notes[2] ?? chord.root,
-					chord.notes[3] ?? chord.notes[0] ?? chord.root,
-				],
-				triadMidi: [
-					chord.midi[0] ?? 60,
-					chord.midi[1] ?? 64,
-					chord.midi[2] ?? 67,
-				],
-				seventhMidi: [
-					chord.midi[0] ?? 60,
-					chord.midi[1] ?? 64,
-					chord.midi[2] ?? 67,
-					chord.midi[3] ?? 72,
-				],
+		(chord: HarmonyChordSpec): ActiveVoicing => ({
+			id: chord.id,
+			label: `${chord.symbol} (${chord.romanLabel})`,
+			quality: chord.quality,
+			guitarKind: chord.guitarKind,
+			midi: chord.midi,
+			notes: chord.notes,
+			diatonicChord: null,
+			wheelHighlight: {
 				circleIndex: chord.circleIndex,
-				functionLabel: chord.roleTag ?? chord.romanLabel,
-			};
-			return {
-				id: chord.id,
-				label: `${chord.symbol} (${chord.romanLabel})`,
 				quality: chord.quality,
-				guitarKind: chord.guitarKind,
-				midi: chord.midi,
-				notes: chord.notes,
-				chord: chordShim,
-				preserveVoicing: true,
-			};
-		},
+				roman: chord.romanLabel,
+				symbol: chord.symbol,
+			},
+		}),
 		[],
 	);
 
@@ -833,25 +777,14 @@ export function App() {
 		(chord: HarmonyChordSpec) => {
 			stopActiveSequence();
 			setAuditionOverride(toColorChordVoicing(chord));
-			const pb = resolvePlaybackForInstrument(
+			playInstrumentChord(
 				chord.notes,
 				chord.guitarKind,
 				chord.midi,
 				chord.root.includes("♭") || chord.notes.some((n) => n.includes("♭")),
 			);
-			playChordNotes(pb.midi, {
-				preset: soundPreset,
-				arpeggiate,
-				spreadSec: pb.spreadSec,
-			});
 		},
-		[
-			stopActiveSequence,
-			toColorChordVoicing,
-			resolvePlaybackForInstrument,
-			soundPreset,
-			arpeggiate,
-		],
+		[stopActiveSequence, toColorChordVoicing, playInstrumentChord],
 	);
 
 	const handlePlayColorSequence = useCallback(
@@ -1007,27 +940,14 @@ export function App() {
 				noteToPitchClass(candidateChord.triadNotes[0] ?? "") ===
 					noteToPitchClass(step.chordNotes[0] ?? "");
 
-			const wheelChord: DiatonicChord | null = isDiatonicCardMatch
+			const wheelHighlight: WheelChordHighlight | null = isDiatonicCardMatch
 				? candidateChord
 				: candidateChord && step.circleSlotIndex !== undefined
 					? {
-							...candidateChord,
-							degree: step.circleDegree,
-							roman: step.roman,
-							quality: step.quality,
-							symbol: step.chordSymbol,
-							triadNotes: [
-								step.chordNotes[0] ?? candidateChord.triadNotes[0],
-								step.chordNotes[1] ?? candidateChord.triadNotes[1],
-								step.chordNotes[2] ?? candidateChord.triadNotes[2],
-							],
-							seventhNotes: [
-								step.chordNotes[0] ?? candidateChord.seventhNotes[0],
-								step.chordNotes[1] ?? candidateChord.seventhNotes[1],
-								step.chordNotes[2] ?? candidateChord.seventhNotes[2],
-								step.chordNotes[3] ?? candidateChord.seventhNotes[3],
-							],
 							circleIndex: step.circleSlotIndex,
+							quality: step.quality,
+							roman: step.roman,
+							symbol: step.chordSymbol,
 						}
 					: candidateChord;
 
@@ -1038,8 +958,8 @@ export function App() {
 				guitarKind: step.guitarKind,
 				midi: step.displayMidi,
 				notes: step.chordNotes,
-				chord: wheelChord,
-				preserveVoicing: true,
+				diatonicChord: null,
+				wheelHighlight,
 			});
 		},
 		[],
@@ -1066,17 +986,23 @@ export function App() {
 		[applySongStepHighlight, updateSongPosition],
 	);
 
-	const startSongPlaybackFrom = useCallback(
-		(song: SongExample, startMs: number) => {
+	const prepareSongContext = useCallback(
+		(song: SongExample, isPlaying: boolean) => {
 			cancelActivePlaybackEngine();
-			setActiveScaleIndex(null);
-			setActiveProgressionId(null);
-			setWalkingDirection(null);
-			setSelectedSongPreviewId(null);
+			clearTransientSequences();
 			setSelectedGuitarVoicingId(null);
 			setSelectedCelloVoicingId(null);
+			setPlayingSongId(isPlaying ? song.id : null);
+			setCuedSongId(song.id);
 			setSelectedSlot(song.keySlot);
 			setMode(song.keyMode);
+		},
+		[cancelActivePlaybackEngine, clearTransientSequences],
+	);
+
+	const startSongPlaybackFrom = useCallback(
+		(song: SongExample, startMs: number) => {
+			prepareSongContext(song, true);
 
 			const songAnalysis = analyzeKey(
 				song.keySlot,
@@ -1089,8 +1015,6 @@ export function App() {
 				startMs >= plan.totalDurationMs - 25 ? 0 : Math.max(0, startMs);
 
 			syncSongStateAtTime(song, offsetMs, songAnalysis, plan);
-			setCuedSongId(song.id);
-			setPlayingSongId(song.id);
 
 			cancelSequenceRef.current = playTimedSequence(plan.events, {
 				preset: soundPreset,
@@ -1115,26 +1039,20 @@ export function App() {
 				},
 				onDone: () => {
 					cancelSequenceRef.current = null;
-					songPositionMsRef.current = 0;
-					lastUiProgressMsRef.current = -100;
-					setPlayingSongId(null);
-					setCuedSongId(null);
-					setSongPositionMs(0);
-					setActiveSongStepIndex(null);
-					setActiveSongNoteLabel(null);
-					setActiveSongEvent(null);
+					resetSongPlaybackState();
 					setAuditionOverride(null);
 				},
 			});
 		},
 		[
-			cancelActivePlaybackEngine,
+			prepareSongContext,
 			preference,
 			slotOverrides,
 			syncSongStateAtTime,
 			soundPreset,
 			applySongStepHighlight,
 			updateSongPosition,
+			resetSongPlaybackState,
 		],
 	);
 
@@ -1166,17 +1084,9 @@ export function App() {
 
 	const handleBeginScrubSong = useCallback(
 		(song: SongExample) => {
-			cancelActivePlaybackEngine();
-			setActiveScaleIndex(null);
-			setActiveProgressionId(null);
-			setWalkingDirection(null);
-			setSelectedSongPreviewId(null);
-			setPlayingSongId(null);
-			setCuedSongId(song.id);
-			setSelectedSlot(song.keySlot);
-			setMode(song.keyMode);
+			prepareSongContext(song, false);
 		},
-		[cancelActivePlaybackEngine],
+		[prepareSongContext],
 	);
 
 	const handleSeekSong = useCallback(
@@ -1185,17 +1095,7 @@ export function App() {
 				startSongPlaybackFrom(song, timeMs);
 				return;
 			}
-			cancelActivePlaybackEngine();
-			setActiveScaleIndex(null);
-			setActiveProgressionId(null);
-			setWalkingDirection(null);
-			setSelectedSongPreviewId(null);
-			setSelectedGuitarVoicingId(null);
-			setSelectedCelloVoicingId(null);
-			setPlayingSongId(null);
-			setCuedSongId(song.id);
-			setSelectedSlot(song.keySlot);
-			setMode(song.keyMode);
+			prepareSongContext(song, false);
 
 			const songAnalysis = analyzeKey(
 				song.keySlot,
@@ -1207,11 +1107,30 @@ export function App() {
 		},
 		[
 			startSongPlaybackFrom,
-			cancelActivePlaybackEngine,
+			prepareSongContext,
 			preference,
 			slotOverrides,
 			syncSongStateAtTime,
 		],
+	);
+
+	const playSongStepAudition = useCallback(
+		(song: SongExample, step: SongChordStep) => {
+			const songAnalysis = analyzeKey(
+				song.keySlot,
+				song.keyMode,
+				preference,
+				slotOverrides,
+			);
+			playInstrumentChord(
+				step.chordNotes,
+				step.guitarKind,
+				step.displayMidi,
+				songAnalysis.accidentalsCount < 0,
+			);
+			return songAnalysis;
+		},
+		[preference, slotOverrides, playInstrumentChord],
 	);
 
 	const handleSkipSongBar = useCallback(
@@ -1247,23 +1166,7 @@ export function App() {
 			handleSeekSong(song, targetMs, false);
 			const step = song.steps[targetIdx];
 			if (step) {
-				const songAnalysis = analyzeKey(
-					song.keySlot,
-					song.keyMode,
-					preference,
-					slotOverrides,
-				);
-				const pb = resolvePlaybackForInstrument(
-					step.chordNotes,
-					step.guitarKind,
-					step.displayMidi,
-					songAnalysis.accidentalsCount < 0,
-				);
-				playChordNotes(pb.midi, {
-					preset: soundPreset,
-					arpeggiate,
-					spreadSec: pb.spreadSec,
-				});
+				playSongStepAudition(song, step);
 			}
 		},
 		[
@@ -1273,11 +1176,7 @@ export function App() {
 			selectedSongPreviewId,
 			startSongPlaybackFrom,
 			handleSeekSong,
-			preference,
-			slotOverrides,
-			resolvePlaybackForInstrument,
-			soundPreset,
-			arpeggiate,
+			playSongStepAudition,
 		],
 	);
 
@@ -1301,23 +1200,7 @@ export function App() {
 				const shouldPlay = playingSongId === song.id;
 				handleSeekSong(song, targetMs, shouldPlay);
 				if (!shouldPlay) {
-					const songAnalysis = analyzeKey(
-						song.keySlot,
-						song.keyMode,
-						preference,
-						slotOverrides,
-					);
-					const pb = resolvePlaybackForInstrument(
-						step.chordNotes,
-						step.guitarKind,
-						step.displayMidi,
-						songAnalysis.accidentalsCount < 0,
-					);
-					playChordNotes(pb.midi, {
-						preset: soundPreset,
-						arpeggiate,
-						spreadSec: pb.spreadSec,
-					});
+					playSongStepAudition(song, step);
 				}
 				return;
 			}
@@ -1329,37 +1212,16 @@ export function App() {
 			setSelectedSlot(song.keySlot);
 			setMode(song.keyMode);
 
-			const songAnalysis = analyzeKey(
-				song.keySlot,
-				song.keyMode,
-				preference,
-				slotOverrides,
-			);
+			const songAnalysis = playSongStepAudition(song, step);
 			applySongStepHighlight(songAnalysis, step);
-
-			const pb = resolvePlaybackForInstrument(
-				step.chordNotes,
-				step.guitarKind,
-				step.displayMidi,
-				songAnalysis.accidentalsCount < 0,
-			);
-			playChordNotes(pb.midi, {
-				preset: soundPreset,
-				arpeggiate,
-				spreadSec: pb.spreadSec,
-			});
 		},
 		[
 			playingSongId,
 			cuedSongId,
 			handleSeekSong,
+			playSongStepAudition,
 			stopActiveSequence,
 			applySongStepHighlight,
-			preference,
-			slotOverrides,
-			resolvePlaybackForInstrument,
-			soundPreset,
-			arpeggiate,
 		],
 	);
 
@@ -1448,12 +1310,7 @@ export function App() {
 	}, [shortcutsOpen]);
 
 	const scaleDegreeLabels = mode === "major" ? MAJOR_DEGREES : MINOR_DEGREES;
-	const activeQualityBadgeClass =
-		activeVoicing.quality === "minor"
-			? "piano-active-minor"
-			: activeVoicing.quality === "diminished"
-				? "piano-active-dim"
-				: "piano-active-major";
+	const activeQualityBadgeClass = getPianoBadgeClass(activeVoicing.quality);
 
 	return (
 		<div className="app-shell">
@@ -1606,8 +1463,10 @@ export function App() {
 						mode={mode}
 						preference={preference}
 						slotOverrides={slotOverrides}
-						highlightedChord={activeVoicing.chord}
-						highlightedNotes={activeVoicing.chord ? activeVoicing.notes : null}
+						highlightedChord={activeVoicing.wheelHighlight}
+						highlightedNotes={
+							activeVoicing.wheelHighlight ? activeVoicing.notes : null
+						}
 						rotateToSelected={rotateToSelected}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onPlayTonic={handlePlayTonic}
@@ -1829,41 +1688,31 @@ export function App() {
 								</button>
 							</div>
 
-							{harmonyTab === "chords" ? (
+							{harmonyTab !== "songs" ? (
 								<div className="chord-toolbar">
-									<div
-										className="segmented-control"
-										role="group"
-										aria-label="Chord extension"
-									>
-										<button
-											type="button"
-											className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-											onClick={() => setVoicingMode("triad")}
+									{harmonyTab === "chords" && (
+										<div
+											className="segmented-control"
+											role="group"
+											aria-label="Chord extension"
 										>
-											Triads
-										</button>
-										<button
-											type="button"
-											className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-											onClick={() => setVoicingMode("seventh")}
-										>
-											7ths
-										</button>
-									</div>
+											<button
+												type="button"
+												className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("triad")}
+											>
+												Triads
+											</button>
+											<button
+												type="button"
+												className={`seg-btn ${isSeventh ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("seventh")}
+											>
+												7ths
+											</button>
+										</div>
+									)}
 
-									<button
-										type="button"
-										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-										aria-pressed={arpeggiate}
-										onClick={() => setArpeggiate((a) => !a)}
-										title="Roll chord notes sequentially vs. block chord"
-									>
-										Arpeggio
-									</button>
-								</div>
-							) : harmonyTab === "color" ? (
-								<div className="chord-toolbar">
 									<button
 										type="button"
 										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}

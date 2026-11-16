@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
 	AccidentalPreference,
 	CIRCLE_SLOTS,
-	DiatonicChord,
+	ChordQuality,
 	EnharmonicSide,
 	KeyAnalysis,
 	KeyMode,
@@ -13,13 +13,21 @@ import {
 } from "../theory/circleOfFifths";
 import { IconPin, IconRotate } from "./Icons";
 
+export interface WheelChordHighlight {
+	circleIndex: number;
+	quality: ChordQuality;
+	roman: string;
+	symbol: string;
+	triadNotes?: string[];
+}
+
 interface CircleWheelProps {
 	analysis: KeyAnalysis;
 	selectedSlot: number;
 	mode: KeyMode;
 	preference: AccidentalPreference;
 	slotOverrides: Partial<Record<number, EnharmonicSide>>;
-	highlightedChord: DiatonicChord | null;
+	highlightedChord: WheelChordHighlight | null;
 	highlightedNotes?: string[] | null;
 	rotateToSelected: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
@@ -504,7 +512,7 @@ export function CircleWheel({
 								<text x="0" y="24" textAnchor="middle" className="hub-subline">
 									{(highlightedNotes && highlightedNotes.length > 0
 										? highlightedNotes
-										: highlightedChord.triadNotes
+										: (highlightedChord.triadNotes ?? [])
 									).join(" · ")}
 								</text>
 							</>
