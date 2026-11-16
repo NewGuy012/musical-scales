@@ -43,17 +43,14 @@ musical-scales/
 │   │   │   ├── ColorHarmonyPanel.tsx # Chromatic passing, dim7 symmetry, V7/x, tritone subs
 │   │   │   ├── PianoKeyboard.tsx     # 2-octave (C4–B5) SVG piano visualizer
 │   │   │   ├── GuitarFretboard.tsx   # 6-string, 15-fret CAGED, pentatonic & passing visualizer
-│   │   │   ├── BowedFingerboard.tsx  # Shared 4-string fretless bowed fingerboard & LH frame SVG
-│   │   │   ├── ViolinFingerboard.tsx # 4-string violin fingerboard (G3–D4–A4–E5)
-│   │   │   ├── CelloFingerboard.tsx  # 4-string cello fingerboard (C2–G2–D3–A3)
+│   │   │   ├── BowedFingerboard.tsx  # Shared 4-string fretless bowed fingerboard (Violin & Cello)
 │   │   │   ├── SongExamplesPanel.tsx # Interactive bar-by-bar song repertoire player & study guide
 │   │   │   └── Icons.tsx             # Inline SVG icons shared across panels
 │   │   └── theory/
 │   │       ├── circleOfFifths.ts     # Note tables, scales, signatures, diatonic chords, progressions
 │   │       ├── chromaticHarmony.ts   # Passing slides, symmetric dim7, secondary dominants, tritone subs
 │   │       ├── guitarFretboard.ts    # Tuning, 13 chord variations, CAGED voicings, pentatonic/passing guides
-│   │       ├── celloFingerboard.ts   # Bowed fifths voicing engine & Cello tuning (C2–G2–D3–A3)
-│   │       ├── violinFingerboard.ts  # Violin tuning (G3–D4–A4–E5) & closed-frame voicings
+│   │       ├── celloFingerboard.ts   # Bowed fifths voicing engine, Cello (C2–G2–D3–A3) & Violin (G3–D4–A4–E5) tunings
 │   │       ├── songExamples.ts       # CompactSongSpec hydrator, playback flattener & time lookup
 │   │       ├── debussyClairDeLune.ts # Piano repertoire: Clair de lune (72 bars)
 │   │       ├── schubertMomentMusicaux3.ts # Piano repertoire: Schubert Moment Musicaux No. 3 (78 bars)
@@ -77,7 +74,7 @@ flowchart TD
     State["App.tsx (Slot, Mode, HarmonyTab, InstrumentTab, ActiveVoicing)"]
     Theory["circleOfFifths.ts — analyzeKey()"]
     ColorTheory["chromaticHarmony.ts — analyzeColorHarmony()"]
-    Voicings["guitarFretboard.ts / violinFingerboard.ts / celloFingerboard.ts"]
+    Voicings["guitarFretboard.ts / celloFingerboard.ts"]
     Songs["songExamples.ts (hydrateSong)"]
     Synth["synth.ts — Web Audio Engine"]
 
@@ -92,17 +89,14 @@ flowchart TD
 
     State --> Piano["PianoKeyboard.tsx"]
     State --> Guitar["GuitarFretboard.tsx"]
-    State --> Violin["ViolinFingerboard.tsx"]
-    State --> Cello["CelloFingerboard.tsx"]
+    State --> Bowed["BowedFingerboard.tsx"]
 
     Voicings --> Guitar
-    Voicings --> Violin
-    Voicings --> Cello
+    Voicings --> Bowed
 
     State --> Synth
     Guitar --> Synth
-    Violin --> Synth
-    Cello --> Synth
+    Bowed --> Synth
     Piano --> Synth
 ```
 
@@ -125,9 +119,9 @@ flowchart TD
   - `getGuitarVoicings()` generates open and movable CAGED/shell voicings (`<= 4` fret span) across all 15 roots and 13 chord kinds, ranked by playability.
   - `buildGuitarScalePassGuide()` derives key/chord pentatonic overlays, CAGED pockets, and playable chromatic passing phrases; `createPitchClassNameResolver()` handles enharmonic note naming across string instruments.
 
-- **[`celloFingerboard.ts`](../src/react-app/theory/celloFingerboard.ts)** & **[`violinFingerboard.ts`](../src/react-app/theory/violinFingerboard.ts)**:
-  - Share `getBowedFifthsVoicings()` across 4-string fifths-tuned instruments (`C2–G2–D3–A3` for Cello and `G3–D4–A4–E5` for Violin) over 14 semitones.
-  - `getCelloVoicings()` and `getViolinVoicings()` generate playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
+- **[`celloFingerboard.ts`](../src/react-app/theory/celloFingerboard.ts)**:
+  - Shares `getBowedFifthsVoicings()` and `getBowedVoicings()` across 4-string fifths-tuned instruments (`CELLO_TUNING`: `C2–G2–D3–A3`, `VIOLIN_TUNING`: `G3–D4–A4–E5`) over `MAX_BOWED_SEMITONE = 14` semitones.
+  - Generates playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
 - **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)** (+ repertoire leaf modules):
   - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`schubertMomentMusicaux3.ts`](../src/react-app/theory/schubertMomentMusicaux3.ts) (_Moment Musicaux No. 3_ by Franz Schubert for Piano, 78 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`cannonballRag.ts`](../src/react-app/theory/cannonballRag.ts) (_Cannonball Rag_ by Merle Travis for Guitar, 75 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 71 bars), [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars), and [`haydnCelloConcerto2.ts`](../src/react-app/theory/haydnCelloConcerto2.ts) (_Cello Concerto No. 2 in D Major, III. Rondo: Allegro_ by Joseph Haydn for Cello, 50 bars).
@@ -160,9 +154,9 @@ flowchart TD
 
 ### 4. Edge Worker & Security (`src/worker/index.ts`, `public/_headers`)
 
-- **[`src/worker/index.ts`](../src/worker/index.ts)** uses Hono's `secureHeaders` middleware to attach `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
-- All `/api/*` and unknown routes return `Cache-Control: no-store` with JSON `405` (non-`GET`/`HEAD` on `/api/*`) or `404` responses.
-- **[`public/_headers`](../public/_headers)** applies matching `COOP`/`CORP`, framing, and app `Content-Security-Policy` headers to static client assets served by Cloudflare.
+- **[`src/worker/index.ts`](../src/worker/index.ts)** uses Hono's `secureHeaders` middleware to attach `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-Permitted-Cross-Domain-Policies: none`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
+- All `/api/*` and unknown routes return `Cache-Control: no-store` with JSON `405` (with `Allow: GET, HEAD` for non-`GET`/`HEAD` on `/api/*`) or `404` responses.
+- **[`public/_headers`](../public/_headers)** applies matching `HSTS`, `COOP`/`CORP`, framing, `X-Permitted-Cross-Domain-Policies`, and app `Content-Security-Policy` headers to static client assets served by Cloudflare.
 
 ---
 
@@ -172,6 +166,6 @@ Run via `bun test`:
 
 - **[`circleOfFifths.test.ts`](../tests/circleOfFifths.test.ts)**: Verifies enharmonic scale spelling, diatonic chord qualities, `6/7` shared-note neighbor invariants, progression validity, and MIDI range bounds (`C4..B5`).
 - **[`chromaticHarmony.test.ts`](../tests/chromaticHarmony.test.ts)**: Validates chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions across all 12 Circle slots in Major and Minor modes.
-- **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits, plus guitar pentatonic/passing guides.
+- **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits (guitar, cello, and violin), plus guitar pentatonic/passing guides.
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, and safe handling of invalid MIDI inputs.
 - **[`songExamples.test.ts`](../tests/songExamples.test.ts)**, **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify curated repertoire bar timelines, guitar/cello physical stops, transport scrubber controls, lookahead playback timing, and SSR component rendering.
