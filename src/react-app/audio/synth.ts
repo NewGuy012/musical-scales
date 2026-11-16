@@ -22,43 +22,47 @@ function getAudioEngine(): AudioEngine | null {
 	if (!AudioCtx) return null;
 
 	if (!sharedEngine) {
-		const ctx = new AudioCtx();
-		const compressor = ctx.createDynamicsCompressor();
-		compressor.threshold.value = -16;
-		compressor.knee.value = 18;
-		compressor.ratio.value = 3.5;
-		compressor.attack.value = 0.004;
-		compressor.release.value = 0.16;
+		try {
+			const ctx = new AudioCtx();
+			const compressor = ctx.createDynamicsCompressor();
+			compressor.threshold.value = -16;
+			compressor.knee.value = 18;
+			compressor.ratio.value = 3.5;
+			compressor.attack.value = 0.004;
+			compressor.release.value = 0.16;
 
-		const master = ctx.createGain();
-		master.gain.value = 0.72;
+			const master = ctx.createGain();
+			master.gain.value = 0.72;
 
-		// Feedforward early reflections for natural room ambience
-		const roomTone = createFilter(ctx, "lowpass", 1650, 0.7);
-		for (const [delaySec, gainVal] of [
-			[0.021, 0.095],
-			[0.039, 0.065],
-		] as const) {
-			const tap = ctx.createDelay(0.1);
-			tap.delayTime.value = delaySec;
-			const tapGain = ctx.createGain();
-			tapGain.gain.value = gainVal;
-			chainNodes(master, tap, tapGain, roomTone);
+			// Feedforward early reflections for natural room ambience
+			const roomTone = createFilter(ctx, "lowpass", 1650, 0.7);
+			for (const [delaySec, gainVal] of [
+				[0.021, 0.095],
+				[0.039, 0.065],
+			] as const) {
+				const tap = ctx.createDelay(0.1);
+				tap.delayTime.value = delaySec;
+				const tapGain = ctx.createGain();
+				tapGain.gain.value = gainVal;
+				chainNodes(master, tap, tapGain, roomTone);
+			}
+
+			master.connect(compressor);
+			roomTone.connect(compressor);
+			compressor.connect(ctx.destination);
+
+			const noiseLen = Math.floor(ctx.sampleRate * 0.35);
+			const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+			const noiseData = noiseBuffer.getChannelData(0);
+			const rand = createSeededRandom(1337);
+			for (let i = 0; i < noiseLen; i++) {
+				noiseData[i] = rand();
+			}
+
+			sharedEngine = { ctx, master, noiseBuffer };
+		} catch {
+			return null;
 		}
-
-		master.connect(compressor);
-		roomTone.connect(compressor);
-		compressor.connect(ctx.destination);
-
-		const noiseLen = Math.floor(ctx.sampleRate * 0.35);
-		const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-		const noiseData = noiseBuffer.getChannelData(0);
-		const rand = createSeededRandom(1337);
-		for (let i = 0; i < noiseLen; i++) {
-			noiseData[i] = rand();
-		}
-
-		sharedEngine = { ctx, master, noiseBuffer };
 	}
 
 	if (sharedEngine.ctx.state === "suspended") {
@@ -110,6 +114,11 @@ function registerAuxSource(source: AudioScheduledSourceNode): void {
 	activeVoiceSources.add(source);
 	source.onended = () => {
 		activeVoiceSources.delete(source);
+		try {
+			source.disconnect();
+		} catch {
+			// Ignore if already disconnected
+		}
 	};
 }
 
@@ -691,6 +700,39 @@ function scheduleVoice(
 	}
 }
 
+const LOOKAHEAD_SEC = 0.13;
+const SCHEDULER_INTERVAL_MS = 25;
+const AUDIO_LEAD_SEC = 0.015;
+
+function scheduleChordAtCtxTime(
+	engine: AudioEngine,
+	midiNotes: number[],
+	atCtxTime: number,
+	durationSec: number,
+	preset: InstrumentVoice,
+	arpeggiate: boolean,
+	spreadSec?: number,
+): void {
+	const validNotes = midiNotes.filter(isValidMidi);
+	if (validNotes.length === 0) return;
+	if (validNotes.length === 1) {
+		scheduleVoice(engine, validNotes[0], atCtxTime, durationSec, 0.24, preset);
+		return;
+	}
+	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
+	const spread = spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
+	validNotes.forEach((midi, idx) => {
+		scheduleVoice(
+			engine,
+			midi,
+			atCtxTime + idx * spread,
+			durationSec,
+			perNoteGain,
+			preset,
+		);
+	});
+}
+
 export function playSingleNote(
 	midi: number,
 	preset: SoundPreset = "piano",
@@ -699,8 +741,14 @@ export function playSingleNote(
 	if (preset === "muted" || !isValidMidi(midi)) return;
 	const engine = getAudioEngine();
 	if (!engine) return;
-	const now = engine.ctx.currentTime + 0.01;
-	scheduleVoice(engine, midi, now, duration, 0.24, preset);
+	scheduleVoice(
+		engine,
+		midi,
+		engine.ctx.currentTime + 0.01,
+		duration,
+		0.24,
+		preset,
+	);
 }
 
 export function playChordNotes(
@@ -718,25 +766,18 @@ export function playChordNotes(
 		arpeggiate = false,
 		spreadSec,
 	} = options;
-	const validNotes = midiNotes.filter(isValidMidi);
-	if (preset === "muted" || validNotes.length === 0) return;
+	if (preset === "muted") return;
 	const engine = getAudioEngine();
 	if (!engine) return;
-
-	const now = engine.ctx.currentTime + 0.015;
-	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
-	const spread = spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
-
-	validNotes.forEach((midi, idx) => {
-		scheduleVoice(
-			engine,
-			midi,
-			now + idx * spread,
-			duration,
-			perNoteGain,
-			preset,
-		);
-	});
+	scheduleChordAtCtxTime(
+		engine,
+		midiNotes,
+		engine.ctx.currentTime + AUDIO_LEAD_SEC,
+		duration,
+		preset,
+		arpeggiate,
+		spreadSec,
+	);
 }
 
 export interface TimedSequenceStep {
@@ -784,44 +825,6 @@ export function playStepSequence(
 	});
 }
 
-const LOOKAHEAD_SEC = 0.13;
-const SCHEDULER_INTERVAL_MS = 25;
-const AUDIO_LEAD_SEC = 0.015;
-
-function scheduleStepAtCtxTime(
-	engine: AudioEngine,
-	step: TimedSequenceStep,
-	atCtxTime: number,
-	preset: InstrumentVoice,
-	arpeggiate: boolean,
-): void {
-	const validNotes = step.midi.filter(isValidMidi);
-	if (validNotes.length === 0) return;
-	if (validNotes.length === 1) {
-		scheduleVoice(
-			engine,
-			validNotes[0],
-			atCtxTime,
-			step.durationSec,
-			0.24,
-			preset,
-		);
-		return;
-	}
-	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
-	const spread = step.spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
-	validNotes.forEach((midi, idx) => {
-		scheduleVoice(
-			engine,
-			midi,
-			atCtxTime + idx * spread,
-			step.durationSec,
-			perNoteGain,
-			preset,
-		);
-	});
-}
-
 export function playTimedSequence(
 	steps: TimedSequenceStep[],
 	options: {
@@ -859,7 +862,6 @@ export function playTimedSequence(
 	let finished = false;
 	let rafId: number | null = null;
 	let schedulerTimerId: number | null = null;
-	let endTimerId: number | null = null;
 	let initialTimerId: number | null = null;
 
 	const cleanupTimers = () => {
@@ -871,14 +873,16 @@ export function playTimedSequence(
 			window.clearInterval(schedulerTimerId);
 			schedulerTimerId = null;
 		}
-		if (endTimerId !== null) {
-			window.clearTimeout(endTimerId);
-			endTimerId = null;
-		}
 		if (rafId !== null && typeof window.cancelAnimationFrame === "function") {
 			window.cancelAnimationFrame(rafId);
 			rafId = null;
 		}
+	};
+
+	const cancel = () => {
+		cancelled = true;
+		cleanupTimers();
+		stopAllAudio();
 	};
 
 	if (steps.length === 0 || startOffsetMs >= computedEndMs) {
@@ -888,11 +892,7 @@ export function playTimedSequence(
 			onProgress?.(computedEndMs);
 			onDone?.();
 		}, 0);
-		return () => {
-			cancelled = true;
-			cleanupTimers();
-			stopAllAudio();
-		};
+		return cancel;
 	}
 
 	const engine = preset === "muted" ? null : getAudioEngine();
@@ -930,7 +930,6 @@ export function playTimedSequence(
 				);
 				return Math.min(computedEndMs, startOffsetMs + audioElapsedMs);
 			}
-			// Keep UI anchored at startOffsetMs only during brief AudioContext warmup
 			if (wallElapsed < AUDIO_LEAD_SEC * 1000) {
 				return startOffsetMs;
 			}
@@ -944,11 +943,16 @@ export function playTimedSequence(
 		while (nextAudioIdx < steps.length) {
 			const step = steps[nextAudioIdx];
 			const targetCtxTime = scheduledZeroCtxSec + step.atMs / 1000;
-			if (targetCtxTime > nowCtx + LOOKAHEAD_SEC) {
-				break;
-			}
-			const scheduledCtxTime = Math.max(nowCtx + 0.004, targetCtxTime);
-			scheduleStepAtCtxTime(engine, step, scheduledCtxTime, preset, arpeggiate);
+			if (targetCtxTime > nowCtx + LOOKAHEAD_SEC) break;
+			scheduleChordAtCtxTime(
+				engine,
+				step.midi,
+				Math.max(nowCtx + 0.004, targetCtxTime),
+				step.durationSec,
+				preset,
+				arpeggiate,
+				step.spreadSec,
+			);
 			nextAudioIdx++;
 		}
 	};
@@ -988,50 +992,32 @@ export function playTimedSequence(
 		}
 	};
 
-	const runLoop = () => {
-		if (cancelled || finished) return;
+	const tick = () => {
 		scheduleAudioLookahead();
 		syncVisuals();
+	};
+
+	const runRaf = () => {
+		if (cancelled || finished) return;
+		tick();
 		if (
 			!cancelled &&
 			!finished &&
 			typeof window.requestAnimationFrame === "function"
 		) {
-			rafId = window.requestAnimationFrame(runLoop);
+			rafId = window.requestAnimationFrame(runRaf);
 		}
 	};
 
 	initialTimerId = window.setTimeout(() => {
 		if (cancelled || finished) return;
-		scheduleAudioLookahead();
-		syncVisuals();
+		tick();
 		if (cancelled || finished) return;
-		schedulerTimerId = window.setInterval(() => {
-			scheduleAudioLookahead();
-			syncVisuals();
-		}, SCHEDULER_INTERVAL_MS);
-		const scheduleEndCheck = (delayMs: number) => {
-			endTimerId = window.setTimeout(() => {
-				scheduleAudioLookahead();
-				syncVisuals();
-				if (cancelled || finished) return;
-				const currentMs = getElapsedSongMs();
-				if (audioClockVerified && currentMs < computedEndMs - 1) {
-					scheduleEndCheck(Math.max(10, computedEndMs - currentMs + 5));
-				} else {
-					completeSequence();
-				}
-			}, delayMs);
-		};
-		scheduleEndCheck(Math.max(0, computedEndMs - startOffsetMs) + 5);
+		schedulerTimerId = window.setInterval(tick, SCHEDULER_INTERVAL_MS);
 		if (typeof window.requestAnimationFrame === "function") {
-			rafId = window.requestAnimationFrame(runLoop);
+			rafId = window.requestAnimationFrame(runRaf);
 		}
 	}, 0);
 
-	return () => {
-		cancelled = true;
-		cleanupTimers();
-		stopAllAudio();
-	};
+	return cancel;
 }
