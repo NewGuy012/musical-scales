@@ -6,11 +6,9 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
 	"*",
 	secureHeaders({
+		strictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
 		xFrameOptions: "DENY",
-		xContentTypeOptions: "nosniff",
 		referrerPolicy: "strict-origin-when-cross-origin",
-		crossOriginOpenerPolicy: "same-origin",
-		crossOriginResourcePolicy: "same-origin",
 		permissionsPolicy: {
 			camera: [],
 			microphone: [],
@@ -28,6 +26,7 @@ app.use(
 app.all("/api/*", (c) => {
 	c.header("Cache-Control", "no-store");
 	if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+		c.header("Allow", "GET, HEAD");
 		return c.json({ error: "Method not allowed" }, 405);
 	}
 	return c.json({ error: "Not found" }, 404);
