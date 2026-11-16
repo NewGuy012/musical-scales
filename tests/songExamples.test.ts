@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { MAX_BOWED_SEMITONE } from "../src/react-app/theory/celloFingerboard";
 import {
+	GUITAR_HARMONIC_OFFSETS,
 	MAX_GUITAR_FRET,
 	STANDARD_TUNING,
 } from "../src/react-app/theory/guitarFretboard";
@@ -61,6 +63,23 @@ describe("songExamples", () => {
 					expect(m).toBeGreaterThanOrEqual(36);
 					expect(m).toBeLessThanOrEqual(96);
 				}
+				for (const stop of ev.guitarStops ?? []) {
+					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
+					expect(stop.fret).toBeGreaterThanOrEqual(0);
+					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
+				}
+				for (const stop of [
+					...(ev.celloStops ?? []),
+					...(ev.violinStops ?? []),
+				]) {
+					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+					expect(stop.stringIndex).toBeLessThanOrEqual(3);
+					expect(stop.semitone).toBeGreaterThanOrEqual(0);
+					expect(stop.semitone).toBeLessThanOrEqual(MAX_BOWED_SEMITONE);
+					expect(stop.finger).toBeGreaterThanOrEqual(0);
+					expect(stop.finger).toBeLessThanOrEqual(4);
+				}
 			}
 		}
 	});
@@ -89,21 +108,12 @@ describe("songExamples", () => {
 		expect(flat.events.length).toBeGreaterThan(600);
 		expect(flat.totalDurationMs).toBeGreaterThan(95000);
 		for (const ev of flat.events) {
-			expect(ev.celloStops).toBeDefined();
 			expect(ev.celloStops?.length).toBeGreaterThan(0);
-			for (const stop of ev.celloStops ?? []) {
-				expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
-				expect(stop.stringIndex).toBeLessThanOrEqual(3);
-				expect(stop.semitone).toBeGreaterThanOrEqual(0);
-				expect(stop.semitone).toBeLessThanOrEqual(14);
-				expect(stop.finger).toBeGreaterThanOrEqual(0);
-				expect(stop.finger).toBeLessThanOrEqual(4);
-			}
 		}
 	});
 });
 
-describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
+describe("Curated piano, guitar, violin, and cello arrangements", () => {
 	test("Clair de lune includes all 72 bars in D♭ Major (9/8) with modulated C♯m7 section", () => {
 		const [clair] = getSongsForInstrument("piano");
 		expect(clair).toBeDefined();
@@ -146,14 +156,10 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 			for (const evt of step.events) {
 				expect(evt.guitarStops?.length).toBe(evt.midi.length);
 				evt.guitarStops?.forEach((stop, idx) => {
-					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
-					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
-					expect(stop.fret).toBeGreaterThanOrEqual(0);
-					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
 					const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
 					const harmonicOffset =
 						stop.technique === "harmonic"
-							? ({ 12: 12, 7: 19, 5: 24 }[stop.fret] ?? stop.fret)
+							? (GUITAR_HARMONIC_OFFSETS[stop.fret] ?? stop.fret)
 							: stop.fret;
 					expect(evt.midi[idx]).toBe(openMidi + harmonicOffset);
 				});
@@ -266,20 +272,69 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(flat.events.length).toBeGreaterThan(300);
 		expect(flat.totalDurationMs).toBeGreaterThan(240000);
 		for (const ev of flat.events) {
-			expect(ev.violinStops).toBeDefined();
 			expect(ev.violinStops?.length).toBeGreaterThan(0);
-			for (const stop of ev.violinStops ?? []) {
-				expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
-				expect(stop.stringIndex).toBeLessThanOrEqual(3);
-				expect(stop.semitone).toBeGreaterThanOrEqual(0);
-				expect(stop.semitone).toBeLessThanOrEqual(14);
-				expect(stop.finger).toBeGreaterThanOrEqual(0);
-				expect(stop.finger).toBeLessThanOrEqual(4);
-			}
 		}
 
 		const lastEvent = flat.events[flat.events.length - 1];
 		expect(lastEvent?.midi).toEqual([86]);
 		expect(lastEvent?.violinStops?.[0]?.technique).toBe("harmonic");
+	});
+
+	test("Cannonball Rag (75 bars, G Major) and Haydn Cello Concerto No. 2 (50 bars, D Major) preserve exact bars & stops", () => {
+		const [, cannonball] = getSongsForInstrument("guitar");
+		expect(cannonball.keySlot).toBe(1);
+		expect(cannonball.keyMode).toBe("major");
+		expect(cannonball.timeSignature).toBe("4/4");
+		expect(cannonball.bpm).toBe(188);
+		expect(cannonball.steps).toHaveLength(75);
+		expect(cannonball.steps[0].events.map((e) => e.midi[0])).toEqual([
+			55, 54, 55,
+		]);
+		expect(cannonball.steps[0].events[2].guitarStops?.[0]).toEqual({
+			stringIndex: 2,
+			fret: 5,
+			technique: "slide",
+		});
+		const cbLast = cannonball.steps[74].events[0];
+		expect(cbLast.midi).toEqual([67, 71, 76]);
+		expect(cbLast.guitarStops).toEqual([
+			{ stringIndex: 3, fret: 12, technique: "harmonic" },
+			{ stringIndex: 4, fret: 12, technique: "harmonic" },
+			{ stringIndex: 5, fret: 12, technique: "harmonic" },
+		]);
+		for (const step of cannonball.steps) {
+			expect(step.events.reduce((sum, ev) => sum + ev.stepDurationMs, 0)).toBe(
+				1280,
+			);
+			for (const ev of step.events) {
+				expect(ev.guitarStops?.length).toBeGreaterThan(0);
+			}
+		}
+
+		const [, haydn] = getSongsForInstrument("cello");
+		expect(haydn.keySlot).toBe(2);
+		expect(haydn.keyMode).toBe("major");
+		expect(haydn.timeSignature).toBe("6/8");
+		expect(haydn.bpm).toBe(80);
+		expect(haydn.steps).toHaveLength(50);
+		expect(haydn.steps[0].events.map((e) => e.midi[0])).toEqual([
+			66, 64, 66, 67, 66, 67,
+		]);
+		expect(haydn.steps[1].events.map((e) => e.midi[0])).toEqual([69, 66, 62]);
+		expect(haydn.steps[1].events[0].celloStops?.[0]).toEqual({
+			stringIndex: 3,
+			semitone: 12,
+			finger: 3,
+		});
+		expect(haydn.steps[1].events[2].celloStops?.[0]).toEqual({
+			stringIndex: 2,
+			semitone: 12,
+			finger: 3,
+		});
+		for (const step of haydn.steps) {
+			expect(step.events.reduce((sum, ev) => sum + ev.stepDurationMs, 0)).toBe(
+				1500,
+			);
+		}
 	});
 });

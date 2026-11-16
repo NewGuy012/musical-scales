@@ -302,66 +302,50 @@ describe("songPlayback helpers and synchronized UI", () => {
 	});
 
 	test("playTimedSequence supports startOffsetMs, onProgress updates, and cancellation", async () => {
-		const prevWindow = (globalThis as { window?: unknown }).window;
-		(globalThis as { window: unknown }).window = {
-			setTimeout: globalThis.setTimeout.bind(globalThis),
-			clearTimeout: globalThis.clearTimeout.bind(globalThis),
-			setInterval: globalThis.setInterval.bind(globalThis),
-			clearInterval: globalThis.clearInterval.bind(globalThis),
-		};
+		const seenSteps: number[] = [];
+		const progressValues: number[] = [];
+		let doneCount = 0;
 
-		try {
-			const seenSteps: number[] = [];
-			const progressValues: number[] = [];
-			let doneCount = 0;
-
-			await new Promise<void>((resolve) => {
-				playTimedSequence(
-					[
-						{ midi: [60], atMs: 0, durationSec: 0.04 },
-						{ midi: [62], atMs: 40, durationSec: 0.04 },
-						{ midi: [64], atMs: 80, durationSec: 0.04 },
-					],
-					{
-						preset: "muted",
-						totalDurationMs: 120,
-						startOffsetMs: 30,
-						onStep: (idx) => seenSteps.push(idx),
-						onProgress: (ms) => progressValues.push(ms),
-						onDone: () => {
-							doneCount++;
-							resolve();
-						},
-					},
-				);
-			});
-
-			expect(seenSteps).toEqual([0, 1, 2]);
-			expect(doneCount).toBe(1);
-			expect(progressValues.length).toBeGreaterThanOrEqual(2);
-			expect(progressValues[progressValues.length - 1]).toBe(120);
-
-			let cancelledDone = false;
-			const cancel = playTimedSequence(
-				[{ midi: [60], atMs: 0, durationSec: 0.08 }],
+		await new Promise<void>((resolve) => {
+			playTimedSequence(
+				[
+					{ midi: [60], atMs: 0, durationSec: 0.04 },
+					{ midi: [62], atMs: 40, durationSec: 0.04 },
+					{ midi: [64], atMs: 80, durationSec: 0.04 },
+				],
 				{
 					preset: "muted",
-					totalDurationMs: 80,
+					totalDurationMs: 120,
+					startOffsetMs: 30,
+					onStep: (idx) => seenSteps.push(idx),
+					onProgress: (ms) => progressValues.push(ms),
 					onDone: () => {
-						cancelledDone = true;
+						doneCount++;
+						resolve();
 					},
 				},
 			);
-			cancel();
-			await new Promise((r) => setTimeout(r, 110));
-			expect(cancelledDone).toBe(false);
-		} finally {
-			if (prevWindow === undefined) {
-				delete (globalThis as { window?: unknown }).window;
-			} else {
-				(globalThis as { window: unknown }).window = prevWindow;
-			}
-		}
+		});
+
+		expect(seenSteps).toEqual([0, 1, 2]);
+		expect(doneCount).toBe(1);
+		expect(progressValues.length).toBeGreaterThanOrEqual(2);
+		expect(progressValues[progressValues.length - 1]).toBe(120);
+
+		let cancelledDone = false;
+		const cancel = playTimedSequence(
+			[{ midi: [60], atMs: 0, durationSec: 0.08 }],
+			{
+				preset: "muted",
+				totalDurationMs: 80,
+				onDone: () => {
+					cancelledDone = true;
+				},
+			},
+		);
+		cancel();
+		await new Promise((r) => setTimeout(r, 110));
+		expect(cancelledDone).toBe(false);
 	});
 
 	test("PianoKeyboard folds sub-C4 arpeggio events only when no key in C4..B5 is struck and preserves flat labels", () => {

@@ -6,6 +6,7 @@ import {
 	noteToPitchClass,
 } from "../src/react-app/theory/circleOfFifths";
 import {
+	CHORD_INTERVAL_MAP,
 	GuitarChordKind,
 	MAX_GUITAR_FRET,
 	buildChordVariation,
@@ -32,30 +33,15 @@ const ALL_ROOTS = [
 	"C♭",
 ] as const;
 
-const CHORD_SPECS: Record<GuitarChordKind, number[]> = {
-	major: [0, 4, 7],
-	minor: [0, 3, 7],
-	diminished: [0, 3, 6],
-	aug: [0, 4, 8],
-	maj7: [0, 4, 7, 11],
-	m7: [0, 3, 7, 10],
-	"7": [0, 4, 7, 10],
-	"m7♭5": [0, 3, 6, 10],
-	dim7: [0, 3, 6, 9],
-	add9: [0, 4, 7, 2],
-	madd9: [0, 3, 7, 2],
-	sus4: [0, 5, 7],
-	sus2: [0, 2, 7],
-};
-
 describe("Guitar fretboard chord voicing generator", () => {
 	test("generates at least 3 valid, playable voicings across all 15 roots and 13 chord qualities", () => {
 		for (const root of ALL_ROOTS) {
 			const rootPc = noteToPitchClass(root);
-			for (const [kind, intervals] of Object.entries(CHORD_SPECS) as [
+			for (const [kind, intervalMap] of Object.entries(CHORD_INTERVAL_MAP) as [
 				GuitarChordKind,
-				number[],
+				Record<number, string>,
 			][]) {
+				const intervals = Object.keys(intervalMap).map(Number);
 				const allowedPcs = new Set(intervals.map((i) => mod12(rootPc + i)));
 				const voicings = getGuitarVoicings(
 					root,
