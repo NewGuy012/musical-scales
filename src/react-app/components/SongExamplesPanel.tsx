@@ -32,26 +32,14 @@ export interface SongExamplesPanelProps {
 	onSelectSongChordStep: (song: SongExample, stepIndex: number) => void;
 }
 
-interface SongCardProps {
+type SongCardProps = Omit<
+	SongExamplesPanelProps,
+	"songs" | "selectedSongId" | "onSelectSong"
+> & {
 	song: SongExample;
-	playingSongId: string | null;
 	cuedSongId: string | null;
 	songPositionMs: number;
-	activeChordStepIndex: number | null;
-	activeNoteLabel: string | null;
-	selectedPreviewStepId: string | null;
-	onTogglePlaySong: (song: SongExample) => void;
-	onStopSong?: () => void;
-	onSeekSong?: (
-		song: SongExample,
-		timeMs: number,
-		resumePlayback?: boolean,
-	) => void;
-	onBeginScrubSong?: (song: SongExample) => void;
-	onSkipSongBar?: (song: SongExample, deltaBars: number) => void;
-	onPlayFromSongBar?: (song: SongExample, stepIndex: number) => void;
-	onSelectSongChordStep: (song: SongExample, stepIndex: number) => void;
-}
+};
 
 function SongCard({
 	song,
@@ -535,17 +523,10 @@ export function SongExamplesPanel({
 
 	if (songs.length === 0) return null;
 
-	const resolvedSongId =
-		selectedSongId && songs.some((s) => s.id === selectedSongId)
-			? selectedSongId
-			: playingSongId && songs.some((s) => s.id === playingSongId)
-				? playingSongId
-				: cuedSongId && songs.some((s) => s.id === cuedSongId)
-					? cuedSongId
-					: internalSongId && songs.some((s) => s.id === internalSongId)
-						? internalSongId
-						: songs[0].id;
-	const activeSong = songs.find((s) => s.id === resolvedSongId) ?? songs[0];
+	const activeSong =
+		[selectedSongId, playingSongId, cuedSongId, internalSongId]
+			.map((id) => (id ? songs.find((s) => s.id === id) : undefined))
+			.find(Boolean) ?? songs[0];
 	const activeSongIndex = songs.findIndex((s) => s.id === activeSong.id);
 
 	return (

@@ -951,10 +951,6 @@ export function playTimedSequence(
 		onProgress,
 		onDone,
 	} = options;
-	if (typeof window === "undefined") {
-		return () => {};
-	}
-
 	const computedEndMs =
 		totalDurationMs ??
 		steps.reduce(
@@ -966,20 +962,23 @@ export function playTimedSequence(
 	let cancelled = false;
 	let finished = false;
 	let rafId: number | null = null;
-	let schedulerTimerId: number | null = null;
-	let initialTimerId: number | null = null;
+	let schedulerTimerId: ReturnType<typeof globalThis.setInterval> | null = null;
+	let initialTimerId: ReturnType<typeof globalThis.setTimeout> | null = null;
 
 	const cleanupTimers = () => {
 		if (initialTimerId !== null) {
-			window.clearTimeout(initialTimerId);
+			globalThis.clearTimeout(initialTimerId);
 			initialTimerId = null;
 		}
 		if (schedulerTimerId !== null) {
-			window.clearInterval(schedulerTimerId);
+			globalThis.clearInterval(schedulerTimerId);
 			schedulerTimerId = null;
 		}
-		if (rafId !== null && typeof window.cancelAnimationFrame === "function") {
-			window.cancelAnimationFrame(rafId);
+		if (
+			rafId !== null &&
+			typeof globalThis.cancelAnimationFrame === "function"
+		) {
+			globalThis.cancelAnimationFrame(rafId);
 			rafId = null;
 		}
 	};
@@ -991,7 +990,7 @@ export function playTimedSequence(
 	};
 
 	if (steps.length === 0 || startOffsetMs >= computedEndMs) {
-		initialTimerId = window.setTimeout(() => {
+		initialTimerId = globalThis.setTimeout(() => {
 			if (cancelled || finished) return;
 			finished = true;
 			onProgress?.(computedEndMs);
@@ -1108,19 +1107,19 @@ export function playTimedSequence(
 		if (
 			!cancelled &&
 			!finished &&
-			typeof window.requestAnimationFrame === "function"
+			typeof globalThis.requestAnimationFrame === "function"
 		) {
-			rafId = window.requestAnimationFrame(runRaf);
+			rafId = globalThis.requestAnimationFrame(runRaf);
 		}
 	};
 
-	initialTimerId = window.setTimeout(() => {
+	initialTimerId = globalThis.setTimeout(() => {
 		if (cancelled || finished) return;
 		tick();
 		if (cancelled || finished) return;
-		schedulerTimerId = window.setInterval(tick, SCHEDULER_INTERVAL_MS);
-		if (typeof window.requestAnimationFrame === "function") {
-			rafId = window.requestAnimationFrame(runRaf);
+		schedulerTimerId = globalThis.setInterval(tick, SCHEDULER_INTERVAL_MS);
+		if (typeof globalThis.requestAnimationFrame === "function") {
+			rafId = globalThis.requestAnimationFrame(runRaf);
 		}
 	}, 0);
 

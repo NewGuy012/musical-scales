@@ -239,7 +239,10 @@ export function parseGuitarStops(stopTokens: string): {
 	return { guitarStops, midi };
 }
 
-const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
+export const CHORD_INTERVAL_MAP: Record<
+	GuitarChordKind,
+	Record<number, string>
+> = {
 	major: { 0: "R", 4: "3", 7: "5" },
 	minor: { 0: "R", 3: "♭3", 7: "5" },
 	diminished: { 0: "R", 3: "♭3", 6: "♭5" },
@@ -1140,8 +1143,8 @@ export function buildGuitarScalePassGuide(params: {
 		omittedSummary = `Swaps 5 for ♭5 so all 5 notes support diminished & m7♭5 tension cleanly.`;
 	}
 
-	const r = (semi: number) => resolveName(mod12(pentatonicRootPc + semi));
 	const pcAt = (semi: number) => mod12(pentatonicRootPc + semi);
+	const r = (semi: number) => resolveName(pcAt(semi));
 	const makePhrase = (
 		id: string,
 		label: string,

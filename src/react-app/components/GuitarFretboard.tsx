@@ -49,6 +49,72 @@ const SINGLE_INLAY_FRETS = new Set([3, 5, 7, 9, 15]);
 const FRET_NUMBERS = Array.from({ length: MAX_GUITAR_FRET }, (_, i) => i + 1);
 const VISUAL_ROWS = [5, 4, 3, 2, 1, 0] as const;
 
+type DotKind =
+	"primary" | "ghost-chord" | "pentatonic" | "scale" | "chromatic" | "none";
+
+const DOT_STYLE_BY_KIND: Record<
+	Exclude<DotKind, "none">,
+	{
+		radius: number;
+		bgClass: string;
+		textClass: string;
+		supportsRootRing?: boolean;
+		ariaSuffix: string;
+	}
+> = {
+	primary: {
+		radius: 10.5,
+		bgClass: "fret-dot-bg",
+		textClass: "fret-dot-text",
+		supportsRootRing: true,
+		ariaSuffix: "",
+	},
+	"ghost-chord": {
+		radius: 8.5,
+		bgClass: "fret-dot-ghost-bg",
+		textClass: "fret-dot-ghost-text",
+		supportsRootRing: true,
+		ariaSuffix: "",
+	},
+	pentatonic: {
+		radius: 8.2,
+		bgClass: "fret-dot-pentatonic-bg",
+		textClass: "fret-dot-pentatonic-text",
+		ariaSuffix: " (pentatonic)",
+	},
+	scale: {
+		radius: 7.5,
+		bgClass: "fret-dot-scale-bg",
+		textClass: "fret-dot-scale-text",
+		ariaSuffix: " (scale)",
+	},
+	chromatic: {
+		radius: 7.1,
+		bgClass: "fret-dot-chromatic-bg",
+		textClass: "fret-dot-chromatic-text",
+		ariaSuffix: " (chromatic passing)",
+	},
+};
+
+function getDotGroupClass(
+	dotState: Exclude<DotKind, "none">,
+	qualityClass: string,
+	isSongHit: boolean,
+	isHarmonicHit: boolean,
+): string {
+	if (dotState === "primary") {
+		return `fret-dot-primary ${qualityClass}${
+			isSongHit
+				? isHarmonicHit
+					? " is-song-hit is-harmonic"
+					: " is-song-hit"
+				: ""
+		}`;
+	}
+	if (dotState === "ghost-chord") return `fret-dot-ghost ${qualityClass}`;
+	return `fret-dot-${dotState}`;
+}
+
 export function GuitarFretboard({
 	activeQuality,
 	chordNotes,
@@ -476,49 +542,31 @@ export function GuitarFretboard({
 									const isSongHit = songHitKeys.has(cellKey);
 									const isHarmonicHit = harmonicKeys.has(cellKey);
 
-									type DotKind =
-										| "primary"
-										| "ghost-chord"
-										| "pentatonic"
-										| "scale"
-										| "chromatic"
-										| "none";
-
 									let dotState: DotKind = "none";
 									if (isSongHit) {
 										dotState = "primary";
 									} else if (overlayMode === "voicing" && selectedVoicing) {
 										if (isVoicedHere) {
 											dotState = "primary";
-										} else if (
-											isChordTone &&
-											!(fret === 0 && voicedFret === -1)
-										) {
-											dotState = "ghost-chord";
-										} else if (
-											showChromaticPassing &&
-											isPassingTone &&
-											inVoicingWindow &&
-											!(fret === 0 && voicedFret === -1)
-										) {
-											dotState = "chromatic";
+										} else if (!(fret === 0 && voicedFret === -1)) {
+											if (isChordTone) {
+												dotState = "ghost-chord";
+											} else if (
+												showChromaticPassing &&
+												isPassingTone &&
+												inVoicingWindow
+											) {
+												dotState = "chromatic";
+											}
 										}
-									} else if (overlayMode === "chordTones") {
-										if (isChordTone) dotState = "primary";
-										else if (showChromaticPassing && isPassingTone)
-											dotState = "chromatic";
-									} else if (overlayMode === "pentatonic") {
-										if (isChordTone) dotState = "primary";
-										else if (isPentatonicTone) dotState = "pentatonic";
-										else if (showChromaticPassing && isPassingTone)
-											dotState = "chromatic";
-									} else if (overlayMode === "scale") {
-										if (isChordTone) dotState = "primary";
-										else if (isScaleTone) dotState = "scale";
-										else if (showChromaticPassing && isPassingTone)
-											dotState = "chromatic";
 									} else if (isChordTone) {
 										dotState = "primary";
+									} else if (overlayMode === "pentatonic" && isPentatonicTone) {
+										dotState = "pentatonic";
+									} else if (overlayMode === "scale" && isScaleTone) {
+										dotState = "scale";
+									} else if (showChromaticPassing && isPassingTone) {
+										dotState = "chromatic";
 									}
 
 									let dotLabel = noteName;
@@ -527,21 +575,10 @@ export function GuitarFretboard({
 											dotLabel =
 												chordIntervalName ??
 												getChromaticDegreeLabel(rootPc, pc, preferFlats);
-										} else if (dotState === "pentatonic") {
-											dotLabel = getChromaticDegreeLabel(
-												guide.pentatonicRootPc,
-												pc,
-												preferFlats,
-											);
-										} else if (dotState === "scale") {
-											dotLabel = getChromaticDegreeLabel(
-												effectiveKeyRootPc,
-												pc,
-												preferFlats,
-											);
-										} else if (dotState === "chromatic") {
+										} else if (dotState !== "none") {
 											const refRootPc =
-												overlayMode === "scale"
+												dotState === "scale" ||
+												(dotState === "chromatic" && overlayMode === "scale")
 													? effectiveKeyRootPc
 													: guide.pentatonicRootPc;
 											dotLabel = getChromaticDegreeLabel(
@@ -552,21 +589,15 @@ export function GuitarFretboard({
 										}
 									}
 
-									const roleSuffix =
-										dotState === "pentatonic"
-											? " (pentatonic)"
-											: dotState === "chromatic"
-												? " (chromatic passing)"
-												: dotState === "scale"
-													? " (scale)"
-													: "";
+									const dotStyle =
+										dotState === "none" ? null : DOT_STYLE_BY_KIND[dotState];
 
 									return (
 										<g
 											key={`cell-${stringIdx}-${fret}`}
 											role="button"
 											tabIndex={0}
-											aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}${roleSuffix}`}
+											aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}${dotStyle?.ariaSuffix ?? ""}`}
 											className="fret-hit-cell"
 											onClick={() => onPlayFretNote(midi)}
 											onKeyDown={(e) =>
@@ -583,25 +614,14 @@ export function GuitarFretboard({
 												fill="transparent"
 											/>
 
-											{dotState !== "none" && (
+											{dotState !== "none" && dotStyle && (
 												<g
-													className={
-														dotState === "primary"
-															? `fret-dot-primary ${qualityClass}${
-																	isSongHit
-																		? isHarmonicHit
-																			? " is-song-hit is-harmonic"
-																			: " is-song-hit"
-																		: ""
-																}`
-															: dotState === "ghost-chord"
-																? `fret-dot-ghost ${qualityClass}`
-																: dotState === "pentatonic"
-																	? "fret-dot-pentatonic"
-																	: dotState === "chromatic"
-																		? "fret-dot-chromatic"
-																		: "fret-dot-scale"
-													}
+													className={getDotGroupClass(
+														dotState,
+														qualityClass,
+														isSongHit,
+														isHarmonicHit,
+													)}
 												>
 													{isSongHit &&
 														(isHarmonicHit ? (
@@ -620,45 +640,19 @@ export function GuitarFretboard({
 													<circle
 														cx={cx}
 														cy={y}
-														r={
-															dotState === "primary"
-																? 10.5
-																: dotState === "ghost-chord"
-																	? 8.5
-																	: dotState === "pentatonic"
-																		? 8.2
-																		: dotState === "chromatic"
-																			? 7.1
-																			: 7.5
-														}
-														className={
-															dotState === "primary"
-																? `fret-dot-bg ${isRoot ? "is-root-ring" : ""}`
-																: dotState === "ghost-chord"
-																	? `fret-dot-ghost-bg ${isRoot ? "is-root-ring" : ""}`
-																	: dotState === "pentatonic"
-																		? "fret-dot-pentatonic-bg"
-																		: dotState === "chromatic"
-																			? "fret-dot-chromatic-bg"
-																			: "fret-dot-scale-bg"
-														}
+														r={dotStyle.radius}
+														className={`${dotStyle.bgClass}${
+															dotStyle.supportsRootRing && isRoot
+																? " is-root-ring"
+																: ""
+														}`}
 													/>
 													<text
 														x={cx}
 														y={y + 0.5}
 														textAnchor="middle"
 														dominantBaseline="central"
-														className={
-															dotState === "primary"
-																? "fret-dot-text"
-																: dotState === "ghost-chord"
-																	? "fret-dot-ghost-text"
-																	: dotState === "pentatonic"
-																		? "fret-dot-pentatonic-text"
-																		: dotState === "chromatic"
-																			? "fret-dot-chromatic-text"
-																			: "fret-dot-scale-text"
-														}
+														className={dotStyle.textClass}
 													>
 														{dotLabel}
 													</text>

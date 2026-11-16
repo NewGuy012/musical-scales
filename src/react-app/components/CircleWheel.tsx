@@ -18,7 +18,6 @@ export interface WheelChordHighlight {
 	quality: ChordQuality;
 	roman: string;
 	symbol: string;
-	triadNotes?: string[];
 }
 
 interface CircleWheelProps {
@@ -527,10 +526,7 @@ export function CircleWheel({
 									{highlightedChord.symbol}
 								</text>
 								<text x="0" y="24" textAnchor="middle" className="hub-subline">
-									{(highlightedNotes && highlightedNotes.length > 0
-										? highlightedNotes
-										: (highlightedChord.triadNotes ?? [])
-									).join(" · ")}
+									{(highlightedNotes ?? []).join(" · ")}
 								</text>
 							</>
 						) : hoveredKey ? (
