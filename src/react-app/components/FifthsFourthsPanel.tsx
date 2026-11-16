@@ -1,5 +1,5 @@
 import { KeyAnalysis, KeyMode } from "../theory/circleOfFifths";
-import { IconPlay, IconRotateCcw, IconRotateCw, IconStop } from "./Icons";
+import { IconPlay, IconRotate, IconRotateCcw, IconStop } from "./Icons";
 
 interface FifthsFourthsPanelProps {
 	analysis: KeyAnalysis;
@@ -72,7 +72,7 @@ export function FifthsFourthsPanel({
 							</>
 						) : (
 							<>
-								Walk 5ths <IconRotateCw size={11} />
+								Walk 5ths <IconRotate size={11} />
 							</>
 						)}
 					</button>

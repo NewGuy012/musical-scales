@@ -8,11 +8,9 @@ import {
 interface PianoKeyboardProps {
 	activeMidiNotes: number[];
 	activeSongMidi?: number[] | null;
-	activeLabel?: string;
 	activeQuality?: ChordQuality;
 	scalePitchClasses: number[];
 	activeNoteNamesByMidi?: Record<number, string>;
-	embedded?: boolean;
 	onPlayNote: (midi: number) => void;
 }
 
@@ -43,11 +41,9 @@ const FALLBACK_NOTE_NAMES = [
 export function PianoKeyboard({
 	activeMidiNotes,
 	activeSongMidi = null,
-	activeLabel,
 	activeQuality = "major",
 	scalePitchClasses,
 	activeNoteNamesByMidi = {},
-	embedded = false,
 	onPlayNote,
 }: PianoKeyboardProps) {
 	const whiteKeyWidth = 30;
@@ -161,22 +157,6 @@ export function PianoKeyboard({
 
 	return (
 		<div className="piano-wrap">
-			{!embedded && (
-				<div className="piano-header">
-					<span className="piano-title">
-						Piano Voicing{" "}
-						{activeLabel && (
-							<span className={`piano-badge ${qualityClass}`}>
-								{activeLabel}
-							</span>
-						)}
-					</span>
-					<span className="piano-hint">
-						Dots show scale notes · Click any key to play
-					</span>
-				</div>
-			)}
-
 			<svg
 				viewBox={`0 0 ${totalWidth} ${whiteKeyHeight + 2}`}
 				className="piano-svg"

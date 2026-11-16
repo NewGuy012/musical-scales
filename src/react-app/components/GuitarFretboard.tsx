@@ -26,7 +26,6 @@ export type FretboardOverlayMode = GuitarFretboardOverlayMode;
 export type FretboardLabelMode = "notes" | "intervals";
 
 interface GuitarFretboardProps {
-	activeLabel: string;
 	activeQuality: ChordQuality;
 	chordNotes: string[];
 	chordKind: GuitarChordKind | null;
@@ -40,7 +39,6 @@ interface GuitarFretboardProps {
 	keyRootName?: string;
 	keyMode?: KeyMode;
 	preferFlats: boolean;
-	embedded?: boolean;
 	onSelectVoicing: (voicing: GuitarVoicing) => void;
 	onStrumVoicing: (voicing: GuitarVoicing) => void;
 	onPlayFretNote: (midi: number) => void;
@@ -52,7 +50,6 @@ const FRET_NUMBERS = Array.from({ length: MAX_GUITAR_FRET }, (_, i) => i + 1);
 const VISUAL_ROWS = [5, 4, 3, 2, 1, 0] as const;
 
 export function GuitarFretboard({
-	activeLabel,
 	activeQuality,
 	chordNotes,
 	chordKind,
@@ -66,7 +63,6 @@ export function GuitarFretboard({
 	keyRootName,
 	keyMode,
 	preferFlats,
-	embedded = false,
 	onSelectVoicing,
 	onStrumVoicing,
 	onPlayFretNote,
@@ -209,16 +205,6 @@ export function GuitarFretboard({
 		<div className="guitar-wrap">
 			<div className="guitar-top-bar">
 				<div className="guitar-title-group">
-					{!embedded && (
-						<span className="guitar-title">
-							Guitar Fretboard{" "}
-							{activeLabel && (
-								<span className={`piano-badge ${qualityClass}`}>
-									{activeLabel}
-								</span>
-							)}
-						</span>
-					)}
 					{selectedVoicing && (
 						<span className="guitar-voicing-summary">
 							<strong>{selectedVoicing.name}</strong> ·{" "}

@@ -6,7 +6,6 @@ import {
 } from "../theory/celloFingerboard";
 import {
 	getGuitarQualityClass,
-	getPianoBadgeClass,
 	handleSvgButtonKeyDown,
 	mod12,
 	noteToPitchClass,
@@ -27,7 +26,6 @@ export interface CelloFingerboardProps {
 	chordLabel: string;
 	chordQuality: ChordQuality;
 	chordKind: GuitarChordKind | null;
-	chordRoleLabel?: string;
 	chordNotes: string[];
 	scaleNotes: string[];
 	keyRootName?: string;
@@ -35,7 +33,6 @@ export interface CelloFingerboardProps {
 	voicings: CelloVoicing[];
 	activeVoicing: CelloVoicing | null;
 	activeSongStops?: CelloSongStop[] | null;
-	embedded?: boolean;
 	onSelectVoicing: (voicing: CelloVoicing) => void;
 	onRollVoicing: (voicing: CelloVoicing) => void;
 	onPlayNote: (midi: number, noteName: string) => void;
@@ -69,7 +66,6 @@ export function CelloFingerboard({
 	chordLabel,
 	chordQuality,
 	chordKind,
-	chordRoleLabel,
 	chordNotes,
 	scaleNotes,
 	keyRootName,
@@ -77,7 +73,6 @@ export function CelloFingerboard({
 	voicings,
 	activeVoicing,
 	activeSongStops = null,
-	embedded = false,
 	onSelectVoicing,
 	onRollVoicing,
 	onPlayNote,
@@ -114,18 +109,6 @@ export function CelloFingerboard({
 		<div className="cello-panel">
 			<div className="cello-toolbar">
 				<div className="cello-chord-summary">
-					{!embedded && (
-						<>
-							<span
-								className={`piano-badge ${getPianoBadgeClass(chordQuality)}`}
-							>
-								{chordLabel}
-							</span>
-							{chordRoleLabel && (
-								<span className="cello-role-pill">{chordRoleLabel}</span>
-							)}
-						</>
-					)}
 					<span className="cello-notes-readout">
 						<strong>{chordNotes.join(" – ")}</strong>
 						{activeVoicing

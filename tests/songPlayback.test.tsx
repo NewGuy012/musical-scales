@@ -65,7 +65,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 		const idleHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="cello"
 				songs={[bach]}
 				playingSongId={null}
 				cuedSongId={null}
@@ -94,7 +93,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 		const playingHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="cello"
 				songs={[bach]}
 				playingSongId={bach.id}
 				cuedSongId={bach.id}
@@ -120,7 +118,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 		const pausedHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="cello"
 				songs={[bach]}
 				playingSongId={null}
 				cuedSongId={bach.id}
@@ -143,7 +140,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 		const previewHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="cello"
 				songs={[bach]}
 				playingSongId={null}
 				cuedSongId={null}
@@ -213,7 +209,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		const guitarHtml = renderToStaticMarkup(
 			<GuitarFretboard
-				activeLabel="G (I)"
 				activeQuality="major"
 				chordNotes={["G", "B", "D"]}
 				chordKind="major"
@@ -331,7 +326,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 		const voicings = getGuitarVoicings("E", "major", ["E", "G♯", "B"], false);
 		const harmonicHtml = renderToStaticMarkup(
 			<GuitarFretboard
-				activeLabel="E (I)"
 				activeQuality="major"
 				chordNotes={["E", "G♯", "B"]}
 				chordKind="major"

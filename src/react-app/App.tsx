@@ -1895,11 +1895,7 @@ export function App() {
 									<ChordsPanel
 										analysis={analysis}
 										voicingMode={voicingMode}
-										arpeggiate={arpeggiate}
 										activeChordId={activeVoicing.id}
-										embedded
-										onChangeVoicingMode={setVoicingMode}
-										onToggleArpeggiate={() => setArpeggiate((a) => !a)}
 										onSelectChord={handleSelectChord}
 										onPlayRootPairChord={handlePlayRootPairChord}
 									/>
@@ -2018,7 +2014,6 @@ export function App() {
 								/>
 							) : (
 								<SongExamplesPanel
-									instrumentView={instrumentView}
 									songs={songsForInstrument}
 									playingSongId={playingSongId}
 									cuedSongId={cuedSongId}
@@ -2026,7 +2021,6 @@ export function App() {
 									activeChordStepIndex={activeSongStepIndex}
 									activeNoteLabel={activeSongNoteLabel}
 									selectedPreviewStepId={selectedSongPreviewId}
-									embedded
 									onTogglePlaySong={handleTogglePlaySong}
 									onStopSong={handleStopSong}
 									onSeekSong={handleSeekSong}
@@ -2134,16 +2128,13 @@ export function App() {
 											? (activeSongEvent?.midi ?? null)
 											: null
 									}
-									activeLabel={activeVoicing.label}
 									activeQuality={activeVoicing.quality}
 									scalePitchClasses={scalePitchClasses}
 									activeNoteNamesByMidi={activeNoteNamesByMidi}
-									embedded
 									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.72)}
 								/>
 							) : instrumentView === "guitar" ? (
 								<GuitarFretboard
-									activeLabel={activeVoicing.label}
 									activeQuality={activeVoicing.quality}
 									chordNotes={activeVoicing.notes}
 									chordKind={activeVoicing.guitarKind}
@@ -2165,7 +2156,6 @@ export function App() {
 									keyRootName={analysis.scaleNotes[0]}
 									keyMode={mode}
 									preferFlats={preferFlats}
-									embedded
 									onSelectVoicing={handleSelectGuitarVoicing}
 									onStrumVoicing={handleStrumGuitarVoicing}
 									onPlayFretNote={(midi) =>
@@ -2178,11 +2168,6 @@ export function App() {
 									chordLabel={activeVoicing.label}
 									chordQuality={activeVoicing.quality}
 									chordKind={activeVoicing.guitarKind}
-									chordRoleLabel={
-										activeVoicing.chord
-											? `${activeVoicing.chord.roman} · ${analysis.shortName}`
-											: analysis.shortName
-									}
 									chordNotes={activeVoicing.notes}
 									scaleNotes={analysis.scaleNotes}
 									keyRootName={analysis.scaleNotes[0]}
@@ -2194,7 +2179,6 @@ export function App() {
 											? (activeSongEvent?.celloStops ?? null)
 											: null
 									}
-									embedded
 									onSelectVoicing={handleSelectCelloVoicing}
 									onRollVoicing={handleRollCelloVoicing}
 									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.85)}

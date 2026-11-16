@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-	type InstrumentTab,
 	type SongExample,
 	describeRomanFunction,
 	findPlaybackEventAtTime,
@@ -11,7 +10,6 @@ import {
 } from "../theory/songExamples";
 
 export interface SongExamplesPanelProps {
-	instrumentView: InstrumentTab;
 	songs: SongExample[];
 	playingSongId: string | null;
 	cuedSongId?: string | null;
@@ -19,7 +17,6 @@ export interface SongExamplesPanelProps {
 	activeChordStepIndex: number | null;
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
-	embedded?: boolean;
 	onTogglePlaySong: (song: SongExample) => void;
 	onStopSong?: () => void;
 	onSeekSong?: (
@@ -32,12 +29,6 @@ export interface SongExamplesPanelProps {
 	onPlayFromSongBar?: (song: SongExample, stepIndex: number) => void;
 	onSelectSongChordStep: (song: SongExample, stepIndex: number) => void;
 }
-
-const INSTRUMENT_BADGE_LABELS: Record<InstrumentTab, string> = {
-	piano: "Piano Repertoire",
-	guitar: "Guitar Repertoire",
-	cello: "Cello Only · Baroque Solo",
-};
 
 interface SongCardProps {
 	song: SongExample;
@@ -518,7 +509,6 @@ function SongCard({
 }
 
 export function SongExamplesPanel({
-	instrumentView,
 	songs,
 	playingSongId,
 	cuedSongId = null,
@@ -526,7 +516,6 @@ export function SongExamplesPanel({
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
-	embedded = false,
 	onTogglePlaySong,
 	onStopSong,
 	onSeekSong,
@@ -538,46 +527,26 @@ export function SongExamplesPanel({
 	if (songs.length === 0) return null;
 
 	return (
-		<div
-			className={`songs-wrap${embedded ? " is-embedded" : ""}`}
-			aria-label="Real song chord examples"
-		>
-			{!embedded && (
-				<div className="songs-header">
-					<div className="songs-title-group">
-						<span className="songs-title">Learn from Real Songs</span>
-						<span className="songs-instrument-badge">
-							{INSTRUMENT_BADGE_LABELS[instrumentView]}
-						</span>
-					</div>
-					<span className="songs-hint">
-						Play, scrub the timeline, or click any bar to jump and inspect hand
-						placement
-					</span>
-				</div>
-			)}
-
-			<div className="songs-list">
-				{songs.map((song) => (
-					<SongCard
-						key={song.id}
-						song={song}
-						playingSongId={playingSongId}
-						cuedSongId={cuedSongId}
-						songPositionMs={songPositionMs}
-						activeChordStepIndex={activeChordStepIndex}
-						activeNoteLabel={activeNoteLabel}
-						selectedPreviewStepId={selectedPreviewStepId}
-						onTogglePlaySong={onTogglePlaySong}
-						onStopSong={onStopSong}
-						onSeekSong={onSeekSong}
-						onBeginScrubSong={onBeginScrubSong}
-						onSkipSongBar={onSkipSongBar}
-						onPlayFromSongBar={onPlayFromSongBar}
-						onSelectSongChordStep={onSelectSongChordStep}
-					/>
-				))}
-			</div>
+		<div className="songs-list" aria-label="Real song chord examples">
+			{songs.map((song) => (
+				<SongCard
+					key={song.id}
+					song={song}
+					playingSongId={playingSongId}
+					cuedSongId={cuedSongId}
+					songPositionMs={songPositionMs}
+					activeChordStepIndex={activeChordStepIndex}
+					activeNoteLabel={activeNoteLabel}
+					selectedPreviewStepId={selectedPreviewStepId}
+					onTogglePlaySong={onTogglePlaySong}
+					onStopSong={onStopSong}
+					onSeekSong={onSeekSong}
+					onBeginScrubSong={onBeginScrubSong}
+					onSkipSongBar={onSkipSongBar}
+					onPlayFromSongBar={onPlayFromSongBar}
+					onSelectSongChordStep={onSelectSongChordStep}
+				/>
+			))}
 		</div>
 	);
 }

@@ -7,7 +7,6 @@ import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
-import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
@@ -67,7 +66,6 @@ describe("Circle of Fifths UI rendering", () => {
 		);
 		const html = renderToStaticMarkup(
 			<GuitarFretboard
-				activeLabel="C (I)"
 				activeQuality="major"
 				chordNotes={tonic.triadNotes}
 				chordKind="major"
@@ -81,7 +79,6 @@ describe("Circle of Fifths UI rendering", () => {
 				onPlayFretNote={() => {}}
 			/>,
 		);
-		expect(html).toContain("Guitar Fretboard");
 		expect(html).toContain("Open C");
 		expect(html).toContain("A-Shape Barre");
 		expect(html).toContain("E-Shape Barre");
@@ -107,7 +104,6 @@ describe("Circle of Fifths UI rendering", () => {
 		);
 		const dmHtml = renderToStaticMarkup(
 			<GuitarFretboard
-				activeLabel="Dm (ii)"
 				activeQuality="minor"
 				chordNotes={dmChord.triadNotes}
 				chordKind="minor"
@@ -142,7 +138,6 @@ describe("Circle of Fifths UI rendering", () => {
 				chordLabel="C (I)"
 				chordQuality="major"
 				chordKind="major"
-				chordRoleLabel="I · C Major"
 				chordNotes={tonic.triadNotes}
 				scaleNotes={cMaj.scaleNotes}
 				keyRootName="C"
@@ -179,7 +174,6 @@ describe("Circle of Fifths UI rendering", () => {
 				chordLabel="Am7 (i)"
 				chordQuality="minor"
 				chordKind="m7"
-				chordRoleLabel="i · A Minor"
 				chordNotes={amTonic.seventhNotes}
 				scaleNotes={aMin.scaleNotes}
 				keyRootName="A"
@@ -191,7 +185,6 @@ describe("Circle of Fifths UI rendering", () => {
 				onPlayNote={() => {}}
 			/>,
 		);
-		expect(dmHtml).toContain("Am7 (i)");
 		expect(dmHtml).toContain("5th-Bass m7");
 		expect(dmHtml).toContain("Upper Shell (R-♭7-♭3)");
 		expect(dmHtml).toContain("LH Frame");
@@ -225,10 +218,7 @@ describe("Circle of Fifths UI rendering", () => {
 				<ChordsPanel
 					analysis={fsMaj}
 					voicingMode="triad"
-					arpeggiate={false}
 					activeChordId={null}
-					onChangeVoicingMode={() => {}}
-					onToggleArpeggiate={() => {}}
 					onSelectChord={() => {}}
 					onPlayRootPairChord={() => {}}
 				/>
@@ -247,10 +237,7 @@ describe("Circle of Fifths UI rendering", () => {
 			<ChordsPanel
 				analysis={ebMin}
 				voicingMode="seventh"
-				arpeggiate={false}
 				activeChordId={null}
-				onChangeVoicingMode={() => {}}
-				onToggleArpeggiate={() => {}}
 				onSelectChord={() => {}}
 				onPlayRootPairChord={() => {}}
 			/>,
@@ -267,7 +254,6 @@ describe("Circle of Fifths UI rendering", () => {
 	test("renders SongExamplesPanel per instrument (Guitar Amazing Grace, Cello-only Bach Suite)", () => {
 		const guitarHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="guitar"
 				songs={getSongsForInstrument("guitar")}
 				playingSongId={null}
 				activeChordStepIndex={null}
@@ -286,7 +272,6 @@ describe("Circle of Fifths UI rendering", () => {
 		const celloSongs = getSongsForInstrument("cello");
 		const celloHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				instrumentView="cello"
 				songs={celloSongs}
 				playingSongId={celloSongs[0].id}
 				activeChordStepIndex={1}
@@ -302,110 +287,6 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(celloHtml).toContain("D7/G");
 		expect(celloHtml).toContain("Playing");
 		expect(celloHtml).toContain("C4 (I · F2)");
-	});
-
-	test("embedded mode omits duplicate headers across Chords, Instruments, and Songs panels", () => {
-		const cMaj = analyzeKey(0, "major");
-		const tonic = cMaj.chords[0];
-		const guitarVoicings = getGuitarVoicings(
-			tonic.root,
-			"major",
-			tonic.triadNotes,
-			false,
-		);
-		const celloVoicings = getCelloVoicings(
-			tonic.root,
-			"major",
-			tonic.triadNotes,
-			false,
-		);
-
-		const chordsEmbedded = renderToStaticMarkup(
-			<ChordsPanel
-				analysis={cMaj}
-				voicingMode="triad"
-				arpeggiate={false}
-				activeChordId={null}
-				embedded
-				onChangeVoicingMode={() => {}}
-				onToggleArpeggiate={() => {}}
-				onSelectChord={() => {}}
-				onPlayRootPairChord={() => {}}
-			/>,
-		);
-		expect(chordsEmbedded).not.toContain("Major &amp; Minor Chords in");
-		expect(chordsEmbedded).toContain("chords-embedded");
-		expect(chordsEmbedded).toContain("C · E · G");
-
-		const pianoEmbedded = renderToStaticMarkup(
-			<PianoKeyboard
-				activeMidiNotes={tonic.triadMidi}
-				activeLabel="C (I)"
-				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
-				embedded
-				onPlayNote={() => {}}
-			/>,
-		);
-		expect(pianoEmbedded).not.toContain("Piano Voicing");
-		expect(pianoEmbedded).toContain("piano-svg");
-
-		const guitarEmbedded = renderToStaticMarkup(
-			<GuitarFretboard
-				activeLabel="C (I)"
-				activeQuality="major"
-				chordNotes={tonic.triadNotes}
-				chordKind="major"
-				voicings={guitarVoicings}
-				selectedVoicing={guitarVoicings[0]}
-				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
-				scaleNoteNames={cMaj.scaleNotes}
-				preferFlats={false}
-				embedded
-				onSelectVoicing={() => {}}
-				onStrumVoicing={() => {}}
-				onPlayFretNote={() => {}}
-			/>,
-		);
-		expect(guitarEmbedded).not.toContain("Guitar Fretboard");
-		expect(guitarEmbedded).toContain("Open C");
-		expect(guitarEmbedded).toContain("Strum");
-
-		const celloEmbedded = renderToStaticMarkup(
-			<CelloFingerboard
-				chordLabel="C (I)"
-				chordQuality="major"
-				chordKind="major"
-				chordRoleLabel="I · C Major"
-				chordNotes={tonic.triadNotes}
-				scaleNotes={cMaj.scaleNotes}
-				preferFlats={false}
-				voicings={celloVoicings}
-				activeVoicing={celloVoicings[0]}
-				embedded
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
-			/>,
-		);
-		expect(celloEmbedded).not.toContain("cello-role-pill");
-		expect(celloEmbedded).toContain("Bow Roll");
-
-		const songsEmbedded = renderToStaticMarkup(
-			<SongExamplesPanel
-				instrumentView="piano"
-				songs={getSongsForInstrument("piano")}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				embedded
-				onTogglePlaySong={() => {}}
-				onSelectSongChordStep={() => {}}
-			/>,
-		);
-		expect(songsEmbedded).not.toContain("Learn from Real Songs");
-		expect(songsEmbedded).toContain("songs-wrap is-embedded");
-		expect(songsEmbedded).toContain("Clair de lune");
 	});
 
 	test("renders ColorHarmonyPanel with Chromatic Passing, Diminished, Secondary Dominants, and Tritone Sub topics", () => {
