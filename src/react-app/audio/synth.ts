@@ -171,9 +171,9 @@ export function getDefaultChordSpread(
 }
 
 /**
- * Classical nylon-string guitar pluck via Karplus-Strong waveguide synthesis
- * with fingertip low-pass smoothing, soundhole comb filtering, viscoelastic
- * nylon damping, and Thiran fractional-delay tuning.
+ * Warm acoustic guitar pluck via Karplus-Strong waveguide synthesis
+ * combining a soundhole triangular string-displacement model with
+ * filtered finger-pluck texture, wood damping, and Thiran fractional-delay tuning.
  */
 export function synthesizeGuitarPluckSamples(
 	freq: number,
@@ -192,8 +192,8 @@ export function synthesizeGuitarPluckSamples(
 		0,
 		Math.min(1, (Math.log2(clampedFreq) - Math.log2(82.41)) / 3),
 	);
-	const blend = 0.48 - normPitch * 0.08;
-	const nylonDamp = 0.14 + normPitch * 0.14;
+	const blend = 0.36 - normPitch * 0.08;
+	const stringDamp = 0.065 + normPitch * 0.115;
 
 	const w = (2 * Math.PI * clampedFreq) / fs;
 	const r1 = 1 - blend + blend * Math.cos(w);
@@ -201,26 +201,27 @@ export function synthesizeGuitarPluckSamples(
 	const pd1 = w > 0 ? -Math.atan2(i1, r1) / w : blend;
 	const mag1 = Math.hypot(r1, i1);
 
-	const r2 = 1 - nylonDamp * Math.cos(w);
-	const i2 = nylonDamp * Math.sin(w);
-	const pd2 = w > 0 ? Math.atan2(i2, r2) / w : nylonDamp / (1 - nylonDamp);
-	const mag2 = (1 - nylonDamp) / Math.hypot(r2, i2);
+	const r2 = 1 - stringDamp * Math.cos(w);
+	const i2 = stringDamp * Math.sin(w);
+	const pd2 = w > 0 ? Math.atan2(i2, r2) / w : stringDamp / (1 - stringDamp);
+	const mag2 = (1 - stringDamp) / Math.hypot(r2, i2);
 
 	const exactPeriod = fs / clampedFreq - (pd1 + pd2);
 	const M = Math.max(2, Math.floor(exactPeriod - 0.5));
 	const tau = Math.max(0.25, Math.min(1.75, exactPeriod - M));
 	const allpassCoeff = (1 - tau) / (1 + tau);
 
-	const decaySec = 3.3 - normPitch * 1.25;
+	const decaySec = 3.8 - normPitch * 1.35;
 	const targetLoopGain = Math.pow(0.001, 1 / (clampedFreq * decaySec));
 	const loopFeedback = Math.min(
-		0.9986,
+		0.9988,
 		targetLoopGain / Math.max(0.45, mag1 * mag2),
 	);
 
+	// 1. Warm filtered finger/pick noise component
 	const rawBurst = new Float32Array(M);
 	const rand = createSeededRandom(Math.round(clampedFreq * 100));
-	const pickPole = Math.exp((-2 * Math.PI * 2200) / fs);
+	const pickPole = Math.exp((-2 * Math.PI * 1650) / fs);
 	let lpState = 0;
 	for (let i = 0; i < M * 2; i++) {
 		lpState = (1 - pickPole) * rand() + pickPole * lpState;
@@ -231,22 +232,54 @@ export function synthesizeGuitarPluckSamples(
 		rawBurst[i] = lpState;
 	}
 
-	let mean = 0;
-	for (let i = 0; i < M; i++) mean += rawBurst[i];
-	mean /= M;
+	let noiseMean = 0;
+	for (let i = 0; i < M; i++) noiseMean += rawBurst[i];
+	noiseMean /= M;
 
+	const noiseShape = new Float32Array(M);
+	const pluckOffset = Math.max(1, Math.min(M - 1, Math.round(M * 0.19)));
+	let noisePeak = 0;
+	for (let i = 0; i < M; i++) {
+		const a = rawBurst[i] - noiseMean;
+		const b = rawBurst[(i - pluckOffset + M) % M] - noiseMean;
+		const val = 0.65 * (a - 0.52 * b) + 0.35 * a;
+		noiseShape[i] = val;
+		const absVal = Math.abs(val);
+		if (absVal > noisePeak) noisePeak = absVal;
+	}
+
+	// 2. Triangular soundhole pluck displacement (strong fundamental & warm 2nd/3rd harmonics)
+	const triShape = new Float32Array(M);
+	let triMean = 0;
+	for (let i = 0; i < M; i++) {
+		const v =
+			i <= pluckOffset
+				? i / pluckOffset
+				: (M - i) / Math.max(1, M - pluckOffset);
+		triShape[i] = v;
+		triMean += v;
+	}
+	triMean /= M;
+	let triPeak = 0;
+	for (let i = 0; i < M; i++) {
+		triShape[i] -= triMean;
+		const absVal = Math.abs(triShape[i]);
+		if (absVal > triPeak) triPeak = absVal;
+	}
+
+	const triWeight = 0.68 - normPitch * 0.12;
+	const noiseWeight = 1 - triWeight;
 	const ring = new Float32Array(M);
-	const pluckOffset = Math.max(1, Math.min(M - 1, Math.round(M * 0.22)));
 	let peak = 0;
 	for (let i = 0; i < M; i++) {
-		const a = rawBurst[i] - mean;
-		const b = rawBurst[(i - pluckOffset + M) % M] - mean;
-		const val = 0.65 * (a - 0.68 * b) + 0.35 * a;
-		ring[i] = val;
-		const absVal = Math.abs(val);
+		const tNorm = triPeak > 1e-6 ? triShape[i] / triPeak : 0;
+		const nNorm = noisePeak > 1e-6 ? noiseShape[i] / noisePeak : 0;
+		const combined = triWeight * tNorm + noiseWeight * nNorm;
+		ring[i] = combined;
+		const absVal = Math.abs(combined);
 		if (absVal > peak) peak = absVal;
 	}
-	const normScale = peak > 1e-6 ? 0.88 / peak : 1;
+	const normScale = peak > 1e-6 ? 0.9 / peak : 1;
 	for (let i = 0; i < M; i++) {
 		ring[i] *= normScale;
 	}
@@ -257,8 +290,8 @@ export function synthesizeGuitarPluckSamples(
 	let prevLp = 0;
 	let prevAp = 0;
 
-	const fadeInSamples = Math.min(numSamples, Math.round(fs * 0.0032));
-	const fadeOutSamples = Math.min(numSamples, Math.round(fs * 0.075));
+	const fadeInSamples = Math.min(numSamples, Math.round(fs * 0.0025));
+	const fadeOutSamples = Math.min(numSamples, Math.round(fs * 0.085));
 	const fadeOutStart = numSamples - fadeOutSamples;
 
 	for (let i = 0; i < numSamples; i++) {
@@ -266,7 +299,7 @@ export function synthesizeGuitarPluckSamples(
 		const fir = (1 - blend) * cur + blend * prevCur;
 		prevCur = cur;
 
-		iirLp = (1 - nylonDamp) * fir + nylonDamp * iirLp;
+		iirLp = (1 - stringDamp) * fir + stringDamp * iirLp;
 
 		const ap = allpassCoeff * iirLp + prevLp - allpassCoeff * prevAp;
 		prevLp = iirLp;
@@ -404,46 +437,82 @@ function scheduleGuitarVoice(
 	duration: number,
 	peakGain: number,
 ) {
-	const { ctx, master } = engine;
+	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
-	const release = 0.95;
+	const release = 1.15;
 	const stopTime = startTime + duration + release;
 
 	const src = ctx.createBufferSource();
 	src.buffer = getGuitarPluckBuffer(
 		ctx,
 		freq,
-		Math.max(duration + release, 1.95),
+		Math.max(duration + release, 2.2),
 	);
 
-	const airRes = createFilter(ctx, "peaking", 96, 2.6, 4.8);
-	const topRes = createFilter(ctx, "peaking", 194, 2.4, 3.5);
-	const harshScoop = createFilter(ctx, "peaking", 2500, 1.2, -2.8);
+	// Acoustic dreadnought/concert body voicing: broad air + spruce warmth, gentle mid clarity
+	const bodyHPF = createFilter(ctx, "highpass", 68, 0.7);
+	const airWarmth = createFilter(ctx, "peaking", 108, 1.05, 2.4);
+	const topWood = createFilter(ctx, "peaking", 235, 0.95, 2.1);
+	const boxCleanup = createFilter(ctx, "peaking", 450, 0.85, -2.4);
+	const woodPresence = createFilter(ctx, "peaking", 1420, 0.75, 1.2);
 	const bodyLPF = createFilter(
 		ctx,
 		"lowpass",
-		Math.min(3100, Math.max(1750, freq * 7.5)),
-		0.65,
+		Math.min(3900, Math.max(2100, freq * 8.5)),
+		0.6,
 	);
 	bodyLPF.frequency.exponentialRampToValueAtTime(
-		Math.min(2200, Math.max(1250, freq * 4.5)),
-		startTime + Math.min(0.28, duration * 0.5),
+		Math.min(1850, Math.max(950, freq * 3.8)),
+		startTime + Math.min(0.42, duration * 0.65),
 	);
 
 	const noteGain = ctx.createGain();
-	const ksGain = peakGain * 1.48;
-	if (startTime > ctx.currentTime) {
-		noteGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-	}
-	noteGain.gain.setValueAtTime(ksGain, startTime);
-	noteGain.gain.setValueAtTime(ksGain * 0.9, startTime + duration);
+	const ksGain = peakGain * 1.42;
+	noteGain.gain.setValueAtTime(0.0001, startTime);
+	noteGain.gain.linearRampToValueAtTime(ksGain, startTime + 0.0035);
+	noteGain.gain.exponentialRampToValueAtTime(
+		ksGain * 0.72,
+		startTime + Math.min(0.28, Math.max(0.05, duration * 0.45)),
+	);
+	noteGain.gain.exponentialRampToValueAtTime(
+		ksGain * 0.42,
+		startTime + Math.max(0.08, duration),
+	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	chainNodes(src, airRes, topRes, harshScoop, bodyLPF, noteGain, master);
+	// Subtle woody finger/pick contact transient
+	const pluckSrc = ctx.createBufferSource();
+	pluckSrc.buffer = noiseBuffer;
+	const pluckFilter = createFilter(
+		ctx,
+		"bandpass",
+		Math.min(1150, Math.max(480, freq * 3.4)),
+		1.4,
+	);
+	const pluckGain = ctx.createGain();
+	pluckGain.gain.setValueAtTime(0.0001, startTime);
+	pluckGain.gain.linearRampToValueAtTime(peakGain * 0.055, startTime + 0.002);
+	pluckGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.015);
+	chainNodes(pluckSrc, pluckFilter, pluckGain, topWood);
+
+	chainNodes(
+		src,
+		bodyHPF,
+		airWarmth,
+		topWood,
+		boxCleanup,
+		woodPresence,
+		bodyLPF,
+		noteGain,
+		master,
+	);
 	registerVoiceCleanup(src, noteGain);
 
 	src.start(startTime);
 	src.stop(stopTime + 0.03);
+	pluckSrc.start(startTime, ((midi * 19) % 100) * 0.002, 0.02);
+	pluckSrc.stop(startTime + 0.025);
+	registerAuxSource(pluckSrc);
 }
 
 function scheduleCelloVoice(

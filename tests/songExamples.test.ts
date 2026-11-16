@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
 	SONG_EXAMPLES,
+	describeRomanFunction,
+	findSongSectionForBar,
 	flattenSongPlaybackSteps,
 	getSongsForInstrument,
 } from "../src/react-app/theory/songExamples";
@@ -120,5 +122,43 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(allStops.some((st) => st.technique === "harmonic")).toBe(true);
 		expect(allStops.some((st) => st.technique === "hammer")).toBe(true);
 		expect(allStops.some((st) => st.technique === "slide")).toBe(true);
+	});
+
+	test("all curated songs expose a complete studyGuide covering every bar and beginner helper descriptions", () => {
+		for (const song of SONG_EXAMPLES) {
+			expect(song.studyGuide).toBeDefined();
+			const guide = song.studyGuide!;
+			expect(guide.vibeAndSound.length).toBeGreaterThan(20);
+			expect(guide.harmonyHook.length).toBeGreaterThan(20);
+			expect(guide.practiceTips.length).toBeGreaterThanOrEqual(3);
+			expect(guide.sections.length).toBeGreaterThanOrEqual(3);
+
+			// Sections must cover bars continuously from 0 to steps.length - 1
+			expect(guide.sections[0].startStepIndex).toBe(0);
+			expect(guide.sections[guide.sections.length - 1].endStepIndex).toBe(
+				song.steps.length - 1,
+			);
+			for (let i = 0; i < guide.sections.length; i++) {
+				const sec = guide.sections[i];
+				expect(sec.startStepIndex).toBeLessThanOrEqual(sec.endStepIndex);
+				if (i > 0) {
+					expect(sec.startStepIndex).toBe(
+						guide.sections[i - 1].endStepIndex + 1,
+					);
+				}
+			}
+
+			expect(findSongSectionForBar(guide, 0)?.id).toBe(guide.sections[0].id);
+			expect(findSongSectionForBar(guide, song.steps.length - 1)?.id).toBe(
+				guide.sections[guide.sections.length - 1].id,
+			);
+		}
+
+		expect(describeRomanFunction("I6", "major")).toContain("Tonic");
+		expect(describeRomanFunction("IVmaj7", "major")).toContain("Subdominant");
+		expect(describeRomanFunction("V7/vi", "major")).toContain(
+			"Secondary dominant",
+		);
+		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
 	});
 });

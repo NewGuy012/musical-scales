@@ -650,5 +650,58 @@ export const BACH_CELLO_SUITE_1: SongExample = {
 	bpm: 96,
 	theorySummary:
 		"Full 42-bar BWV 1007 Prelude: opens over an open G2 pedal (I–IV–V7–I), modulates through D Major (V) and Em (vi) to the Bar 22 fermata, climbs through open-A3 bariolage & chromatic passing tones, and resolves to G4.",
+	studyGuide: {
+		vibeAndSound:
+			"Continuous 16th-note string crossings (bariolage) create the illusion of two voices—a resonant open bass drone beneath a singing melodic line.",
+		harmonyHook:
+			"A masterclass in the Circle of Fifths: anchors home with I–IV–V7–I over an open G2 pedal, then steps clockwise (A7 → D) and back via G7 → C.",
+		practiceTips: [
+			"Memorize Bars 1–4 first: your open G2 string stays anchored while the upper two voices simply walk I → IV → V7 → I.",
+			"Watch the Circle of Fifths in Bars 6–14: Bach visits D (5th), Am (ii), and Em (vi) using leading-tone chords (A7, G♯°7, B7).",
+			"In Bars 31–36, keep the upper bow relaxed against the open A3 string while the left hand walks stepwise on the D string.",
+		],
+		sections: [
+			{
+				id: "bach-sec-1",
+				title: "1. Opening G Pedal",
+				barRange: "Bars 1–4",
+				startStepIndex: 0,
+				endStepIndex: 3,
+				progressionTag: "I – IV – V7 – I",
+				insight:
+					"Establishes G Major over a constant open G2 drone, cycling straight through G, C/G, D7/G, and back to G.",
+			},
+			{
+				id: "bach-sec-2",
+				title: "2. Circle Climb to D & Em",
+				barRange: "Bars 5–14",
+				startStepIndex: 4,
+				endStepIndex: 13,
+				progressionTag: "vi7 – V7/V – V – vii°7/ii – V7/vi – vi",
+				insight:
+					"Steps clockwise around the Circle via A7 into D Major, then weaves through diminished G♯°7 and B7 to land on Em.",
+			},
+			{
+				id: "bach-sec-3",
+				title: "3. G7 Return & Cadenza",
+				barRange: "Bars 15–30",
+				startStepIndex: 14,
+				endStepIndex: 29,
+				progressionTag: "V7 – V7/IV – IV – V7 – I",
+				insight:
+					"Adds F♮ to turn G into G7 (pulling back to C), peaks on the dramatic Bar 22 D7 hold, and cascades back to G Major.",
+			},
+			{
+				id: "bach-sec-4",
+				title: "4. Open-A Bariolage Finale",
+				barRange: "Bars 31–42",
+				startStepIndex: 30,
+				endStepIndex: 41,
+				progressionTag: "V – ii7 – V7 – I",
+				insight:
+					"Crosses rapidly against the ringing open A3 string, climbs chromatically to F♯4 over D7, and closes with a full G chord.",
+			},
+		],
+	},
 	steps: BACH_STEPS,
 };

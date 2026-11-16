@@ -14,20 +14,32 @@ const CHORD_INTERVALS: Record<GuitarChordKind, number[]> = {
 	major: [0, 4, 7],
 	minor: [0, 3, 7],
 	diminished: [0, 3, 6],
+	aug: [0, 4, 8],
 	maj7: [0, 4, 7, 11],
 	m7: [0, 3, 7, 10],
 	"7": [0, 4, 7, 10],
 	"m7♭5": [0, 3, 6, 10],
+	dim7: [0, 3, 6, 9],
+	add9: [0, 4, 7, 2],
+	madd9: [0, 3, 7, 2],
+	sus4: [0, 5, 7],
+	sus2: [0, 2, 7],
 };
 
 const REQUIRED_INTERVALS: Record<GuitarChordKind, number[]> = {
 	major: [0, 4, 7],
 	minor: [0, 3, 7],
 	diminished: [0, 3, 6],
+	aug: [0, 4, 8],
 	maj7: [0, 4, 11],
 	m7: [0, 3, 10],
 	"7": [0, 4, 10],
 	"m7♭5": [0, 3, 6, 10],
+	dim7: [0, 3, 6, 9],
+	add9: [0, 4, 2],
+	madd9: [0, 3, 2],
+	sus4: [0, 5, 7],
+	sus2: [0, 2, 7],
 };
 
 const ALL_ROOTS = [
@@ -69,7 +81,7 @@ describe("celloFingerboard", () => {
 		expect(openC?.soundingMidi).toEqual([36, 43, 52, 60]);
 	});
 
-	test("produces >= 3 valid closed-frame voicings across all 15 roots and 7 qualities", () => {
+	test("produces >= 3 valid closed-frame voicings across all 15 roots and 13 qualities", () => {
 		const kinds = Object.keys(CHORD_INTERVALS) as GuitarChordKind[];
 
 		for (const root of ALL_ROOTS) {

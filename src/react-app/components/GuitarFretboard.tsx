@@ -1,23 +1,28 @@
 import { useState } from "react";
 import {
 	ChordQuality,
+	KeyMode,
 	getGuitarQualityClass,
 	handleSvgButtonKeyDown,
 	mod12,
 	noteToPitchClass,
 } from "../theory/circleOfFifths";
 import {
+	FretboardOverlayMode as GuitarFretboardOverlayMode,
 	GuitarChordKind,
 	GuitarVoicing,
 	MAX_GUITAR_FRET,
+	PentatonicScope,
 	STANDARD_TUNING,
+	buildGuitarScalePassGuide,
 	createPitchClassNameResolver,
+	getChromaticDegreeLabel,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { GuitarSongStop } from "../theory/songExamples";
 import { IconPlay } from "./Icons";
 
-export type FretboardOverlayMode = "voicing" | "chordTones" | "scale";
+export type FretboardOverlayMode = GuitarFretboardOverlayMode;
 export type FretboardLabelMode = "notes" | "intervals";
 
 interface GuitarFretboardProps {
@@ -29,13 +34,17 @@ interface GuitarFretboardProps {
 	selectedVoicing: GuitarVoicing | null;
 	activeSongMidi?: number[] | null;
 	activeSongStops?: GuitarSongStop[] | null;
+	activeRunMidi?: number | null;
 	scalePitchClasses: number[];
 	scaleNoteNames: string[];
+	keyRootName?: string;
+	keyMode?: KeyMode;
 	preferFlats: boolean;
 	embedded?: boolean;
 	onSelectVoicing: (voicing: GuitarVoicing) => void;
 	onStrumVoicing: (voicing: GuitarVoicing) => void;
 	onPlayFretNote: (midi: number) => void;
+	onPlayNoteSequence?: (midiNotes: number[], stepMs?: number) => void;
 }
 
 const SINGLE_INLAY_FRETS = new Set([3, 5, 7, 9, 15]);
@@ -51,30 +60,88 @@ export function GuitarFretboard({
 	selectedVoicing,
 	activeSongMidi = null,
 	activeSongStops = null,
+	activeRunMidi = null,
 	scalePitchClasses,
 	scaleNoteNames,
+	keyRootName,
+	keyMode,
 	preferFlats,
 	embedded = false,
 	onSelectVoicing,
 	onStrumVoicing,
 	onPlayFretNote,
+	onPlayNoteSequence,
 }: GuitarFretboardProps) {
 	const [overlayMode, setOverlayMode] =
 		useState<FretboardOverlayMode>("voicing");
+	const [showChromaticPassing, setShowChromaticPassing] =
+		useState<boolean>(false);
 	const [labelMode, setLabelMode] = useState<FretboardLabelMode>("notes");
+	const [pentatonicScope, setPentatonicScope] =
+		useState<PentatonicScope>("auto");
+	const [selectedPhraseId, setSelectedPhraseId] = useState<string | null>(null);
 
 	const qualityClass = getGuitarQualityClass(activeQuality);
 	const rootNote = chordNotes[0] ?? "C";
 	const rootPc = noteToPitchClass(rootNote);
 	const chordPcSet = new Set(chordNotes.map(noteToPitchClass));
 	const scalePcSet = new Set(scalePitchClasses);
+	const effectiveKeyRoot = keyRootName ?? scaleNoteNames[0] ?? rootNote;
+	const effectiveKeyRootPc = noteToPitchClass(effectiveKeyRoot);
+	const inferredKeyMode: KeyMode =
+		keyMode ??
+		(scalePitchClasses.length >= 3 &&
+		mod12(scalePitchClasses[2] - effectiveKeyRootPc) === 3
+			? "minor"
+			: "major");
+
+	const guide = buildGuitarScalePassGuide({
+		keyRootNote: effectiveKeyRoot,
+		keyMode: inferredKeyMode,
+		scaleNotes: scaleNoteNames,
+		chordRootNote: rootNote,
+		chordQuality: activeQuality,
+		chordKind,
+		chordNotes,
+		selectedVoicing,
+		scope: pentatonicScope,
+		overlayMode,
+		preferFlats,
+	});
+
+	const pentatonicPcSet = new Set(guide.pentatonicPcs);
+	const passingPcSet = new Set(guide.overlayPassingPcs);
 	const resolveFretNoteName = createPitchClassNameResolver(
 		chordNotes,
 		scaleNoteNames,
 		preferFlats,
 	);
+
+	let voicingMinFret = 0;
+	let voicingMaxFret = 4;
+	if (selectedVoicing) {
+		const nonZeroFrets = selectedVoicing.frets.filter((f) => f > 0);
+		if (selectedVoicing.baseFret === 0) {
+			voicingMinFret = 0;
+			voicingMaxFret = Math.max(
+				4,
+				...(nonZeroFrets.length > 0 ? nonZeroFrets : [3]),
+			);
+		} else if (nonZeroFrets.length > 0) {
+			voicingMinFret = Math.max(1, Math.min(...nonZeroFrets) - 1);
+			voicingMaxFret = Math.min(MAX_GUITAR_FRET, Math.max(...nonZeroFrets) + 1);
+		}
+	}
+
 	const songHitKeys = new Set<string>();
 	const harmonicKeys = new Set<string>();
+	const combinedSongMidi =
+		activeSongMidi && activeSongMidi.length > 0
+			? activeSongMidi
+			: activeRunMidi !== null
+				? [activeRunMidi]
+				: null;
+
 	if (activeSongStops && activeSongStops.length > 0) {
 		for (const stop of activeSongStops) {
 			if (
@@ -90,10 +157,10 @@ export function GuitarFretboard({
 				}
 			}
 		}
-	} else if (activeSongMidi && activeSongMidi.length > 0) {
-		for (const midi of activeSongMidi) {
+	} else if (combinedSongMidi && combinedSongMidi.length > 0) {
+		for (const midi of combinedSongMidi) {
 			let matchedVoiced = false;
-			if (selectedVoicing) {
+			if (selectedVoicing && activeSongMidi && activeSongMidi.length > 0) {
 				selectedVoicing.notes.forEach((n, idx) => {
 					if (n.midi === midi && n.fret >= 0) {
 						songHitKeys.add(`${idx}-${n.fret}`);
@@ -117,6 +184,18 @@ export function GuitarFretboard({
 			}
 		}
 	}
+
+	const playSequence = (midiNotes: number[], stepMs = 220) => {
+		if (onPlayNoteSequence) {
+			onPlayNoteSequence(midiNotes, stepMs);
+		} else if (midiNotes.length > 0) {
+			onPlayFretNote(midiNotes[0]);
+		}
+	};
+
+	const activePhrase =
+		guide.passingPhrases.find((p) => p.id === selectedPhraseId) ??
+		guide.passingPhrases[0];
 
 	const nutX = 64;
 	const fretWidth = 48;
@@ -162,6 +241,7 @@ export function GuitarFretboard({
 							[
 								["voicing", "Voicing"],
 								["chordTones", "All Notes"],
+								["pentatonic", "Pentatonic"],
 								["scale", "Scale"],
 							] as const
 						).map(([modeKey, label]) => (
@@ -175,6 +255,18 @@ export function GuitarFretboard({
 							</button>
 						))}
 					</div>
+
+					<button
+						type="button"
+						className={`guitar-passing-toggle ${
+							showChromaticPassing ? "is-active" : ""
+						}`}
+						aria-pressed={showChromaticPassing}
+						onClick={() => setShowChromaticPassing((prev) => !prev)}
+						title="Overlay chromatic passing notes (1-fret bridges between scale tones)"
+					>
+						+ Chromatic
+					</button>
 
 					<div
 						className="segmented-control"
@@ -381,23 +473,31 @@ export function GuitarFretboard({
 										selectedVoicing !== null && voicedFret === fret;
 									const isChordTone = chordPcSet.has(pc);
 									const isRoot = pc === rootPc;
+									const isPentatonicTone = pentatonicPcSet.has(pc);
 									const isScaleTone = scalePcSet.has(pc);
+									const isPassingTone = passingPcSet.has(pc);
+									const inVoicingWindow =
+										fret >= voicingMinFret && fret <= voicingMaxFret;
 
 									const noteName = resolveFretNoteName(pc);
-									const intervalName =
+									const chordIntervalName =
 										chordKind && isChordTone
 											? getIntervalLabel(rootPc, pc, chordKind)
 											: null;
-									const displayLabel =
-										labelMode === "intervals" && intervalName
-											? intervalName
-											: noteName;
 
 									const cellKey = `${stringIdx}-${fret}`;
 									const isSongHit = songHitKeys.has(cellKey);
 									const isHarmonicHit = harmonicKeys.has(cellKey);
-									let dotState: "primary" | "ghost-chord" | "scale" | "none" =
-										"none";
+
+									type DotKind =
+										| "primary"
+										| "ghost-chord"
+										| "pentatonic"
+										| "scale"
+										| "chromatic"
+										| "none";
+
+									let dotState: DotKind = "none";
 									if (isSongHit) {
 										dotState = "primary";
 									} else if (overlayMode === "voicing" && selectedVoicing) {
@@ -408,22 +508,78 @@ export function GuitarFretboard({
 											!(fret === 0 && voicedFret === -1)
 										) {
 											dotState = "ghost-chord";
+										} else if (
+											showChromaticPassing &&
+											isPassingTone &&
+											inVoicingWindow &&
+											!(fret === 0 && voicedFret === -1)
+										) {
+											dotState = "chromatic";
 										}
 									} else if (overlayMode === "chordTones") {
 										if (isChordTone) dotState = "primary";
+										else if (showChromaticPassing && isPassingTone)
+											dotState = "chromatic";
+									} else if (overlayMode === "pentatonic") {
+										if (isChordTone) dotState = "primary";
+										else if (isPentatonicTone) dotState = "pentatonic";
+										else if (showChromaticPassing && isPassingTone)
+											dotState = "chromatic";
 									} else if (overlayMode === "scale") {
 										if (isChordTone) dotState = "primary";
 										else if (isScaleTone) dotState = "scale";
+										else if (showChromaticPassing && isPassingTone)
+											dotState = "chromatic";
 									} else if (isChordTone) {
 										dotState = "primary";
 									}
+
+									let dotLabel = noteName;
+									if (labelMode === "intervals") {
+										if (dotState === "primary" || dotState === "ghost-chord") {
+											dotLabel =
+												chordIntervalName ??
+												getChromaticDegreeLabel(rootPc, pc, preferFlats);
+										} else if (dotState === "pentatonic") {
+											dotLabel = getChromaticDegreeLabel(
+												guide.pentatonicRootPc,
+												pc,
+												preferFlats,
+											);
+										} else if (dotState === "scale") {
+											dotLabel = getChromaticDegreeLabel(
+												effectiveKeyRootPc,
+												pc,
+												preferFlats,
+											);
+										} else if (dotState === "chromatic") {
+											const refRootPc =
+												overlayMode === "scale"
+													? effectiveKeyRootPc
+													: guide.pentatonicRootPc;
+											dotLabel = getChromaticDegreeLabel(
+												refRootPc,
+												pc,
+												preferFlats,
+											);
+										}
+									}
+
+									const roleSuffix =
+										dotState === "pentatonic"
+											? " (pentatonic)"
+											: dotState === "chromatic"
+												? " (chromatic passing)"
+												: dotState === "scale"
+													? " (scale)"
+													: "";
 
 									return (
 										<g
 											key={`cell-${stringIdx}-${fret}`}
 											role="button"
 											tabIndex={0}
-											aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}`}
+											aria-label={`String ${info.stringNumber} (${info.label}) fret ${fret}: ${noteName}${roleSuffix}`}
 											className="fret-hit-cell"
 											onClick={() => onPlayFretNote(midi)}
 											onKeyDown={(e) =>
@@ -453,7 +609,11 @@ export function GuitarFretboard({
 																}`
 															: dotState === "ghost-chord"
 																? `fret-dot-ghost ${qualityClass}`
-																: "fret-dot-scale"
+																: dotState === "pentatonic"
+																	? "fret-dot-pentatonic"
+																	: dotState === "chromatic"
+																		? "fret-dot-chromatic"
+																		: "fret-dot-scale"
 													}
 												>
 													{isSongHit &&
@@ -478,14 +638,22 @@ export function GuitarFretboard({
 																? 10.5
 																: dotState === "ghost-chord"
 																	? 8.5
-																	: 7.5
+																	: dotState === "pentatonic"
+																		? 8.2
+																		: dotState === "chromatic"
+																			? 7.1
+																			: 7.5
 														}
 														className={
 															dotState === "primary"
 																? `fret-dot-bg ${isRoot ? "is-root-ring" : ""}`
 																: dotState === "ghost-chord"
 																	? `fret-dot-ghost-bg ${isRoot ? "is-root-ring" : ""}`
-																	: "fret-dot-scale-bg"
+																	: dotState === "pentatonic"
+																		? "fret-dot-pentatonic-bg"
+																		: dotState === "chromatic"
+																			? "fret-dot-chromatic-bg"
+																			: "fret-dot-scale-bg"
 														}
 													/>
 													<text
@@ -498,10 +666,14 @@ export function GuitarFretboard({
 																? "fret-dot-text"
 																: dotState === "ghost-chord"
 																	? "fret-dot-ghost-text"
-																	: "fret-dot-scale-text"
+																	: dotState === "pentatonic"
+																		? "fret-dot-pentatonic-text"
+																		: dotState === "chromatic"
+																			? "fret-dot-chromatic-text"
+																			: "fret-dot-scale-text"
 														}
 													>
-														{dotState === "scale" ? noteName : displayLabel}
+														{dotLabel}
 													</text>
 												</g>
 											)}
@@ -512,6 +684,40 @@ export function GuitarFretboard({
 						);
 					})}
 				</svg>
+			</div>
+
+			<div className="fretboard-legend" aria-label="Fretboard marker legend">
+				<span className="legend-chip">
+					<span className={`legend-dot is-primary ${qualityClass}`} />
+					<span>Chord tone</span>
+				</span>
+				{overlayMode === "voicing" && (
+					<span className="legend-chip">
+						<span className={`legend-dot is-ghost ${qualityClass}`} />
+						<span>Other chord octave</span>
+					</span>
+				)}
+				{overlayMode === "pentatonic" && (
+					<span className="legend-chip">
+						<span className="legend-dot is-pentatonic" />
+						<span>Pentatonic ({guide.formula})</span>
+					</span>
+				)}
+				{overlayMode === "scale" && (
+					<span className="legend-chip">
+						<span className="legend-dot is-scale" />
+						<span>Diatonic scale</span>
+					</span>
+				)}
+				{showChromaticPassing && (
+					<span className="legend-chip">
+						<span className="legend-dot is-chromatic" />
+						<span>
+							Chromatic passing (
+							{overlayMode === "voicing" ? "around grip" : "1-fret bridges"})
+						</span>
+					</span>
+				)}
 			</div>
 
 			{selectedVoicing && (
@@ -549,6 +755,169 @@ export function GuitarFretboard({
 					</div>
 				</div>
 			)}
+
+			<div
+				className="guitar-scale-guide"
+				aria-label="Pentatonic scale and chromatic passing notes guide"
+			>
+				<section className="guitar-guide-card">
+					<div className="guitar-guide-head">
+						<div className="guitar-guide-title-row">
+							<span className="guitar-guide-kicker is-pent">Pentatonic</span>
+							<strong className="guitar-guide-title">
+								{guide.pentatonicName}
+							</strong>
+							<span className="guitar-guide-formula">{guide.formula}</span>
+						</div>
+
+						<div className="guitar-guide-actions">
+							{guide.hasDistinctChordPentatonic && (
+								<div
+									className="segmented-control segmented-xs"
+									role="group"
+									aria-label="Pentatonic scale basis"
+								>
+									<button
+										type="button"
+										className={`seg-btn ${guide.activeScope === "key" ? "is-active" : ""}`}
+										onClick={() => setPentatonicScope("key")}
+										title={guide.keyPentatonicName}
+									>
+										Key
+									</button>
+									<button
+										type="button"
+										className={`seg-btn ${guide.activeScope === "chord" ? "is-active" : ""}`}
+										onClick={() => setPentatonicScope("chord")}
+										title={guide.chordPentatonicName}
+									>
+										Chord
+									</button>
+								</div>
+							)}
+							<button
+								type="button"
+								className={`guitar-mini-btn ${
+									overlayMode === "pentatonic" ? "is-active" : ""
+								}`}
+								onClick={() =>
+									setOverlayMode((m) =>
+										m === "pentatonic" ? "voicing" : "pentatonic",
+									)
+								}
+								title="Toggle Pentatonic notes on the guitar fretboard"
+							>
+								{overlayMode === "pentatonic" ? "On Neck ✓" : "View on Neck"}
+							</button>
+							<button
+								type="button"
+								className="guitar-mini-btn is-play"
+								onClick={() => playSequence(guide.pentatonicMidi, 220)}
+								title={`Play ${guide.pentatonicName} ascending on guitar`}
+							>
+								<IconPlay size={10} />
+								<span>Hear</span>
+							</button>
+						</div>
+					</div>
+
+					<div className="guitar-pent-notes">
+						{guide.pentatonicNotes.map((note, idx) => {
+							const isChordTone = chordPcSet.has(guide.pentatonicPcs[idx]);
+							return (
+								<button
+									key={`${note}-${guide.degrees[idx]}`}
+									type="button"
+									className={`guitar-pent-pill ${
+										isChordTone ? "is-chord-tone" : ""
+									}`}
+									onClick={() =>
+										onPlayFretNote(guide.pentatonicMidi[idx] ?? 48)
+									}
+									title={`Play ${note} (${guide.degrees[idx]} of ${guide.pentatonicName})`}
+								>
+									<span className="pent-deg">{guide.degrees[idx]}</span>
+									<span className="pent-note">{note}</span>
+								</button>
+							);
+						})}
+					</div>
+
+					<p className="guitar-guide-desc">
+						<strong>Relative twin:</strong> {guide.relativeTwinName}.{" "}
+						{guide.omittedSummary}
+					</p>
+					<p className="guitar-guide-meta">
+						<strong>Neck pocket:</strong> {guide.cagedBoxTip}
+					</p>
+				</section>
+
+				<section className="guitar-guide-card">
+					<div className="guitar-guide-head">
+						<div className="guitar-guide-title-row">
+							<span className="guitar-guide-kicker is-pass">Chromatic</span>
+							<strong className="guitar-guide-title">Passing Notes</strong>
+							<span className="guitar-guide-formula">1-fret bridges</span>
+						</div>
+
+						<div className="guitar-guide-actions">
+							<button
+								type="button"
+								className={`guitar-mini-btn ${
+									showChromaticPassing ? "is-active" : ""
+								}`}
+								aria-pressed={showChromaticPassing}
+								onClick={() => setShowChromaticPassing((prev) => !prev)}
+								title="Highlight chromatic passing frets on the guitar neck"
+							>
+								{showChromaticPassing ? "On Neck ✓" : "Show on Neck"}
+							</button>
+						</div>
+					</div>
+
+					<p className="guitar-guide-desc">
+						Dashed frets lie halfway inside pentatonic &amp; scale gaps — step
+						through them on weak beats and resolve onto a nearby chord tone.
+					</p>
+
+					<div
+						className="chromatic-phrases-row"
+						role="group"
+						aria-label="Playable chromatic passing examples"
+					>
+						{guide.passingPhrases.map((phrase) => {
+							const isSelected = activePhrase?.id === phrase.id;
+							return (
+								<button
+									key={phrase.id}
+									type="button"
+									className={`chromatic-phrase-btn ${
+										isSelected ? "is-selected" : ""
+									}`}
+									onClick={() => {
+										setSelectedPhraseId(phrase.id);
+										playSequence(phrase.midi, 230);
+									}}
+									title={`Play ${phrase.label}: ${phrase.notes.join(" → ")}`}
+								>
+									<span className="cp-top">
+										<IconPlay size={9} />
+										<span className="cp-label">{phrase.label}</span>
+									</span>
+									<span className="cp-notes">{phrase.notes.join(" → ")}</span>
+									<span className="cp-tag">{phrase.tag}</span>
+								</button>
+							);
+						})}
+					</div>
+
+					{activePhrase && (
+						<p className="guitar-guide-meta">
+							<strong>Tip ({activePhrase.label}):</strong> {activePhrase.tip}
+						</p>
+					)}
+				</section>
+			</div>
 		</div>
 	);
 }

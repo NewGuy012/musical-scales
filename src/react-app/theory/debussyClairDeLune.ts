@@ -13,6 +13,59 @@ export const DEBUSSY_CLAIR_DE_LUNE: SongExample = {
 	bpm: 54,
 	theorySummary:
 		"All 72 bars in D♭ Major: descending pentatonic thirds, lush I–IVmaj7–V13 harmonies, flowing 16th-note arpeggios, an enharmonic C♯ minor climax, and fading D♭/D♭m coda swells.",
+	studyGuide: {
+		vibeAndSound:
+			"Slow 9/8 moonlight sway: soft 2-note thirds float above gentle harp-like left-hand waves, hiding the downbeat so the music feels weightless.",
+		harmonyHook:
+			"Avoids blunt root chords at the start—opening on D♭/F (I6) and lush G♭maj7 (IVmaj7)—then flips enharmonically from D♭ Major (5♭) to stormy C♯ Minor (4♯) in Bar 37.",
+		practiceTips: [
+			"Start with Bars 1–8 hands-apart: trace the descending 2-note thirds in the right hand before adding the warm left-hand thirds.",
+			"Notice how Bar 37 uses the exact same key pitch as D♭ (C♯m), shifting into parallel minor for instant drama.",
+			"In Bars 66–72, hear how borrowing D♭ minor (i♭) right beside D♭maj7 creates the wistful fade-out.",
+		],
+		sections: [
+			{
+				id: "clair-sec-1",
+				title: "1. Moonlight Opening",
+				barRange: "Bars 1–14",
+				startStepIndex: 0,
+				endStepIndex: 13,
+				progressionTag: "I6 – vii°7 – iii7 – IVmaj7 – V13",
+				insight:
+					"Starts gently with F in the bass (D♭/F) instead of D♭ so the melody drifts in weightlessly through sighing thirds and warm 7th chords.",
+			},
+			{
+				id: "clair-sec-2",
+				title: "2. Flowing Harp Waves",
+				barRange: "Bars 15–36",
+				startStepIndex: 14,
+				endStepIndex: 35,
+				progressionTag: "ii7 – viiø7 – IVmaj7 – V7/V – V7 – I",
+				insight:
+					"Broken left-hand arpeggios swell underneath a soaring melody; Bar 30 slips in E♭7 (V7/V) to brighten the climb before returning home.",
+			},
+			{
+				id: "clair-sec-3",
+				title: "3. C♯ Minor Storm",
+				barRange: "Bars 37–42",
+				startStepIndex: 36,
+				endStepIndex: 41,
+				progressionTag: "i♯ – iv♯ – V7/♯III – iiø♯",
+				insight:
+					"Enharmonic pivot! Respelled from 5 flats to 4 sharps (C♯ minor), turning the peaceful tonic into a passionate minor climax.",
+			},
+			{
+				id: "clair-sec-4",
+				title: "4. Reprise & D♭m Coda",
+				barRange: "Bars 43–72",
+				startStepIndex: 42,
+				endStepIndex: 71,
+				progressionTag: "V9sus4 – IVmaj7 – I – i♭ (D♭m) – I",
+				insight:
+					"Settles onto a calm A♭ pedal, whispers the opening thirds back, and alternates bright D♭maj7 with shadowy D♭m before vanishing.",
+			},
+		],
+	},
 	steps: [
 		{
 			id: "clair-bar-1",

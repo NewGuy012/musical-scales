@@ -63,6 +63,59 @@ export const TOMMY_AMAZING_GRACE: SongExample = {
 	bpm: 76,
 	theorySummary:
 		"Standard tuning E Major fingerstyle arrangement: opens with 12th/7th-fret bell harmonics, moves through rubato chord-melody with secondary dominants (E7/G♯, A♯°7, G♯7, F♯7), drops into a steady alternating Travis-pick groove with Am6 minor plagal color, and closes on a +12 harp harmonic cascade.",
+	studyGuide: {
+		vibeAndSound:
+			"Intimate fingerstyle E major: ringing open strings and bell harmonics at the start bloom into a warm, gospel-tinged alternating-thumb groove.",
+		harmonyHook:
+			"Built on the core Circle trio (E – A – B7), dressed up with walking bass inversions (E7/G♯, A♯°7) and a soulful borrowed minor IV (Am) right before the ending.",
+		practiceTips: [
+			"Keep your picking thumb steady on low E2–B2–E3 in Verse 2 (Bars 19+) while letting the open high E4 and B3 strings ring out.",
+			"For the Bar 1 & Bar 34 bell harmonics, rest a fretting/right-hand finger lightly right above the fret wire—don't press down to the wood.",
+			"Notice Bar 29 (A → Am): lowering C♯ to C♮ is the classic bittersweet gospel 'Amen' color you can use in any Major song.",
+		],
+		sections: [
+			{
+				id: "ag-sec-1",
+				title: "1. Bell Harmonics Intro",
+				barRange: "Bars 1–2",
+				startStepIndex: 0,
+				endStepIndex: 1,
+				progressionTag: "I(add9) – V9sus4",
+				insight:
+					"Sets E Major with sparkling 12th- and 7th-fret chime harmonics over a low E2 drone, pausing on a suspended B9sus4 chord.",
+			},
+			{
+				id: "ag-sec-2",
+				title: "2. Rubato Chord-Melody",
+				barRange: "Bars 3–18",
+				startStepIndex: 2,
+				endStepIndex: 17,
+				progressionTag: "I – I7/3 – IV → ♯iv°7 – V7/vi – V7",
+				insight:
+					"Sings the hymn freely over walking bass notes (E → G♯ → A → A♯°7 → B), borrowing G♯7 and F♯7 for rich gospel pull.",
+			},
+			{
+				id: "ag-sec-3",
+				title: "3. Travis Groove & Amen",
+				barRange: "Bars 19–33",
+				startStepIndex: 18,
+				endStepIndex: 32,
+				progressionTag: "I – IVmaj7 – iv (Am) – V7 – I",
+				insight:
+					"Locks into an alternating-thumb rhythm, adds bluesy hammer-ons, and drops into minor Am (iv) for the tender gospel Amen tag.",
+			},
+			{
+				id: "ag-sec-4",
+				title: "4. Harp Harmonic Outro",
+				barRange: "Bar 34",
+				startStepIndex: 33,
+				endStepIndex: 33,
+				progressionTag: "I(add9)",
+				insight:
+					"Sweeps across an Eadd9 grip using artificial +12 harp harmonics—fretting low notes while chiming each string 12 frets up.",
+			},
+		],
+	},
 	steps: [
 		// ── Intro: Bell Harmonics (Bars 1–2) ─────────────────────────────
 		{

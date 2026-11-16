@@ -11,6 +11,7 @@ import {
 import { CelloFingerboard } from "./components/CelloFingerboard";
 import { ChordVoicingMode, ChordsPanel } from "./components/ChordsPanel";
 import { CircleWheel } from "./components/CircleWheel";
+import { ColorHarmonyPanel } from "./components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import {
@@ -28,21 +29,29 @@ import { PianoKeyboard } from "./components/PianoKeyboard";
 import { SongExamplesPanel } from "./components/SongExamplesPanel";
 import { CelloVoicing, getCelloVoicings } from "./theory/celloFingerboard";
 import {
+	HarmonyChordSpec,
+	analyzeColorHarmony,
+} from "./theory/chromaticHarmony";
+import {
 	AccidentalPreference,
+	CIRCLE_SLOTS,
 	ChordProgression,
 	ChordQuality,
 	DiatonicChord,
 	EnharmonicSide,
 	KeyAnalysis,
 	KeyMode,
+	ProgressionCategory,
 	analyzeKey,
 	getChordCardId,
 	mod12,
 	noteToPitchClass,
 } from "./theory/circleOfFifths";
 import {
+	CHORD_VARIATION_SPECS,
 	GuitarChordKind,
 	GuitarVoicing,
+	buildChordVariation,
 	createPitchClassNameResolver,
 	getGuitarVoicings,
 	inferGuitarChordKind,
@@ -72,6 +81,12 @@ interface ActiveVoicing {
 
 const MAJOR_DEGREES = ["1", "2", "3", "4", "5", "6", "7"] as const;
 const MINOR_DEGREES = ["1", "2", "♭3", "4", "5", "♭6", "♭7"] as const;
+const PROGRESSION_CATEGORIES: readonly ProgressionCategory[] = [
+	"Classics & Cadences",
+	"Pop & Rock",
+	"Jazz & Circle",
+	"Classical & Sequence",
+] as const;
 
 export function App() {
 	const [selectedSlot, setSelectedSlot] = useState<number>(0);
@@ -87,7 +102,9 @@ export function App() {
 	const [rotateToSelected, setRotateToSelected] = useState<boolean>(false);
 	const [theme, setTheme] = useState<"dark" | "light">("dark");
 	const [instrumentView, setInstrumentView] = useState<InstrumentTab>("piano");
-	const [harmonyTab, setHarmonyTab] = useState<"chords" | "songs">("chords");
+	const [harmonyTab, setHarmonyTab] = useState<"chords" | "color" | "songs">(
+		"chords",
+	);
 	const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
 	const shortcutsContainerRef = useRef<HTMLDivElement | null>(null);
 	const soundPreset: SoundPreset =
@@ -102,9 +119,14 @@ export function App() {
 	const [auditionOverride, setAuditionOverride] =
 		useState<ActiveVoicing | null>(null);
 	const [activeScaleIndex, setActiveScaleIndex] = useState<number | null>(null);
+	const [selectedProgressionId, setSelectedProgressionId] =
+		useState<string>("maj-1451");
 	const [activeProgressionId, setActiveProgressionId] = useState<string | null>(
 		null,
 	);
+	const [activeProgressionStepIdx, setActiveProgressionStepIdx] = useState<
+		number | null
+	>(null);
 	const [walkingDirection, setWalkingDirection] = useState<
 		"fourth" | "fifth" | null
 	>(null);
@@ -122,6 +144,13 @@ export function App() {
 	const [selectedSongPreviewId, setSelectedSongPreviewId] = useState<
 		string | null
 	>(null);
+	const [activeGuitarRunMidi, setActiveGuitarRunMidi] = useState<number | null>(
+		null,
+	);
+	const [activeColorSeqId, setActiveColorSeqId] = useState<string | null>(null);
+	const [activeColorStepIdx, setActiveColorStepIdx] = useState<number | null>(
+		null,
+	);
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
 	const songPositionMsRef = useRef<number>(0);
@@ -137,6 +166,10 @@ export function App() {
 		() => analyzeKey(selectedSlot, mode, preference, slotOverrides),
 		[selectedSlot, mode, preference, slotOverrides],
 	);
+	const colorAnalysis = useMemo(
+		() => analyzeColorHarmony(analysis),
+		[analysis],
+	);
 
 	const cancelActivePlaybackEngine = useCallback(() => {
 		if (cancelSequenceRef.current) {
@@ -151,6 +184,7 @@ export function App() {
 		cancelActivePlaybackEngine();
 		setActiveScaleIndex(null);
 		setActiveProgressionId(null);
+		setActiveProgressionStepIdx(null);
 		setWalkingDirection(null);
 		setPlayingSongId(null);
 		setCuedSongId(null);
@@ -161,6 +195,9 @@ export function App() {
 		setActiveSongNoteLabel(null);
 		setActiveSongEvent(null);
 		setSelectedSongPreviewId(null);
+		setActiveGuitarRunMidi(null);
+		setActiveColorSeqId(null);
+		setActiveColorStepIdx(null);
 	}, [cancelActivePlaybackEngine]);
 
 	useEffect(() => {
@@ -510,6 +547,29 @@ export function App() {
 		mode,
 	]);
 
+	const handlePlayGuitarNoteSequence = useCallback(
+		(midiNotes: number[], stepMs = 220) => {
+			if (midiNotes.length === 0) return;
+			stopActiveSequence();
+			const steps = midiNotes.map((midi, idx) => ({
+				midi: [midi],
+				durationSec: idx === midiNotes.length - 1 ? 0.65 : 0.34,
+			}));
+			cancelSequenceRef.current = playStepSequence(steps, {
+				preset: soundPreset,
+				stepMs,
+				onStep: (idx) => {
+					setActiveGuitarRunMidi(midiNotes[idx] ?? null);
+				},
+				onDone: () => {
+					setActiveGuitarRunMidi(null);
+					cancelSequenceRef.current = null;
+				},
+			});
+		},
+		[stopActiveSequence, soundPreset],
+	);
+
 	const handleAuditionRelationship = useCallback(
 		(direction: "fourth" | "fifth") => {
 			stopActiveSequence();
@@ -547,14 +607,121 @@ export function App() {
 		],
 	);
 
+	const selectedProgression = useMemo(
+		() =>
+			analysis.progressions.find((p) => p.id === selectedProgressionId) ??
+			analysis.progressions[0],
+		[analysis.progressions, selectedProgressionId],
+	);
+
+	const progressionGroups = useMemo(
+		() =>
+			PROGRESSION_CATEGORIES.map((category) => ({
+				category,
+				items: analysis.progressions.filter((p) => p.category === category),
+			})).filter((g) => g.items.length > 0),
+		[analysis.progressions],
+	);
+
+	const activeRootNote = activeVoicing.notes[0] ?? analysis.root;
+
+	const handleSelectChordVariation = useCallback(
+		(kind: GuitarChordKind) => {
+			stopActiveSequence();
+			const variation = buildChordVariation(activeRootNote, kind, preferFlats);
+			const rootPc = noteToPitchClass(activeRootNote);
+			const targetSlotMatch =
+				CIRCLE_SLOTS.find(
+					(s) =>
+						noteToPitchClass(
+							variation.quality === "minor"
+								? s.primary.minorRoot
+								: s.primary.majorRoot,
+						) === rootPc,
+				)?.index ??
+				activeVoicing.chord?.circleIndex ??
+				selectedSlot;
+
+			const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
+			const existingChord = activeVoicing.chord;
+			const chordShim: DiatonicChord = {
+				degree: existingChord?.degree ?? 1,
+				roman: spec ? spec.label : variation.symbol,
+				root: activeRootNote,
+				quality: variation.quality,
+				symbol: variation.symbol,
+				seventhSymbol: variation.symbol,
+				triadNotes: [
+					variation.notes[0] ?? activeRootNote,
+					variation.notes[1] ?? activeRootNote,
+					variation.notes[2] ?? activeRootNote,
+				],
+				seventhNotes: [
+					variation.notes[0] ?? activeRootNote,
+					variation.notes[1] ?? activeRootNote,
+					variation.notes[2] ?? activeRootNote,
+					variation.notes[3] ?? variation.notes[0] ?? activeRootNote,
+				],
+				triadMidi: [
+					variation.midi[0] ?? 60,
+					variation.midi[1] ?? 64,
+					variation.midi[2] ?? 67,
+				],
+				seventhMidi: [
+					variation.midi[0] ?? 60,
+					variation.midi[1] ?? 64,
+					variation.midi[2] ?? 67,
+					variation.midi[3] ?? 72,
+				],
+				circleIndex: targetSlotMatch,
+				functionLabel: spec?.description ?? "Chord variation",
+			};
+
+			setAuditionOverride({
+				id: `var-${activeRootNote}-${kind}`,
+				label: variation.symbol,
+				quality: variation.quality,
+				guitarKind: kind,
+				midi: variation.midi,
+				notes: variation.notes,
+				chord: chordShim,
+				preserveVoicing: true,
+			});
+
+			const pb = resolvePlaybackForInstrument(
+				variation.notes,
+				kind,
+				variation.midi,
+				preferFlats || activeRootNote.includes("♭"),
+			);
+			playChordNotes(pb.midi, {
+				preset: soundPreset,
+				arpeggiate,
+				spreadSec: pb.spreadSec,
+			});
+		},
+		[
+			stopActiveSequence,
+			activeRootNote,
+			preferFlats,
+			activeVoicing.chord,
+			selectedSlot,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+		],
+	);
+
 	const handlePlayProgression = useCallback(
-		(prog: ChordProgression) => {
-			if (activeProgressionId === prog.id) {
+		(prog: ChordProgression, forcePlay = false) => {
+			if (!forcePlay && activeProgressionId === prog.id) {
 				stopActiveSequence();
 				return;
 			}
 			stopActiveSequence();
+			setSelectedProgressionId(prog.id);
 			setActiveProgressionId(prog.id);
+			setActiveProgressionStepIdx(0);
 
 			const chordSteps = prog.degrees.map((deg) =>
 				deg === -5 && analysis.harmonicMinorV
@@ -574,6 +741,7 @@ export function App() {
 					arpeggiate,
 					spreadSec: instrumentSpreadSec,
 					onStep: (idx) => {
+						setActiveProgressionStepIdx(idx);
 						const { chord, suffix } = chordSteps[idx];
 						setAuditionOverride(
 							toChordVoicing(chord, getChordCardId(chord, suffix)),
@@ -581,6 +749,7 @@ export function App() {
 					},
 					onDone: () => {
 						setActiveProgressionId(null);
+						setActiveProgressionStepIdx(null);
 						setAuditionOverride(null);
 						cancelSequenceRef.current = null;
 					},
@@ -598,6 +767,142 @@ export function App() {
 			soundPreset,
 			arpeggiate,
 			instrumentSpreadSec,
+		],
+	);
+
+	const handleSelectProgressionFromDropdown = useCallback(
+		(nextId: string) => {
+			setSelectedProgressionId(nextId);
+			const nextProg = analysis.progressions.find((p) => p.id === nextId);
+			if (nextProg) {
+				handlePlayProgression(nextProg, true);
+			}
+		},
+		[analysis.progressions, handlePlayProgression],
+	);
+
+	const toColorChordVoicing = useCallback(
+		(chord: HarmonyChordSpec): ActiveVoicing => {
+			const chordShim: DiatonicChord = {
+				degree: 1,
+				roman: chord.romanLabel,
+				root: chord.root,
+				quality: chord.quality,
+				symbol: chord.symbol,
+				seventhSymbol: chord.symbol,
+				triadNotes: [
+					chord.notes[0] ?? chord.root,
+					chord.notes[1] ?? chord.root,
+					chord.notes[2] ?? chord.root,
+				],
+				seventhNotes: [
+					chord.notes[0] ?? chord.root,
+					chord.notes[1] ?? chord.root,
+					chord.notes[2] ?? chord.root,
+					chord.notes[3] ?? chord.notes[0] ?? chord.root,
+				],
+				triadMidi: [
+					chord.midi[0] ?? 60,
+					chord.midi[1] ?? 64,
+					chord.midi[2] ?? 67,
+				],
+				seventhMidi: [
+					chord.midi[0] ?? 60,
+					chord.midi[1] ?? 64,
+					chord.midi[2] ?? 67,
+					chord.midi[3] ?? 72,
+				],
+				circleIndex: chord.circleIndex,
+				functionLabel: chord.roleTag ?? chord.romanLabel,
+			};
+			return {
+				id: chord.id,
+				label: `${chord.symbol} (${chord.romanLabel})`,
+				quality: chord.quality,
+				guitarKind: chord.guitarKind,
+				midi: chord.midi,
+				notes: chord.notes,
+				chord: chordShim,
+				preserveVoicing: true,
+			};
+		},
+		[],
+	);
+
+	const handleSelectColorChord = useCallback(
+		(chord: HarmonyChordSpec) => {
+			stopActiveSequence();
+			setAuditionOverride(toColorChordVoicing(chord));
+			const pb = resolvePlaybackForInstrument(
+				chord.notes,
+				chord.guitarKind,
+				chord.midi,
+				chord.root.includes("♭") || chord.notes.some((n) => n.includes("♭")),
+			);
+			playChordNotes(pb.midi, {
+				preset: soundPreset,
+				arpeggiate,
+				spreadSec: pb.spreadSec,
+			});
+		},
+		[
+			stopActiveSequence,
+			toColorChordVoicing,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+		],
+	);
+
+	const handlePlayColorSequence = useCallback(
+		(seqId: string, steps: HarmonyChordSpec[]) => {
+			if (activeColorSeqId === seqId) {
+				stopActiveSequence();
+				return;
+			}
+			stopActiveSequence();
+			if (steps.length === 0) return;
+
+			setActiveColorSeqId(seqId);
+			setActiveColorStepIdx(0);
+
+			cancelSequenceRef.current = playStepSequence(
+				steps.map((chord) => ({
+					midi: resolvePlaybackForInstrument(
+						chord.notes,
+						chord.guitarKind,
+						chord.midi,
+						chord.root.includes("♭") ||
+							chord.notes.some((n) => n.includes("♭")),
+					).midi,
+					durationSec: 0.85,
+				})),
+				{
+					preset: soundPreset,
+					stepMs: 800,
+					arpeggiate,
+					spreadSec: instrumentSpreadSec,
+					onStep: (idx) => {
+						setActiveColorStepIdx(idx);
+						setAuditionOverride(toColorChordVoicing(steps[idx]));
+					},
+					onDone: () => {
+						setActiveColorSeqId(null);
+						setActiveColorStepIdx(null);
+						setAuditionOverride(null);
+						cancelSequenceRef.current = null;
+					},
+				},
+			);
+		},
+		[
+			activeColorSeqId,
+			stopActiveSequence,
+			resolvePlaybackForInstrument,
+			soundPreset,
+			arpeggiate,
+			instrumentSpreadSec,
+			toColorChordVoicing,
 		],
 	);
 
@@ -1302,6 +1607,7 @@ export function App() {
 						preference={preference}
 						slotOverrides={slotOverrides}
 						highlightedChord={activeVoicing.chord}
+						highlightedNotes={activeVoicing.chord ? activeVoicing.notes : null}
 						rotateToSelected={rotateToSelected}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onPlayTonic={handlePlayTonic}
@@ -1489,6 +1795,22 @@ export function App() {
 								<button
 									type="button"
 									role="tab"
+									id="tab-harmony-color"
+									aria-selected={harmonyTab === "color"}
+									aria-controls="panel-harmony"
+									className={`instrument-tab ${
+										harmonyTab === "color" ? "is-active" : ""
+									}`}
+									onClick={() => setHarmonyTab("color")}
+								>
+									<span>Passing &amp; Substitutions</span>
+									{activeColorSeqId !== null && (
+										<span className="tab-live-dot" aria-hidden="true" />
+									)}
+								</button>
+								<button
+									type="button"
+									role="tab"
 									id="tab-harmony-songs"
 									aria-selected={harmonyTab === "songs"}
 									aria-controls="panel-harmony"
@@ -1540,6 +1862,18 @@ export function App() {
 										Arpeggio
 									</button>
 								</div>
+							) : harmonyTab === "color" ? (
+								<div className="chord-toolbar">
+									<button
+										type="button"
+										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+										aria-pressed={arpeggiate}
+										onClick={() => setArpeggiate((a) => !a)}
+										title="Roll chord notes sequentially vs. block chord"
+									>
+										Arpeggio
+									</button>
+								</div>
 							) : (
 								<span className="instrument-tab-meta">
 									{instrumentView === "piano"
@@ -1571,42 +1905,117 @@ export function App() {
 									/>
 
 									<div className="progressions-wrap">
-										<div className="progressions-header">
-											<span className="progressions-title">
-												Progressions in {analysis.shortName}
-											</span>
-											<span className="progressions-hint">
-												Traces harmonic path on wheel
-											</span>
+										<div className="progressions-bar">
+											<div className="progressions-select-group">
+												<label
+													htmlFor="progression-select"
+													className="progressions-title"
+												>
+													Progressions in {analysis.shortName}
+												</label>
+												<select
+													id="progression-select"
+													className="progression-select"
+													aria-label={`Choose chord progression in ${analysis.shortName}`}
+													value={selectedProgression.id}
+													onChange={(e) =>
+														handleSelectProgressionFromDropdown(e.target.value)
+													}
+												>
+													{progressionGroups.map((group) => (
+														<optgroup
+															key={group.category}
+															label={group.category}
+														>
+															{group.items.map((prog) => (
+																<option key={prog.id} value={prog.id}>
+																	{prog.name} — {prog.label}
+																</option>
+															))}
+														</optgroup>
+													))}
+												</select>
+											</div>
+
+											<button
+												type="button"
+												className={`pill-action-btn pill-action-sm ${
+													activeProgressionId === selectedProgression.id
+														? "is-playing"
+														: ""
+												}`}
+												onClick={() =>
+													handlePlayProgression(selectedProgression)
+												}
+												title={selectedProgression.description}
+											>
+												{activeProgressionId === selectedProgression.id ? (
+													<>
+														<IconStop size={10} /> Stop
+													</>
+												) : (
+													<>
+														<IconPlay size={10} /> Play Progression
+													</>
+												)}
+											</button>
 										</div>
-										<div className="progressions-grid">
-											{analysis.progressions.map((prog) => {
-												const isPlaying = activeProgressionId === prog.id;
-												return (
-													<button
-														key={prog.id}
-														type="button"
-														className={`prog-btn ${isPlaying ? "is-playing" : ""}`}
-														onClick={() => handlePlayProgression(prog)}
-														title={prog.description}
-													>
-														<span className="prog-top">
-															<strong>{prog.name}</strong>
-															<span className="prog-play-tag">
-																{isPlaying ? (
-																	<IconStop size={10} />
-																) : (
-																	<IconPlay size={10} />
-																)}
+
+										<div className="progression-steps-row">
+											<div
+												className="progression-steps-chips"
+												role="group"
+												aria-label={`${selectedProgression.name} chord steps`}
+											>
+												{selectedProgression.degrees.map((deg, idx) => {
+													const isHarmonicV =
+														deg === -5 && analysis.harmonicMinorV !== null;
+													const stepChord = isHarmonicV
+														? analysis.harmonicMinorV!
+														: analysis.chords[deg - 1];
+													const suffix = isHarmonicV ? "-harmonic" : "";
+													const cardId = getChordCardId(stepChord, suffix);
+													const isCurrentStep =
+														activeProgressionId === selectedProgression.id &&
+														activeProgressionStepIdx === idx;
+													const symbol = isSeventh
+														? stepChord.seventhSymbol
+														: stepChord.symbol;
+													return (
+														<button
+															key={`${selectedProgression.id}-step-${idx}`}
+															type="button"
+															className={`prog-step-chip chord-quality-${stepChord.quality} ${
+																isCurrentStep ? "is-active-step" : ""
+															}`}
+															onClick={() =>
+																handleSelectChord(stepChord, cardId)
+															}
+															title={`Play ${symbol} (${stepChord.roman})`}
+														>
+															<span className="prog-step-roman">
+																{stepChord.roman}
 															</span>
-														</span>
-														<span className="prog-label">{prog.label}</span>
-													</button>
-												);
-											})}
+															<span className="prog-step-sym">{symbol}</span>
+														</button>
+													);
+												})}
+											</div>
+											<span className="progression-desc">
+												{selectedProgression.description}
+											</span>
 										</div>
 									</div>
 								</>
+							) : harmonyTab === "color" ? (
+								<ColorHarmonyPanel
+									colorAnalysis={colorAnalysis}
+									activeChordId={activeVoicing.id}
+									activeSequenceId={activeColorSeqId}
+									activeSequenceStepIdx={activeColorStepIdx}
+									onSelectChord={handleSelectColorChord}
+									onPlaySequence={handlePlayColorSequence}
+								/>
 							) : (
 								<SongExamplesPanel
 									instrumentView={instrumentView}
@@ -1670,13 +2079,45 @@ export function App() {
 										{activeVoicing.label}
 									</span>
 								)}
+								<span className="instrument-notes-pill">
+									{activeVoicing.notes.join(" · ")}
+								</span>
 								<span className="instrument-tab-meta">
 									{instrumentView === "piano"
-										? "C4–B5 · Dots = scale"
+										? "C4–B5"
 										: instrumentView === "guitar"
 											? "E A D G B e"
 											: "C2–G2–D3–A3"}
 								</span>
+							</div>
+						</div>
+
+						<div
+							className="chord-variations-bar"
+							role="group"
+							aria-label={`Chord variations for root ${activeRootNote}`}
+						>
+							<span className="variations-root-label">
+								{activeRootNote} Variations:
+							</span>
+							<div className="variations-pills-scroll">
+								{CHORD_VARIATION_SPECS.map((spec) => {
+									const isSelected = activeVoicing.guitarKind === spec.kind;
+									return (
+										<button
+											key={spec.kind}
+											type="button"
+											className={`var-pill var-quality-${spec.quality} ${
+												isSelected ? "is-selected" : ""
+											}`}
+											aria-pressed={isSelected}
+											onClick={() => handleSelectChordVariation(spec.kind)}
+											title={`${activeRootNote}${spec.suffix} — ${spec.description} (${spec.formula})`}
+										>
+											{spec.label}
+										</button>
+									);
+								})}
 							</div>
 						</div>
 
@@ -1718,8 +2159,11 @@ export function App() {
 											? (activeSongEvent?.guitarStops ?? null)
 											: null
 									}
+									activeRunMidi={activeGuitarRunMidi}
 									scalePitchClasses={scalePitchClasses}
 									scaleNoteNames={analysis.scaleNotes}
+									keyRootName={analysis.scaleNotes[0]}
+									keyMode={mode}
 									preferFlats={preferFlats}
 									embedded
 									onSelectVoicing={handleSelectGuitarVoicing}
@@ -1727,6 +2171,7 @@ export function App() {
 									onPlayFretNote={(midi) =>
 										playSingleNote(midi, soundPreset, 0.78)
 									}
+									onPlayNoteSequence={handlePlayGuitarNoteSequence}
 								/>
 							) : (
 								<CelloFingerboard

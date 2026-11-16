@@ -247,6 +247,93 @@ export function getCelloVoicings(
 			);
 			break;
 		}
+		case "aug": {
+			candidates.push(
+				["aug-4str", "4-Str Aug", [f4, f4 + 1, f4 + 2, f4 + 3]],
+				["aug-low", "Low 3-Str Aug", [f4, f4 + 1, f4 + 2, -1]],
+				["aug-upper", "Upper 3-Str Aug", [-1, f3, f3 + 1, f3 + 2]],
+				["aug-inv1", "1st Inv (3rd Bass)", [t4, t4 + 1, t4 + 2, t4 + 3]],
+			);
+			break;
+		}
+		case "dim7": {
+			const pRoot = f4 < 1 ? f4 + 12 : f4;
+			const pMin3 = m4 < 1 ? m4 + 12 : m4;
+			const pDim5 = mod12(rootPc + 6);
+			const pDim5Pos = pDim5 < 1 ? pDim5 + 12 : pDim5;
+			const pDim7 = mod12(rootPc + 9);
+			const pDim7Pos = pDim7 < 1 ? pDim7 + 12 : pDim7;
+			candidates.push(
+				["dim7-root", "4-Str Root", [pRoot, pRoot - 1, pRoot + 1, pRoot]],
+				["dim7-inv1", "♭3-Bass Dim7", [pMin3, pMin3 - 1, pMin3 + 1, pMin3]],
+				[
+					"dim7-inv2",
+					"♭5-Bass Dim7",
+					[pDim5Pos, pDim5Pos - 1, pDim5Pos + 1, pDim5Pos],
+				],
+				[
+					"dim7-inv3",
+					"𝄫7-Bass Dim7",
+					[pDim7Pos, pDim7Pos - 1, pDim7Pos + 1, pDim7Pos],
+				],
+			);
+			break;
+		}
+		case "add9": {
+			const t3 = mod12(rootPc - 3);
+			const d2 = mod12(rootPc + 2);
+			const d2Pos = d2 < 2 ? d2 + 12 : d2;
+			const f3Pos = f3 < 3 ? f3 + 12 : f3;
+			candidates.push(
+				["add9-4str", "4-Str Add9", [t3 + 3, t3, t3 + 3, t3 + 1]],
+				["add9-low", "Low 3-Str", [t3 + 3, t3, t3 + 3, -1]],
+				["add9-upper", "Upper 3-Str", [-1, f3Pos, f3Pos - 3, f3Pos]],
+				["add9-inv9", "9th-Bass Add9", [d2Pos, d2Pos - 2, d2Pos, d2Pos + 1]],
+			);
+			break;
+		}
+		case "madd9": {
+			const d2 = mod12(rootPc + 2);
+			const d2Pos = d2 < 2 ? d2 + 12 : d2;
+			candidates.push(
+				[
+					"madd9-4str",
+					"4-Str m(add9)",
+					[d2Pos, d2Pos - 2, d2Pos - 1, d2Pos + 1],
+				],
+				[
+					"madd9-invb3",
+					"♭3-Bass m(add9)",
+					[d2Pos + 1, d2Pos - 2, d2Pos - 2, d2Pos + 1],
+				],
+				["madd9-3str", "Upper Shell", [d2Pos, -1, d2Pos - 1, d2Pos + 1]],
+			);
+			if (d2 === 1) {
+				candidates.push(["madd9-open-d", "Open D Shell", [1, -1, 0, 2]]);
+			}
+			break;
+		}
+		case "sus4": {
+			const u4 = mod12(rootPc + 5);
+			candidates.push(
+				["sus4-4str", "4-Str Sus4", [f4, f4, f4 + 3, f4 + 3]],
+				["sus4-upper", "Upper 3-Str", [-1, f3, f3, f3 + 3]],
+				["sus4-low", "Low 3-Str", [f4, f4, f4 + 3, -1]],
+				["sus4-inv", "4th-Bass Sus4", [u4, u4, u4, u4 + 3]],
+			);
+			break;
+		}
+		case "sus2": {
+			const d2 = mod12(rootPc + 2);
+			const d2Pos = d2 < 2 ? d2 + 12 : d2;
+			candidates.push(
+				["sus2-4str", "4-Str Sus2", [f4, f4, f4, f4 + 3]],
+				["sus2-upper", "Upper 3-Str", [-1, f3, f3, f3]],
+				["sus2-low", "Low 3-Str", [f4, f4, f4, -1]],
+				["sus2-inv", "2nd-Bass Sus2", [d2Pos, d2Pos - 2, d2Pos - 2, d2Pos + 1]],
+			);
+			break;
+		}
 	}
 
 	const seen = new Set<string>();

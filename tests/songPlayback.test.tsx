@@ -159,6 +159,12 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(previewHtml).toContain("Previewing");
 		expect(previewHtml).toContain("Play from Bar 5");
 		expect(previewHtml).toContain("Bar 5/42");
+		expect(previewHtml).toContain("Sound &amp; Feel");
+		expect(previewHtml).toContain("Harmony Hook");
+		expect(previewHtml).toContain("Practice Tips");
+		expect(previewHtml).toContain("2. Circle Climb to D &amp; Em");
+		expect(previewHtml).toContain("Play Section");
+		expect(previewHtml).toContain("song-live-fn");
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {

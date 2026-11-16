@@ -47,10 +47,17 @@ export interface KeyNeighborInfo {
 	chordSymbol: string;
 }
 
+export type ProgressionCategory =
+	| "Classics & Cadences"
+	| "Pop & Rock"
+	| "Jazz & Circle"
+	| "Classical & Sequence";
+
 export interface ChordProgression {
 	id: string;
 	name: string;
 	label: string;
+	category: ProgressionCategory;
 	description: string;
 	degrees: number[]; // 1-based degrees; -5 indicates Harmonic Minor V
 }
@@ -273,33 +280,100 @@ const MAJOR_PROGRESSIONS: ChordProgression[] = [
 		id: "maj-1451",
 		name: "I – IV – V – I",
 		label: "Classic Fifths & Fourths",
+		category: "Classics & Cadences",
 		description:
 			"Moves counter-clockwise to the 4th, clockwise to the 5th, and resolves home.",
 		degrees: [1, 4, 5, 1],
 	},
 	{
+		id: "maj-1415",
+		name: "I – IV – I – V",
+		label: "Folk & Country Turnaround",
+		category: "Classics & Cadences",
+		description:
+			"Balances plagal (IV) warmth against dominant (V) tension around the tonic.",
+		degrees: [1, 4, 1, 5],
+	},
+	{
 		id: "maj-1564",
 		name: "I – V – vi – IV",
 		label: "Pop Anthem Loop",
+		category: "Pop & Rock",
 		description:
 			"Alternates between major tonic/dominant/subdominant and the relative minor.",
 		degrees: [1, 5, 6, 4],
 	},
 	{
+		id: "maj-6415",
+		name: "vi – IV – I – V",
+		label: "Modern Ballad / Sensitive Loop",
+		category: "Pop & Rock",
+		description:
+			"Starts on the relative minor before lifting brightly into IV, I, and V.",
+		degrees: [6, 4, 1, 5],
+	},
+	{
+		id: "maj-1645",
+		name: "I – vi – IV – V",
+		label: "50s Doo-Wop Progression",
+		category: "Pop & Rock",
+		description:
+			"Drops to the relative minor before climbing through IV and V.",
+		degrees: [1, 6, 4, 5],
+	},
+	{
+		id: "maj-1465",
+		name: "I – IV – vi – V",
+		label: "Acoustic Anthem",
+		category: "Pop & Rock",
+		description:
+			"Opens with the warm 4th neighbor and delays the 5th until the turnaround.",
+		degrees: [1, 4, 6, 5],
+	},
+	{
 		id: "maj-251",
 		name: "ii – V – I",
 		label: "Jazz Circle Cadence",
+		category: "Jazz & Circle",
 		description:
 			"Walks clockwise by fifths from the minor ii through V back to I.",
 		degrees: [2, 5, 1],
 	},
 	{
-		id: "maj-1645",
-		name: "I – vi – IV – V",
-		label: "50s Progression",
+		id: "maj-1625",
+		name: "I – vi – ii – V",
+		label: "Rhythm Changes Turnaround",
+		category: "Jazz & Circle",
 		description:
-			"Drops to the relative minor before climbing through IV and V.",
-		degrees: [1, 6, 4, 5],
+			"Classic standard turnaround cycling down in fifths through vi, ii, and V.",
+		degrees: [1, 6, 2, 5],
+	},
+	{
+		id: "maj-36251",
+		name: "iii – vi – ii – V – I",
+		label: "Extended Circle Descent",
+		category: "Jazz & Circle",
+		description:
+			"Falls around the Circle of Fifths step by step back to the tonic.",
+		degrees: [3, 6, 2, 5, 1],
+	},
+	{
+		id: "maj-4536",
+		name: "IV – V – iii – vi",
+		label: "Royal Road Cadence",
+		category: "Classical & Sequence",
+		description:
+			"Suspended uplifting progression popular in modern pop and film scoring.",
+		degrees: [4, 5, 3, 6],
+	},
+	{
+		id: "maj-canon",
+		name: "I – V – vi – iii – IV – I – IV – V",
+		label: "Pachelbel Canon Sequence",
+		category: "Classical & Sequence",
+		description:
+			"Baroque descending sequence weaving smoothly across every diatonic triad.",
+		degrees: [1, 5, 6, 3, 4, 1, 4, 5],
 	},
 ];
 
@@ -308,32 +382,90 @@ const MINOR_PROGRESSIONS: ChordProgression[] = [
 		id: "min-1451",
 		name: "i – iv – v – i",
 		label: "Natural Minor Cadence",
+		category: "Classics & Cadences",
 		description:
 			"Explores the minor 4th and minor 5th neighbors around the tonic minor.",
 		degrees: [1, 4, 5, 1],
 	},
 	{
+		id: "min-251",
+		name: "ii° – V – i",
+		label: "Harmonic Minor Cadence",
+		category: "Jazz & Circle",
+		description:
+			"Uses the diminished ii° and raised major V to pull strongly back to i.",
+		degrees: [2, -5, 1],
+	},
+	{
 		id: "min-1637",
 		name: "i – VI – III – VII",
 		label: "Epic Minor Loop",
+		category: "Pop & Rock",
 		description:
 			"Weaves between minor tonic and the three bright relative major chords.",
 		degrees: [1, 6, 3, 7],
 	},
 	{
+		id: "min-1374",
+		name: "i – III – VII – iv",
+		label: "Acoustic Minor Folk",
+		category: "Pop & Rock",
+		description:
+			"Lifts to the relative major before stepping down through VII and iv.",
+		degrees: [1, 3, 7, 4],
+	},
+	{
+		id: "min-1767",
+		name: "i – VII – VI – VII",
+		label: "Aeolian Rock Riff",
+		category: "Pop & Rock",
+		description:
+			"Driving natural-minor modal oscillation between i, VII, and VI.",
+		degrees: [1, 7, 6, 7],
+	},
+	{
 		id: "min-1473",
 		name: "i – iv – VII – III",
 		label: "Circle Minor Walk",
+		category: "Jazz & Circle",
 		description: "Steps around the circle of fifths into the relative major.",
 		degrees: [1, 4, 7, 3],
 	},
 	{
-		id: "min-251",
-		name: "ii° – V – i",
-		label: "Harmonic Minor Cadence",
+		id: "min-circle-full",
+		name: "i – iv – VII – III – VI – ii° – V – i",
+		label: "Full Minor Circle Descent",
+		category: "Jazz & Circle",
 		description:
-			"Uses the diminished ii° and raised major V to pull strongly back to i.",
-		degrees: [2, -5, 1],
+			"Cycles all the way around the diatonic circle with a harmonic V resolution.",
+		degrees: [1, 4, 7, 3, 6, 2, -5, 1],
+	},
+	{
+		id: "min-1765",
+		name: "i – VII – VI – V",
+		label: "Andalusian Cadence",
+		category: "Classical & Sequence",
+		description:
+			"Descending Spanish / Baroque bass line resolving onto the raised major V.",
+		degrees: [1, 7, 6, -5],
+	},
+	{
+		id: "min-1645",
+		name: "i – VI – iv – V",
+		label: "Dramatic Classical Minor",
+		category: "Classical & Sequence",
+		description:
+			"Emotional minor progression building tension through iv into major V.",
+		degrees: [1, 6, 4, -5],
+	},
+	{
+		id: "min-1465",
+		name: "i – iv – VI – V",
+		label: "Baroque Tension Cadence",
+		category: "Classical & Sequence",
+		description:
+			"Pairs the minor subdominant with VI and a strong harmonic minor dominant.",
+		degrees: [1, 4, 6, -5],
 	},
 ];
 

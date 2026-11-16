@@ -45,6 +45,23 @@ export interface SongChordStep {
 	events: SongNoteEvent[];
 }
 
+export interface SongSectionGuide {
+	id: string;
+	title: string;
+	barRange: string;
+	startStepIndex: number;
+	endStepIndex: number;
+	progressionTag: string;
+	insight: string;
+}
+
+export interface SongStudyGuide {
+	vibeAndSound: string;
+	harmonyHook: string;
+	practiceTips: string[];
+	sections: SongSectionGuide[];
+}
+
 export interface SongExample {
 	id: string;
 	title: string;
@@ -57,6 +74,7 @@ export interface SongExample {
 	timeSignature: string;
 	bpm: number;
 	theorySummary: string;
+	studyGuide?: SongStudyGuide;
 	steps: SongChordStep[];
 }
 
@@ -163,4 +181,56 @@ export function formatSongTime(ms: number): string {
 	const minutes = Math.floor(totalSeconds / 60);
 	const seconds = totalSeconds % 60;
 	return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+export function findSongSectionForBar(
+	studyGuide: SongStudyGuide | undefined,
+	stepIndex: number,
+): SongSectionGuide | null {
+	if (!studyGuide || studyGuide.sections.length === 0) return null;
+	return (
+		studyGuide.sections.find(
+			(s) => stepIndex >= s.startStepIndex && stepIndex <= s.endStepIndex,
+		) ??
+		studyGuide.sections[0] ??
+		null
+	);
+}
+
+export function describeRomanFunction(
+	roman: string,
+	quality: ChordQuality,
+): string {
+	if (roman.includes("/vi") || roman.includes("/V") || roman.includes("/IV")) {
+		return "Secondary dominant · pulls to next chord";
+	}
+	if (roman.includes("♯iv") || roman.includes("vii°")) {
+		return "Chromatic / leading-tone tension";
+	}
+	if (roman.startsWith("i♭") || roman.startsWith("i♯")) {
+		return "Borrowed parallel minor color";
+	}
+	if (roman.startsWith("iv")) {
+		return "Minor subdominant · bittersweet lift";
+	}
+	if (roman.startsWith("IV")) {
+		return "Subdominant (4th) · warm harmonic lift";
+	}
+	if (roman.startsWith("V")) {
+		return "Dominant (5th) · pulls strongly home";
+	}
+	if (roman.startsWith("ii")) {
+		return "Pre-dominant · sets up V";
+	}
+	if (roman.startsWith("vi") || roman.startsWith("iii")) {
+		return "Relative minor color";
+	}
+	if (roman.startsWith("I")) {
+		return roman.includes("6")
+			? "Tonic inversion · gentle home"
+			: "Tonic · home base";
+	}
+	if (quality === "diminished") return "Diminished · passing tension";
+	if (quality === "minor") return "Minor color";
+	return "Harmonic anchor";
 }

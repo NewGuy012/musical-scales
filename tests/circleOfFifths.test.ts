@@ -176,4 +176,28 @@ describe("Circle of Fifths music theory engine", () => {
 		const cbTriad = ascendingNotesToMidi(["C♭", "E♭", "G♭"]);
 		expect(cbTriad).toEqual([71, 75, 78]);
 	});
+
+	test("major and minor progressions cover multiple categories with valid chord degrees", () => {
+		const maj = analyzeKey(0, "major");
+		const min = analyzeKey(0, "minor");
+		expect(maj.progressions.length).toBeGreaterThanOrEqual(10);
+		expect(min.progressions.length).toBeGreaterThanOrEqual(10);
+
+		for (const p of maj.progressions) {
+			expect(p.category.length).toBeGreaterThan(0);
+			expect(p.degrees.length).toBeGreaterThanOrEqual(3);
+			for (const deg of p.degrees) {
+				expect(deg).toBeGreaterThanOrEqual(1);
+				expect(deg).toBeLessThanOrEqual(7);
+			}
+		}
+
+		for (const p of min.progressions) {
+			expect(p.category.length).toBeGreaterThan(0);
+			expect(p.degrees.length).toBeGreaterThanOrEqual(3);
+			for (const deg of p.degrees) {
+				expect(deg === -5 || (deg >= 1 && deg <= 7)).toBe(true);
+			}
+		}
+	});
 });

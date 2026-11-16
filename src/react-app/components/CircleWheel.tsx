@@ -20,6 +20,7 @@ interface CircleWheelProps {
 	preference: AccidentalPreference;
 	slotOverrides: Partial<Record<number, EnharmonicSide>>;
 	highlightedChord: DiatonicChord | null;
+	highlightedNotes?: string[] | null;
 	rotateToSelected: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
 	onPlayTonic: () => void;
@@ -75,6 +76,7 @@ export function CircleWheel({
 	preference,
 	slotOverrides,
 	highlightedChord,
+	highlightedNotes = null,
 	rotateToSelected,
 	onSelectKey,
 	onPlayTonic,
@@ -384,7 +386,8 @@ export function CircleWheel({
 										<g
 											transform={`translate(${dimPos.x.toFixed(2)}, ${dimPos.y.toFixed(2)})`}
 											className={
-												highlightedChord?.quality === "diminished"
+												highlightedChord?.quality === "diminished" &&
+												highlightedChord.circleIndex === i
 													? "dim-marker dim-marker-active"
 													: "dim-marker"
 											}
@@ -485,11 +488,24 @@ export function CircleWheel({
 									textAnchor="middle"
 									dominantBaseline="central"
 									className="hub-key-name"
+									style={
+										highlightedChord.symbol.length > 5
+											? {
+													fontSize:
+														highlightedChord.symbol.length > 7
+															? "17px"
+															: "21px",
+												}
+											: undefined
+									}
 								>
 									{highlightedChord.symbol}
 								</text>
 								<text x="0" y="24" textAnchor="middle" className="hub-subline">
-									{highlightedChord.triadNotes.join(" · ")}
+									{(highlightedNotes && highlightedNotes.length > 0
+										? highlightedNotes
+										: highlightedChord.triadNotes
+									).join(" · ")}
 								</text>
 							</>
 						) : hoveredKey ? (

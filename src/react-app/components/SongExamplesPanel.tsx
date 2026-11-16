@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	type InstrumentTab,
 	type SongExample,
+	describeRomanFunction,
 	findPlaybackEventAtTime,
+	findSongSectionForBar,
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
@@ -80,6 +82,7 @@ function SongCard({
 	const wasPlayingOnScrubRef = useRef(false);
 	const latestScrubMsRef = useRef(0);
 	const scrubCleanupRef = useRef<(() => void) | null>(null);
+	const [tipsOpen, setTipsOpen] = useState(false);
 
 	const playbackPlan = useMemo(() => flattenSongPlaybackSteps(song), [song]);
 	const barStartTimes = useMemo(() => getSongBarStartTimes(song), [song]);
@@ -199,6 +202,7 @@ function SongCard({
 			: "▶ Play Song";
 	const canStop = isCuedThis || displayMs > 0;
 	const isLongTimeline = song.steps.length > 12;
+	const activeSection = findSongSectionForBar(song.studyGuide, activeBarIndex);
 
 	return (
 		<article
@@ -233,7 +237,99 @@ function SongCard({
 				</button>
 			</div>
 
-			<p className="song-theory-note">{song.theorySummary}</p>
+			{song.studyGuide ? (
+				<div className="song-study-guide">
+					<div className="song-guide-brief">
+						<div className="guide-brief-item">
+							<span className="guide-brief-label">Sound &amp; Feel</span>
+							<p className="guide-brief-text">{song.studyGuide.vibeAndSound}</p>
+						</div>
+						<div className="guide-brief-item">
+							<span className="guide-brief-label">Harmony Hook</span>
+							<p className="guide-brief-text">{song.studyGuide.harmonyHook}</p>
+						</div>
+					</div>
+
+					<div className="song-sections-wrap">
+						<div className="song-sections-header">
+							<div
+								className="song-sections-pills"
+								role="group"
+								aria-label={`${song.title} song sections`}
+							>
+								{song.studyGuide.sections.map((section) => {
+									const isCurrent = activeSection?.id === section.id;
+									return (
+										<button
+											key={section.id}
+											type="button"
+											className={`song-section-pill${isCurrent ? " is-current-section" : ""}`}
+											onClick={() =>
+												onSelectSongChordStep(song, section.startStepIndex)
+											}
+											title={`${section.barRange} · ${section.progressionTag}`}
+										>
+											<span>{section.title}</span>
+											<span className="section-pill-bars">
+												{section.barRange
+													.replace("Bars ", "")
+													.replace("Bar ", "B")}
+											</span>
+										</button>
+									);
+								})}
+							</div>
+
+							<button
+								type="button"
+								className={`chip-btn chip-btn-compact${tipsOpen ? " is-on" : ""}`}
+								aria-expanded={tipsOpen}
+								onClick={() => setTipsOpen((o) => !o)}
+							>
+								Practice Tips
+							</button>
+						</div>
+
+						{activeSection && (
+							<div className="song-section-spotlight">
+								<div className="spotlight-top">
+									<span className="spotlight-range">
+										{activeSection.barRange}
+									</span>
+									<code className="spotlight-prog">
+										{activeSection.progressionTag}
+									</code>
+									{onPlayFromSongBar && (
+										<button
+											type="button"
+											className="spotlight-play-btn"
+											onClick={() =>
+												onPlayFromSongBar(song, activeSection.startStepIndex)
+											}
+										>
+											▶ Play Section
+										</button>
+									)}
+								</div>
+								<p className="spotlight-insight">{activeSection.insight}</p>
+							</div>
+						)}
+
+						{tipsOpen && (
+							<ul
+								className="song-tips-drawer"
+								aria-label={`${song.title} beginner practice tips`}
+							>
+								{song.studyGuide.practiceTips.map((tip, idx) => (
+									<li key={idx}>{tip}</li>
+								))}
+							</ul>
+						)}
+					</div>
+				</div>
+			) : (
+				<p className="song-theory-note">{song.theorySummary}</p>
+			)}
 
 			<div
 				className="song-transport"
@@ -340,7 +436,11 @@ function SongCard({
 						<strong>{liveStep.barLabel}</strong> ·{" "}
 						<strong>
 							{liveStep.chordSymbol} ({liveStep.roman})
-						</strong>
+						</strong>{" "}
+						·{" "}
+						<span className="song-live-fn">
+							{describeRomanFunction(liveStep.roman, liveStep.quality)}
+						</span>
 						{activeNoteLabel ? ` · Note: ${activeNoteLabel}` : ""}
 					</span>
 				</div>
@@ -351,7 +451,11 @@ function SongCard({
 						Previewing <strong>{previewStep.barLabel}</strong> ·{" "}
 						<strong>
 							{previewStep.chordSymbol} ({previewStep.roman})
-						</strong>
+						</strong>{" "}
+						·{" "}
+						<span className="song-live-fn">
+							{describeRomanFunction(previewStep.roman, previewStep.quality)}
+						</span>
 					</span>
 					{onPlayFromSongBar && (
 						<button

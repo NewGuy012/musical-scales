@@ -1,12 +1,150 @@
 import {
 	ChordQuality,
 	DiatonicChord,
+	KeyMode,
+	ascendingNotesToMidi,
+	buildScale,
 	mod12,
+	noteOffset,
 	noteToPitchClass,
 } from "./circleOfFifths";
 
+export type FretboardOverlayMode =
+	"voicing" | "chordTones" | "pentatonic" | "scale";
+
+export type PentatonicKind = "major" | "minor" | "diminished";
+export type PentatonicScope = "auto" | "key" | "chord";
+
 export type GuitarChordKind =
-	"major" | "minor" | "diminished" | "maj7" | "m7" | "7" | "m7♭5";
+	| "major"
+	| "minor"
+	| "diminished"
+	| "aug"
+	| "7"
+	| "maj7"
+	| "m7"
+	| "m7♭5"
+	| "dim7"
+	| "add9"
+	| "madd9"
+	| "sus4"
+	| "sus2";
+
+export interface ChordVariationSpec {
+	kind: GuitarChordKind;
+	label: string;
+	suffix: string;
+	quality: ChordQuality;
+	formula: string;
+	description: string;
+}
+
+export const CHORD_VARIATION_SPECS: readonly ChordVariationSpec[] = [
+	{
+		kind: "major",
+		label: "Maj",
+		suffix: "",
+		quality: "major",
+		formula: "1 · 3 · 5",
+		description: "Major triad",
+	},
+	{
+		kind: "minor",
+		label: "m",
+		suffix: "m",
+		quality: "minor",
+		formula: "1 · ♭3 · 5",
+		description: "Minor triad",
+	},
+	{
+		kind: "7",
+		label: "7",
+		suffix: "7",
+		quality: "major",
+		formula: "1 · 3 · 5 · ♭7",
+		description: "Dominant 7th",
+	},
+	{
+		kind: "maj7",
+		label: "maj7",
+		suffix: "maj7",
+		quality: "major",
+		formula: "1 · 3 · 5 · 7",
+		description: "Major 7th",
+	},
+	{
+		kind: "m7",
+		label: "m7",
+		suffix: "m7",
+		quality: "minor",
+		formula: "1 · ♭3 · 5 · ♭7",
+		description: "Minor 7th",
+	},
+	{
+		kind: "diminished",
+		label: "dim",
+		suffix: "°",
+		quality: "diminished",
+		formula: "1 · ♭3 · ♭5",
+		description: "Diminished triad",
+	},
+	{
+		kind: "dim7",
+		label: "dim7",
+		suffix: "dim7",
+		quality: "diminished",
+		formula: "1 · ♭3 · ♭5 · 𝄫7",
+		description: "Full diminished 7th",
+	},
+	{
+		kind: "m7♭5",
+		label: "m7♭5",
+		suffix: "m7♭5",
+		quality: "diminished",
+		formula: "1 · ♭3 · ♭5 · ♭7",
+		description: "Half-diminished 7th",
+	},
+	{
+		kind: "aug",
+		label: "aug",
+		suffix: "aug",
+		quality: "major",
+		formula: "1 · 3 · ♯5",
+		description: "Augmented triad",
+	},
+	{
+		kind: "add9",
+		label: "add9",
+		suffix: "add9",
+		quality: "major",
+		formula: "1 · 3 · 5 · 9",
+		description: "Major triad with added 9th",
+	},
+	{
+		kind: "madd9",
+		label: "m(add9)",
+		suffix: "m(add9)",
+		quality: "minor",
+		formula: "1 · ♭3 · 5 · 9",
+		description: "Minor triad with added 9th",
+	},
+	{
+		kind: "sus4",
+		label: "sus4",
+		suffix: "sus4",
+		quality: "major",
+		formula: "1 · 4 · 5",
+		description: "Suspended 4th",
+	},
+	{
+		kind: "sus2",
+		label: "sus2",
+		suffix: "sus2",
+		quality: "major",
+		formula: "1 · 2 · 5",
+		description: "Suspended 2nd",
+	},
+];
 
 export type FretTuple = [number, number, number, number, number, number];
 
@@ -82,10 +220,16 @@ const CHORD_INTERVAL_MAP: Record<GuitarChordKind, Record<number, string>> = {
 	major: { 0: "R", 4: "3", 7: "5" },
 	minor: { 0: "R", 3: "♭3", 7: "5" },
 	diminished: { 0: "R", 3: "♭3", 6: "♭5" },
+	aug: { 0: "R", 4: "3", 8: "♯5" },
 	maj7: { 0: "R", 4: "3", 7: "5", 11: "7" },
 	m7: { 0: "R", 3: "♭3", 7: "5", 10: "♭7" },
 	"7": { 0: "R", 4: "3", 7: "5", 10: "♭7" },
 	"m7♭5": { 0: "R", 3: "♭3", 6: "♭5", 10: "♭7" },
+	dim7: { 0: "R", 3: "♭3", 6: "♭5", 9: "𝄫7" },
+	add9: { 0: "R", 4: "3", 7: "5", 2: "9" },
+	madd9: { 0: "R", 3: "♭3", 7: "5", 2: "9" },
+	sus4: { 0: "R", 5: "4", 7: "5" },
+	sus2: { 0: "R", 2: "2", 7: "5" },
 };
 
 const OPEN_SHAPES: Partial<
@@ -103,6 +247,13 @@ const OPEN_SHAPES: Partial<
 		4: ["open-em", "Open Em", [0, 2, 2, 0, 0, 0]],
 		9: ["open-am", "Open Am", [-1, 0, 2, 2, 1, 0]],
 		2: ["open-dm", "Open Dm", [-1, -1, 0, 2, 3, 1]],
+	},
+	aug: {
+		0: ["open-caug", "Open Caug", [-1, 3, 2, 1, 1, 0]],
+		4: ["open-eaug", "Open Eaug", [0, 3, 2, 1, 1, 0]],
+		7: ["open-gaug", "Open Gaug", [3, 2, 1, 0, 0, 3]],
+		9: ["open-aaug", "Open Aaug", [-1, 0, 3, 2, 2, 1]],
+		2: ["open-daug", "Open Daug", [-1, -1, 0, 3, 3, 2]],
 	},
 	"7": {
 		4: ["open-e7", "Open E7", [0, 2, 0, 1, 0, 0]],
@@ -125,7 +276,149 @@ const OPEN_SHAPES: Partial<
 		9: ["open-am7", "Open Am7", [-1, 0, 2, 0, 1, 0]],
 		2: ["open-dm7", "Open Dm7", [-1, -1, 0, 2, 1, 1]],
 	},
+	dim7: {
+		2: ["open-ddim7", "Open Ddim7", [-1, -1, 0, 1, 0, 1]],
+		9: ["open-adim7", "Open Adim7", [-1, 0, 1, 2, 1, 2]],
+		4: ["open-edim7", "Open Edim7", [0, 1, 2, 0, 2, 0]],
+	},
+	add9: {
+		0: ["open-cadd9", "Open Cadd9", [-1, 3, 2, 0, 3, 0]],
+		7: ["open-gadd9", "Open Gadd9", [3, 2, 0, 2, 0, 3]],
+		4: ["open-eadd9", "Open Eadd9", [0, 2, 4, 1, 0, 0]],
+		9: ["open-aadd9", "Open Aadd9", [-1, 0, 2, 4, 2, 0]],
+	},
+	madd9: {
+		4: ["open-emadd9", "Open Em(add9)", [0, 2, 4, 0, 0, 0]],
+		9: ["open-amadd9", "Open Am(add9)", [-1, 0, 2, 4, 1, 0]],
+	},
+	sus4: {
+		2: ["open-dsus4", "Open Dsus4", [-1, -1, 0, 2, 3, 3]],
+		9: ["open-asus4", "Open Asus4", [-1, 0, 2, 2, 3, 0]],
+		4: ["open-esus4", "Open Esus4", [0, 2, 2, 2, 0, 0]],
+		7: ["open-gsus4", "Open Gsus4", [3, 3, 0, 0, 1, 3]],
+		0: ["open-csus4", "Open Csus4", [-1, 3, 3, 0, 1, 1]],
+	},
+	sus2: {
+		2: ["open-dsus2", "Open Dsus2", [-1, -1, 0, 2, 3, 0]],
+		9: ["open-asus2", "Open Asus2", [-1, 0, 2, 2, 0, 0]],
+		0: ["open-csus2", "Open Csus2", [-1, 3, 0, 0, 3, 3]],
+		7: ["open-gsus2", "Open Gsus2", [3, 0, 0, 2, 3, 3]],
+		4: ["open-esus2", "Open Esus2", [0, 2, 4, 4, 0, 0]],
+	},
 };
+
+const DEGREE_ALTERATIONS: Record<GuitarChordKind, readonly [number, number][]> =
+	{
+		major: [
+			[0, 0],
+			[2, 0],
+			[4, 0],
+		],
+		minor: [
+			[0, 0],
+			[2, -1],
+			[4, 0],
+		],
+		diminished: [
+			[0, 0],
+			[2, -1],
+			[4, -1],
+		],
+		aug: [
+			[0, 0],
+			[2, 0],
+			[4, 1],
+		],
+		"7": [
+			[0, 0],
+			[2, 0],
+			[4, 0],
+			[6, -1],
+		],
+		maj7: [
+			[0, 0],
+			[2, 0],
+			[4, 0],
+			[6, 0],
+		],
+		m7: [
+			[0, 0],
+			[2, -1],
+			[4, 0],
+			[6, -1],
+		],
+		"m7♭5": [
+			[0, 0],
+			[2, -1],
+			[4, -1],
+			[6, -1],
+		],
+		dim7: [
+			[0, 0],
+			[2, -1],
+			[4, -1],
+			[6, -2],
+		],
+		add9: [
+			[0, 0],
+			[2, 0],
+			[4, 0],
+			[1, 0],
+		],
+		madd9: [
+			[0, 0],
+			[2, -1],
+			[4, 0],
+			[1, 0],
+		],
+		sus4: [
+			[0, 0],
+			[3, 0],
+			[4, 0],
+		],
+		sus2: [
+			[0, 0],
+			[1, 0],
+			[4, 0],
+		],
+	};
+
+export function buildChordVariation(
+	rootNote: string,
+	kind: GuitarChordKind,
+	preferFlats = rootNote.includes("♭"),
+): {
+	symbol: string;
+	quality: ChordQuality;
+	guitarKind: GuitarChordKind;
+	notes: string[];
+	midi: number[];
+} {
+	const spec =
+		CHORD_VARIATION_SPECS.find((s) => s.kind === kind) ??
+		CHORD_VARIATION_SPECS[0];
+	const majorScale = buildScale(rootNote, "major");
+	const fallbackPalette =
+		preferFlats || rootNote.includes("♭") ? FLAT_CHROMATIC : SHARP_CHROMATIC;
+
+	const notes = DEGREE_ALTERATIONS[kind].map(([degIdx, delta]) => {
+		const baseNote = majorScale[degIdx];
+		const nextOffset = noteOffset(baseNote) + delta;
+		const targetPc = mod12(noteToPitchClass(baseNote) + delta);
+		if (nextOffset === 0) return baseNote[0];
+		if (nextOffset === 1) return `${baseNote[0]}♯`;
+		if (nextOffset === -1) return `${baseNote[0]}♭`;
+		return fallbackPalette[targetPc];
+	});
+
+	return {
+		symbol: `${rootNote}${spec.suffix}`,
+		quality: spec.quality,
+		guitarKind: kind,
+		notes,
+		midi: ascendingNotesToMidi(notes),
+	};
+}
 
 export function inferGuitarChordKind(
 	chord: DiatonicChord | null,
@@ -366,6 +659,150 @@ export function getGuitarVoicings(
 				]);
 			}
 			break;
+		case "aug":
+			candidates.push(
+				["aug-6", "6th-Str Aug", [f6, -1, f6 + 2, f6 + 1, f6 + 1, -1]],
+				["aug-5", "5th-Str Aug", [-1, f5, f5 + 3, f5 + 2, f5 + 2, -1]],
+				["aug-4", "4th-Str Aug", [-1, -1, f4, f4 + 3, f4 + 3, f4 + 2]],
+			);
+			if (f5 >= 2) {
+				candidates.push([
+					"aug-5-comp",
+					"5th-Str Close",
+					[-1, f5, f5 - 1, f5 - 2, f5 - 2, -1],
+				]);
+			}
+			if (f4 >= 2) {
+				candidates.push([
+					"aug-4-comp",
+					"4th-Str Close",
+					[-1, -1, f4, f4 - 1, f4 - 1, f4 - 2],
+				]);
+			}
+			break;
+		case "dim7":
+			candidates.push(
+				["dim7-6", "6th-Str Dim7", [f6, -1, f6 - 1, f6, f6 - 1, -1]],
+				["dim7-5", "5th-Str Dim7", [-1, f5, f5 + 1, f5 - 1, f5 + 1, -1]],
+				["dim7-4", "4th-Str Dim7", [-1, -1, f4, f4 + 1, f4, f4 + 1]],
+			);
+			if (f6 <= 3) {
+				candidates.push([
+					"dim7-6-hi",
+					"6th-Str High",
+					[f6 + 12, -1, f6 + 11, f6 + 12, f6 + 11, -1],
+				]);
+			}
+			if (f5 <= 2) {
+				candidates.push([
+					"dim7-5-hi",
+					"5th-Str High",
+					[-1, f5 + 12, f5 + 13, f5 + 11, f5 + 13, -1],
+				]);
+			}
+			break;
+		case "add9":
+			candidates.push(
+				["add9-6", "6th-Str Add9", [f6, -1, f6 + 2, f6 + 1, f6, f6 + 2]],
+				["add9-5", "5th-Str Add9", [-1, f5, f5 - 1, f5 + 2, f5, f5]],
+			);
+			if (f5 >= 3) {
+				candidates.push([
+					"add9-5-c",
+					"C-Shape Add9",
+					[-1, f5, f5 - 1, f5 - 3, f5, -1],
+				]);
+			}
+			if (f5 <= 11) {
+				candidates.push([
+					"add9-5-spread",
+					"5th-Str Spread",
+					[-1, f5, f5 + 2, f5 + 4, f5 + 2, -1],
+				]);
+			}
+			if (f6 <= 11) {
+				candidates.push([
+					"add9-6-spread",
+					"6th-Str Spread",
+					[f6, f6 + 2, f6 + 4, f6 + 1, f6, -1],
+				]);
+			}
+			if (f4 >= 2) {
+				candidates.push([
+					"add9-4",
+					"4th-Str Add9",
+					[-1, -1, f4, f4 - 1, f4 - 2, f4],
+				]);
+			} else if (f4 + 12 <= MAX_GUITAR_FRET) {
+				candidates.push([
+					"add9-4-hi",
+					"4th-Str High",
+					[-1, -1, f4 + 12, f4 + 11, f4 + 10, f4 + 12],
+				]);
+			}
+			break;
+		case "madd9":
+			candidates.push([
+				"madd9-6",
+				"6th-Str m(add9)",
+				[f6, -1, f6 + 2, f6, f6, f6 + 2],
+			]);
+			if (f5 >= 2) {
+				candidates.push([
+					"madd9-5",
+					"5th-Str m(add9)",
+					[-1, f5, f5 - 2, f5 + 2, f5, f5],
+				]);
+			}
+			if (f5 <= 11) {
+				candidates.push([
+					"madd9-5-spread",
+					"5th-Str Spread",
+					[-1, f5, f5 + 2, f5 + 4, f5 + 1, -1],
+				]);
+			}
+			if (f6 <= 11) {
+				candidates.push([
+					"madd9-6-spread",
+					"6th-Str Spread",
+					[f6, f6 + 2, f6 + 4, f6, f6, -1],
+				]);
+			}
+			if (f4 >= 2) {
+				candidates.push([
+					"madd9-4",
+					"4th-Str m(add9)",
+					[-1, -1, f4, f4 - 2, f4 - 2, f4],
+				]);
+			} else if (f4 + 12 <= MAX_GUITAR_FRET) {
+				candidates.push([
+					"madd9-4-hi",
+					"4th-Str High",
+					[-1, -1, f4 + 12, f4 + 10, f4 + 10, f4 + 12],
+				]);
+			}
+			break;
+		case "sus4":
+			candidates.push(
+				["sus4-6", "6th-Str Sus4", [f6, f6 + 2, f6 + 2, f6 + 2, f6, f6]],
+				["sus4-5", "5th-Str Sus4", [-1, f5, f5 + 2, f5 + 2, f5 + 3, f5]],
+				["sus4-4", "4th-Str Sus4", [-1, -1, f4, f4 + 2, f4 + 3, f4 + 3]],
+			);
+			break;
+		case "sus2":
+			candidates.push(
+				["sus2-6", "6th-Str Sus2", [f6, -1, f6 + 2, f6 - 1, f6, f6]],
+				["sus2-5", "5th-Str Sus2", [-1, f5, f5 + 2, f5 + 2, f5, f5]],
+				["sus2-4", "4th-Str Sus2", [-1, -1, f4, f4 + 2, f4 + 3, f4]],
+			);
+			if (f6 <= 11) {
+				candidates.push([
+					"sus2-6-power",
+					"6th-Str Open-Top",
+					[f6, f6 + 2, f6 + 4, f6 + 4, -1, -1],
+				]);
+			}
+			break;
 	}
 
 	const seenFrets = new Set<string>();
@@ -382,4 +819,578 @@ export function getGuitarVoicings(
 	}
 
 	return built.sort((a, b) => a.baseFret - b.baseFret);
+}
+
+const SCALE_LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
+const NATURAL_LETTER_PC: Record<string, number> = {
+	C: 0,
+	D: 2,
+	E: 4,
+	F: 5,
+	G: 7,
+	A: 9,
+	B: 11,
+};
+
+const CHROMATIC_DEGREES_SHARP = [
+	"1",
+	"♭2",
+	"2",
+	"♭3",
+	"3",
+	"4",
+	"♯4",
+	"5",
+	"♯5",
+	"6",
+	"♭7",
+	"7",
+] as const;
+
+const CHROMATIC_DEGREES_FLAT = [
+	"1",
+	"♭2",
+	"2",
+	"♭3",
+	"3",
+	"4",
+	"♭5",
+	"5",
+	"♭6",
+	"6",
+	"♭7",
+	"7",
+] as const;
+
+export interface ChromaticPassingTone {
+	pc: number;
+	noteName: string;
+	intervalLabel: string;
+	role: string;
+}
+
+export interface ChromaticPassingPhrase {
+	id: string;
+	label: string;
+	tag: string;
+	notes: string[];
+	midi: number[];
+	passingPcs: number[];
+	tip: string;
+}
+
+export interface GuitarScalePassGuide {
+	pentatonicRoot: string;
+	pentatonicRootPc: number;
+	pentatonicKind: PentatonicKind;
+	pentatonicName: string;
+	relativeTwinName: string;
+	formula: string;
+	degrees: string[];
+	pentatonicNotes: string[];
+	pentatonicPcs: number[];
+	pentatonicMidi: number[];
+	omittedSummary: string;
+	cagedBoxTip: string;
+	activeScope: "key" | "chord";
+	hasDistinctChordPentatonic: boolean;
+	keyPentatonicName: string;
+	chordPentatonicName: string;
+	chordIsNonDiatonic: boolean;
+	featuredPassingTones: ChromaticPassingTone[];
+	overlayPassingPcs: number[];
+	passingPhrases: ChromaticPassingPhrase[];
+}
+
+export function getChromaticDegreeLabel(
+	rootPc: number,
+	targetPc: number,
+	preferFlats: boolean,
+): string {
+	const semi = mod12(targetPc - rootPc);
+	return (preferFlats ? CHROMATIC_DEGREES_FLAT : CHROMATIC_DEGREES_SHARP)[semi];
+}
+
+export function notesToGuitarMidi(
+	notes: string[],
+	appendOctaveRoot = false,
+): number[] {
+	if (notes.length === 0) return [];
+	const firstPc = noteToPitchClass(notes[0]);
+	const result = [48 + firstPc];
+	for (let i = 1; i < notes.length; i++) {
+		const pc = noteToPitchClass(notes[i]);
+		const prev = result[i - 1];
+		const step = mod12(pc - mod12(prev)) || 12;
+		result.push(prev + step);
+	}
+	if (appendOctaveRoot) {
+		result.push(result[0] + 12);
+	}
+	return result;
+}
+
+function resolveRelativeRoot(
+	rootNote: string,
+	targetKind: "minor" | "major",
+	fallbackPalette: readonly string[],
+): string {
+	const rootPc = noteToPitchClass(rootNote);
+	const targetPc =
+		targetKind === "minor" ? mod12(rootPc - 3) : mod12(rootPc + 3);
+	const letterIdx = SCALE_LETTERS.indexOf(
+		rootNote[0] as (typeof SCALE_LETTERS)[number],
+	);
+	if (letterIdx !== -1) {
+		const targetLetter =
+			SCALE_LETTERS[(letterIdx + (targetKind === "minor" ? 5 : 2)) % 7];
+		let diff = mod12(targetPc - NATURAL_LETTER_PC[targetLetter]);
+		if (diff > 6) diff -= 12;
+		if (diff === 0) return targetLetter;
+		if (diff === 1) return `${targetLetter}♯`;
+		if (diff === -1) return `${targetLetter}♭`;
+	}
+	return fallbackPalette[targetPc];
+}
+
+const PENTATONIC_SPECS: Record<
+	PentatonicKind,
+	{
+		intervals: readonly number[];
+		degrees: readonly string[];
+		formula: string;
+		label: string;
+	}
+> = {
+	major: {
+		intervals: [0, 2, 4, 7, 9],
+		degrees: ["1", "2", "3", "5", "6"],
+		formula: "1 · 2 · 3 · 5 · 6",
+		label: "Major Pentatonic",
+	},
+	minor: {
+		intervals: [0, 3, 5, 7, 10],
+		degrees: ["1", "♭3", "4", "5", "♭7"],
+		formula: "1 · ♭3 · 4 · 5 · ♭7",
+		label: "Minor Pentatonic",
+	},
+	diminished: {
+		intervals: [0, 3, 5, 6, 10],
+		degrees: ["1", "♭3", "4", "♭5", "♭7"],
+		formula: "1 · ♭3 · 4 · ♭5 · ♭7",
+		label: "Minor-♭5 Pentatonic",
+	},
+};
+
+function getPentatonicPocketHint(
+	pentatonicRootPc: number,
+	pentatonicKind: PentatonicKind,
+	selectedVoicing: GuitarVoicing | null,
+): string {
+	const voicingFrets = selectedVoicing?.frets.filter((f) => f >= 0) ?? [0, 3];
+	const nonZero = voicingFrets.filter((f) => f > 0);
+	const vMin =
+		selectedVoicing && selectedVoicing.baseFret === 0
+			? 0
+			: nonZero.length > 0
+				? Math.min(...nonZero)
+				: 0;
+	const vMax = nonZero.length > 0 ? Math.max(...nonZero) : 3;
+	const targetMid = (vMin + vMax) / 2;
+
+	if (pentatonicKind === "diminished") {
+		const winStart = vMin;
+		const winEnd = Math.min(MAX_GUITAR_FRET, Math.max(winStart + 3, vMax));
+		return `Frets ${winStart}–${winEnd} (frames around ${
+			selectedVoicing?.name ?? "chord grip"
+		})`;
+	}
+
+	const relMajorPc =
+		pentatonicKind === "major" ? pentatonicRootPc : mod12(pentatonicRootPc + 3);
+
+	const boxDefs = [
+		{ offset: 0, maj: "C-Shape Pocket", min: "Minor Box 4 (5th-Str Root)" },
+		{ offset: 2, maj: "A-Shape Pocket", min: "Minor Box 5" },
+		{
+			offset: 5,
+			maj: "G-Shape / Rel. Minor Box 1",
+			min: "Minor Box 1 (6th-Str Root)",
+		},
+		{ offset: 7, maj: "E-Shape Pocket", min: "Minor Box 2" },
+		{ offset: 10, maj: "D-Shape Pocket", min: "Minor Box 3" },
+	] as const;
+
+	let best: { start: number; end: number; label: string; dist: number } | null =
+		null;
+
+	for (const def of boxDefs) {
+		const baseStart = mod12(relMajorPc + def.offset);
+		const candidates = [baseStart];
+		if (baseStart + 12 + 3 <= MAX_GUITAR_FRET) {
+			candidates.push(baseStart + 12);
+		}
+		for (const start of candidates) {
+			const end = start + 3;
+			if (end > MAX_GUITAR_FRET) continue;
+			const mid = (start + end) / 2;
+			const dist = Math.abs(mid - targetMid);
+			if (!best || dist < best.dist) {
+				best = {
+					start,
+					end,
+					label: pentatonicKind === "major" ? def.maj : def.min,
+					dist,
+				};
+			}
+		}
+	}
+
+	if (!best) return "Frets 0–3 (Open Position)";
+	return `Frets ${best.start}–${best.end} (${best.label})`;
+}
+
+export function buildGuitarScalePassGuide(params: {
+	keyRootNote: string;
+	keyMode: KeyMode;
+	scaleNotes: string[];
+	chordRootNote: string;
+	chordQuality: ChordQuality;
+	chordKind: GuitarChordKind | null;
+	chordNotes: string[];
+	selectedVoicing: GuitarVoicing | null;
+	scope: PentatonicScope;
+	overlayMode: FretboardOverlayMode;
+	preferFlats: boolean;
+}): GuitarScalePassGuide {
+	const {
+		keyRootNote,
+		keyMode,
+		scaleNotes,
+		chordRootNote,
+		chordQuality,
+		chordKind,
+		chordNotes,
+		selectedVoicing,
+		scope,
+		overlayMode,
+		preferFlats,
+	} = params;
+
+	const resolveName = createPitchClassNameResolver(
+		chordNotes,
+		scaleNotes,
+		preferFlats,
+	);
+	const fallbackPalette = preferFlats ? FLAT_CHROMATIC : SHARP_CHROMATIC;
+
+	const scalePcs = scaleNotes.map(noteToPitchClass);
+	const scalePcSet = new Set(scalePcs);
+	const chordPcs = chordNotes.map(noteToPitchClass);
+	const chordPcSet = new Set(chordPcs);
+	const chordIsNonDiatonic = chordPcs.some((pc) => !scalePcSet.has(pc));
+
+	const keyPentRoot = scaleNotes[0] ?? keyRootNote;
+	const keyPentKind: PentatonicKind = keyMode === "minor" ? "minor" : "major";
+	const chordPentRoot = chordRootNote || chordNotes[0] || keyPentRoot;
+	const chordPentKind: PentatonicKind =
+		chordQuality === "minor"
+			? "minor"
+			: chordQuality === "diminished"
+				? "diminished"
+				: "major";
+
+	const hasDistinctChordPentatonic =
+		noteToPitchClass(chordPentRoot) !== noteToPitchClass(keyPentRoot) ||
+		chordPentKind !== keyPentKind;
+
+	const activeScope: "key" | "chord" =
+		scope === "auto"
+			? chordIsNonDiatonic
+				? "chord"
+				: "key"
+			: hasDistinctChordPentatonic
+				? scope
+				: "key";
+
+	const pentatonicRoot = activeScope === "chord" ? chordPentRoot : keyPentRoot;
+	const pentatonicKind = activeScope === "chord" ? chordPentKind : keyPentKind;
+	const pentatonicRootPc = noteToPitchClass(pentatonicRoot);
+	const spec = PENTATONIC_SPECS[pentatonicKind];
+
+	const pentatonicPcs = spec.intervals.map((semi) =>
+		mod12(pentatonicRootPc + semi),
+	);
+	const pentatonicNotes =
+		activeScope === "key" && scaleNotes.length === 7
+			? keyMode === "major"
+				? [0, 1, 2, 4, 5].map((idx) => scaleNotes[idx])
+				: [0, 2, 3, 4, 6].map((idx) => scaleNotes[idx])
+			: pentatonicPcs.map((pc) => resolveName(pc));
+
+	const pentatonicMidi = notesToGuitarMidi(pentatonicNotes, true);
+	const pentatonicName = `${pentatonicRoot} ${spec.label}`;
+	const keyPentatonicName = `${keyPentRoot} ${PENTATONIC_SPECS[keyPentKind].label}`;
+	const chordPentatonicName = `${chordPentRoot} ${PENTATONIC_SPECS[chordPentKind].label}`;
+
+	let relativeTwinName: string;
+	if (pentatonicKind === "major") {
+		const relMinor =
+			activeScope === "key" && scaleNotes.length === 7
+				? scaleNotes[5]
+				: resolveRelativeRoot(pentatonicRoot, "minor", fallbackPalette);
+		relativeTwinName = `${relMinor} Minor Pentatonic`;
+	} else if (pentatonicKind === "minor") {
+		const relMajor =
+			activeScope === "key" && scaleNotes.length === 7
+				? scaleNotes[2]
+				: resolveRelativeRoot(pentatonicRoot, "major", fallbackPalette);
+		relativeTwinName = `${relMajor} Major Pentatonic`;
+	} else {
+		const parentMinor = resolveName(mod12(pentatonicRootPc + 9));
+		relativeTwinName = `${keyRootNote} ${keyMode === "major" ? "Major" : "Minor"} / ${parentMinor} Minor Pentatonic`;
+	}
+
+	let omittedSummary: string;
+	if (pentatonicKind === "major") {
+		const deg4 = resolveName(mod12(pentatonicRootPc + 5));
+		const deg7 = resolveName(mod12(pentatonicRootPc + 11));
+		omittedSummary = `Drops 4 (${deg4}) & 7 (${deg7}) to remove half-step tension against chord tones.`;
+	} else if (pentatonicKind === "minor") {
+		const deg2 = resolveName(mod12(pentatonicRootPc + 2));
+		const deg6 = resolveName(mod12(pentatonicRootPc + 8));
+		omittedSummary = `Drops 2 (${deg2}) & ♭6 (${deg6}) for a wide, vocal 5-note guitar vocabulary.`;
+	} else {
+		omittedSummary = `Swaps 5 for ♭5 so all 5 notes support diminished & m7♭5 tension cleanly.`;
+	}
+
+	const r = (semi: number) => resolveName(mod12(pentatonicRootPc + semi));
+	const pcAt = (semi: number) => mod12(pentatonicRootPc + semi);
+
+	let featuredPassingTones: ChromaticPassingTone[];
+	let passingPhrases: ChromaticPassingPhrase[];
+
+	if (pentatonicKind === "major") {
+		const isDom = chordKind === "7";
+		featuredPassingTones = [
+			{
+				pc: pcAt(3),
+				noteName: r(3),
+				intervalLabel: "♭3",
+				role: "Country/blues scoop into 3",
+			},
+			{
+				pc: pcAt(6),
+				noteName: r(6),
+				intervalLabel: "♯4/♭5",
+				role: "Blue note passing to 5",
+			},
+			isDom
+				? {
+						pc: pcAt(10),
+						noteName: r(10),
+						intervalLabel: "♭7",
+						role: "Mixolydian dominant pull",
+					}
+				: {
+						pc: pcAt(8),
+						noteName: r(8),
+						intervalLabel: "♯5",
+						role: "Chromatic walk from 5 to 6",
+					},
+		];
+
+		const p1 = [r(2), r(3), r(4)];
+		const p2 = [r(5), r(6), r(7)];
+		const p3 = isDom ? [r(9), r(10), r(11), r(0)] : [r(7), r(8), r(9)];
+		passingPhrases = [
+			{
+				id: "maj-b3-scoop",
+				label: "♭3 → 3 Scoop",
+				tag: "2 → ♭3 → 3",
+				notes: p1,
+				midi: notesToGuitarMidi(p1),
+				passingPcs: [pcAt(3)],
+				tip: `Slide or hammer-on 1 fret from ${r(3)} directly onto the major 3rd (${r(4)}).`,
+			},
+			{
+				id: "maj-b5-bridge",
+				label: "♯4 / ♭5 Blue Bridge",
+				tag: "4 → ♯4 → 5",
+				notes: p2,
+				midi: notesToGuitarMidi(p2),
+				passingPcs: [pcAt(6)],
+				tip: `Pass lightly through ${r(6)} on an upstroke between ${r(5)} and the stable 5th (${r(7)}).`,
+			},
+			isDom
+				? {
+						id: "maj-dom7-walk",
+						label: "♭7 → 7 → 1 Walk",
+						tag: "6 → ♭7 → 7 → 1",
+						notes: p3,
+						midi: notesToGuitarMidi(p3),
+						passingPcs: [pcAt(11)],
+						tip: `Chromatically connect chord tone ♭7 (${r(10)}) straight up into tonic ${r(0)}.`,
+					}
+				: {
+						id: "maj-s5-walk",
+						label: "5 → ♯5 → 6 Link",
+						tag: "5 → ♯5 → 6",
+						notes: p3,
+						midi: notesToGuitarMidi(p3),
+						passingPcs: [pcAt(8)],
+						tip: `Fills the whole step between ${r(7)} and ${r(9)} with classic fingerstyle voice-leading.`,
+					},
+		];
+	} else if (pentatonicKind === "minor") {
+		featuredPassingTones = [
+			{
+				pc: pcAt(6),
+				noteName: r(6),
+				intervalLabel: "♭5",
+				role: "Classic blues note between 4 & 5",
+			},
+			{
+				pc: pcAt(4),
+				noteName: r(4),
+				intervalLabel: "♮3",
+				role: "Major-color pass from ♭3 to 4",
+			},
+			{
+				pc: pcAt(11),
+				noteName: r(11),
+				intervalLabel: "7",
+				role: "Harmonic-minor pull into root 1",
+			},
+		];
+
+		const p1 = [r(5), r(6), r(7)];
+		const p2 = [r(3), r(4), r(5)];
+		const p3 = [r(10), r(11), r(0)];
+		passingPhrases = [
+			{
+				id: "min-b5-blue",
+				label: "♭5 Blue Note",
+				tag: "4 → ♭5 → 5",
+				notes: p1,
+				midi: notesToGuitarMidi(p1),
+				passingPcs: [pcAt(6)],
+				tip: `Keep ${r(6)} in motion with a quick slide or micro-bend up into ${r(7)} or back to ${r(5)}.`,
+			},
+			{
+				id: "min-nat3-pass",
+				label: "♭3 → ♮3 → 4 Pass",
+				tag: "♭3 → 3 → 4",
+				notes: p2,
+				midi: notesToGuitarMidi(p2),
+				passingPcs: [pcAt(4)],
+				tip: `Bridges minor ${r(3)} to 4th (${r(5)}) — brightens the minor box on passing beats.`,
+			},
+			{
+				id: "min-lead7-pull",
+				label: "♭7 → 7 → 1 Pull",
+				tag: "♭7 → 7 → 1",
+				notes: p3,
+				midi: notesToGuitarMidi(p3),
+				passingPcs: [pcAt(11)],
+				tip: `One-fret leading-tone pull from ${r(11)} directly resolves onto tonic ${r(0)}.`,
+			},
+		];
+	} else {
+		featuredPassingTones = [
+			{
+				pc: pcAt(2),
+				noteName: r(2),
+				intervalLabel: "2",
+				role: "Chromatic step from 1 to ♭3",
+			},
+			{
+				pc: pcAt(7),
+				noteName: r(7),
+				intervalLabel: "♮5",
+				role: "Upper half-step above ♭5",
+			},
+			{
+				pc: pcAt(11),
+				noteName: r(11),
+				intervalLabel: "7",
+				role: "Half-step approach into root",
+			},
+		];
+		const p1 = [r(0), r(1), r(2), r(3)];
+		const p2 = [r(5), r(6), r(7)];
+		const p3 = [r(10), r(11), r(0)];
+		passingPhrases = [
+			{
+				id: "dim-climb",
+				label: "1 → ♭3 Chromatic Climb",
+				tag: "1 → ♭2 → 2 → ♭3",
+				notes: p1,
+				midi: notesToGuitarMidi(p1),
+				passingPcs: [pcAt(1)],
+				tip: `Walks step-by-step up adjacent frets straight into the minor 3rd (${r(3)}).`,
+			},
+			{
+				id: "dim-b5-turn",
+				label: "4 → ♭5 → ♮5 Link",
+				tag: "4 → ♭5 → 5",
+				notes: p2,
+				midi: notesToGuitarMidi(p2),
+				passingPcs: [pcAt(7)],
+				tip: `Balances the tritone chord tone (${r(6)}) by sliding smoothly onto ${r(7)}.`,
+			},
+			{
+				id: "dim-lead",
+				label: "♭7 → 7 → 1 Resolution",
+				tag: "♭7 → 7 → 1",
+				notes: p3,
+				midi: notesToGuitarMidi(p3),
+				passingPcs: [pcAt(11)],
+				tip: `Half-step resolution back into ${r(0)} calms the diminished tension.`,
+			},
+		];
+	}
+
+	const pentatonicPcSet = new Set(pentatonicPcs);
+	const scaleOutsidePcs = Array.from({ length: 12 }, (_, pc) => pc).filter(
+		(pc) => !scalePcSet.has(pc) && !chordPcSet.has(pc),
+	);
+
+	const overlayPassingPcs =
+		overlayMode === "scale"
+			? scaleOutsidePcs
+			: featuredPassingTones
+					.map((t) => t.pc)
+					.filter(
+						(pc) =>
+							!chordPcSet.has(pc) &&
+							(overlayMode !== "pentatonic" || !pentatonicPcSet.has(pc)),
+					);
+
+	return {
+		pentatonicRoot,
+		pentatonicRootPc,
+		pentatonicKind,
+		pentatonicName,
+		relativeTwinName,
+		formula: spec.formula,
+		degrees: [...spec.degrees],
+		pentatonicNotes,
+		pentatonicPcs,
+		pentatonicMidi,
+		omittedSummary,
+		cagedBoxTip: getPentatonicPocketHint(
+			pentatonicRootPc,
+			pentatonicKind,
+			selectedVoicing,
+		),
+		activeScope,
+		hasDistinctChordPentatonic,
+		keyPentatonicName,
+		chordPentatonicName,
+		chordIsNonDiatonic,
+		featuredPassingTones,
+		overlayPassingPcs,
+		passingPhrases,
+	};
 }

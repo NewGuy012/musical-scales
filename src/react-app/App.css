@@ -1588,6 +1588,140 @@
 	pointer-events: none;
 }
 
+.fret-dot-pentatonic-bg {
+	fill: var(--color-fourth-soft);
+	stroke: var(--color-fourth);
+	stroke-width: 1.25;
+}
+
+.fret-dot-pentatonic-text {
+	font-size: 7.4px;
+	font-weight: 750;
+	fill: var(--color-fourth);
+	pointer-events: none;
+}
+
+.fret-dot-chromatic-bg {
+	fill: var(--bg-card);
+	fill-opacity: 0.9;
+	stroke: var(--text-secondary);
+	stroke-width: 1.2;
+	stroke-dasharray: 2.3 1.5;
+}
+
+.fret-dot-chromatic-text {
+	font-size: 6.7px;
+	font-weight: 700;
+	font-style: italic;
+	fill: var(--text-secondary);
+	pointer-events: none;
+}
+
+.fret-hit-cell:hover .fret-dot-pentatonic-bg,
+.fret-hit-cell:hover .fret-dot-chromatic-bg,
+.fret-hit-cell:hover .fret-dot-scale-bg {
+	filter: brightness(1.16);
+}
+
+.guitar-passing-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border-radius: 9px;
+	border: 1px dashed var(--border-strong);
+	background: var(--bg-subtle);
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-weight: 650;
+	transition:
+		border-color 140ms ease,
+		background-color 140ms ease,
+		color 140ms ease;
+}
+
+.guitar-passing-toggle:hover {
+	border-color: var(--text-secondary);
+	color: var(--text-primary);
+}
+
+.guitar-passing-toggle.is-active {
+	border-style: dashed;
+	border-color: var(--text-primary);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.fretboard-legend {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 6px;
+}
+
+.legend-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 0.69rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.legend-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	display: inline-block;
+	flex-shrink: 0;
+}
+
+.legend-dot.is-primary.guitar-active-major {
+	background: var(--color-tonic);
+}
+
+.legend-dot.is-primary.guitar-active-minor {
+	background: var(--color-minor);
+}
+
+.legend-dot.is-primary.guitar-active-dim {
+	background: var(--color-dim);
+}
+
+.legend-dot.is-ghost {
+	background: var(--bg-card);
+	border: 1.5px solid var(--text-secondary);
+}
+
+.legend-dot.is-ghost.guitar-active-major {
+	border-color: var(--color-tonic);
+}
+
+.legend-dot.is-ghost.guitar-active-minor {
+	border-color: var(--color-minor);
+}
+
+.legend-dot.is-ghost.guitar-active-dim {
+	border-color: var(--color-dim);
+}
+
+.legend-dot.is-pentatonic {
+	background: var(--color-fourth-soft);
+	border: 1.5px solid var(--color-fourth);
+}
+
+.legend-dot.is-scale {
+	background: var(--color-fifth-soft);
+	border: 1.5px solid var(--color-fifth);
+}
+
+.legend-dot.is-chromatic {
+	background: var(--bg-card);
+	border: 1.5px dashed var(--text-secondary);
+}
+
 /* Fretboard Breakdown Strip */
 .voicing-breakdown {
 	display: flex;
@@ -1651,6 +1785,230 @@
 	font-size: 0.63rem;
 	font-weight: 600;
 	color: var(--text-secondary);
+}
+
+/* Guitar Pentatonic & Chromatic Passing Guide */
+.guitar-scale-guide {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.guitar-guide-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	border-radius: 11px;
+	padding: 9px 11px;
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+}
+
+.guitar-guide-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
+.guitar-guide-title-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.guitar-guide-kicker {
+	font-size: 0.63rem;
+	font-weight: 750;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	padding: 1px 6px;
+	border-radius: 999px;
+}
+
+.guitar-guide-kicker.is-pent {
+	background: var(--color-fourth-soft);
+	color: var(--color-fourth);
+}
+
+.guitar-guide-kicker.is-pass {
+	background: var(--bg-subtle);
+	border: 1px dashed var(--border-strong);
+	color: var(--text-secondary);
+}
+
+.guitar-guide-title {
+	font-size: 0.81rem;
+	font-weight: 750;
+	color: var(--text-primary);
+}
+
+.guitar-guide-formula {
+	font-size: 0.69rem;
+	font-weight: 650;
+	color: var(--text-muted);
+}
+
+.guitar-guide-actions {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.segmented-xs .seg-btn {
+	padding: 2px 7px;
+	font-size: 0.67rem;
+}
+
+.guitar-mini-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--border-subtle);
+	background: var(--bg-card);
+	color: var(--text-secondary);
+	font-size: 0.68rem;
+	font-weight: 650;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		color 130ms ease;
+}
+
+.guitar-mini-btn:hover {
+	border-color: var(--border-strong);
+	color: var(--text-primary);
+}
+
+.guitar-mini-btn.is-active {
+	border-color: var(--color-fourth);
+	background: var(--color-fourth-soft);
+	color: var(--color-fourth);
+}
+
+.guitar-mini-btn.is-play {
+	border-color: var(--color-fifth);
+	color: var(--color-fifth);
+}
+
+.guitar-mini-btn.is-play:hover {
+	background: var(--color-fifth-soft);
+}
+
+.guitar-pent-notes {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 5px;
+}
+
+.guitar-pent-pill {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1px;
+	padding: 4px 4px;
+	border-radius: 7px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
+	transition:
+		border-color 120ms ease,
+		transform 100ms ease;
+}
+
+.guitar-pent-pill:hover {
+	border-color: var(--color-fourth);
+	transform: translateY(-1px);
+}
+
+.guitar-pent-pill.is-chord-tone {
+	border-color: rgba(245, 158, 11, 0.45);
+	background: var(--color-tonic-soft);
+}
+
+.pent-deg {
+	font-size: 0.62rem;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+
+.pent-note {
+	font-size: 0.8rem;
+	font-weight: 800;
+	color: var(--text-primary);
+}
+
+.chromatic-phrases-row {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 5px;
+}
+
+.chromatic-phrase-btn {
+	text-align: left;
+	padding: 5px 7px;
+	border-radius: 8px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	transition:
+		border-color 120ms ease,
+		background-color 120ms ease,
+		transform 100ms ease;
+}
+
+.chromatic-phrase-btn:hover {
+	border-color: var(--color-fifth);
+	transform: translateY(-1px);
+}
+
+.chromatic-phrase-btn.is-selected {
+	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
+}
+
+.cp-top {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.67rem;
+	font-weight: 750;
+	color: var(--color-fifth);
+}
+
+.cp-notes {
+	font-size: 0.72rem;
+	font-weight: 750;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.cp-tag {
+	font-size: 0.63rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.guitar-guide-desc {
+	font-size: 0.71rem;
+	line-height: 1.42;
+	color: var(--text-secondary);
+}
+
+.guitar-guide-meta {
+	font-size: 0.7rem;
+	line-height: 1.38;
+	color: var(--text-secondary);
+	padding: 4px 8px;
+	border-radius: 7px;
+	background: var(--bg-subtle);
+	border: 1px solid var(--border-hairline);
 }
 
 /* Fretless Cello Fingerboard View */
@@ -1979,77 +2337,485 @@
 	pointer-events: none;
 }
 
-/* Quick Progressions */
+/* Chord Variations Strip (Instrument Dock) */
+.instrument-notes-pill {
+	font-size: 0.73rem;
+	font-weight: 600;
+	color: var(--text-secondary);
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--bg-subtle);
+	border: 1px solid var(--border-hairline);
+}
+
+.chord-variations-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+.variations-root-label {
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.variations-pills-scroll {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+}
+
+.var-pill {
+	border: 1px solid var(--border-hairline);
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-weight: 700;
+	padding: 3px 8px;
+	border-radius: 7px;
+	white-space: nowrap;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		color 130ms ease;
+}
+
+.var-pill:hover {
+	color: var(--text-primary);
+	border-color: var(--border-strong);
+}
+
+.var-pill.var-quality-major.is-selected {
+	border-color: var(--color-tonic);
+	background: var(--color-tonic-soft);
+	color: var(--color-tonic);
+}
+
+.var-pill.var-quality-minor.is-selected {
+	border-color: var(--color-minor);
+	background: var(--color-minor-soft);
+	color: var(--color-minor);
+}
+
+.var-pill.var-quality-diminished.is-selected {
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
+	color: var(--color-dim);
+}
+
+/* Scalable Progression Selector */
 .progressions-wrap {
 	margin-top: 12px;
 	padding-top: 11px;
 	border-top: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
-.progressions-header {
+.progressions-bar {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 6px;
-	margin-bottom: 8px;
+	gap: 8px;
+}
+
+.progressions-select-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	flex: 1 1 280px;
+	min-width: 0;
 }
 
 .progressions-title {
-	font-size: 0.82rem;
+	font-size: 0.8rem;
 	font-weight: 700;
+	white-space: nowrap;
 }
 
-.progressions-hint {
+.progression-select {
+	font-family: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-strong);
+	border-radius: 9px;
+	padding: 5px 10px;
+	min-width: 0;
+	max-width: 100%;
+	flex: 1 1 210px;
+	cursor: pointer;
+	transition: border-color 140ms ease;
+}
+
+.progression-select:hover,
+.progression-select:focus-visible {
+	border-color: var(--color-fifth);
+	outline: none;
+}
+
+.progression-steps-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.progression-steps-chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 5px;
+}
+
+.prog-step-chip {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 4px 9px;
+	border-radius: 8px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	font-size: 0.75rem;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		transform 100ms ease;
+}
+
+.prog-step-chip:hover {
+	border-color: var(--border-strong);
+	transform: translateY(-1px);
+}
+
+.prog-step-roman {
+	font-size: 0.69rem;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+
+.prog-step-sym {
+	font-weight: 800;
+	color: var(--text-primary);
+}
+
+.prog-step-chip.is-active-step.chord-quality-major {
+	border-color: var(--color-tonic);
+	background: var(--color-tonic-soft);
+}
+
+.prog-step-chip.is-active-step.chord-quality-minor {
+	border-color: var(--color-minor);
+	background: var(--color-minor-soft);
+}
+
+.prog-step-chip.is-active-step.chord-quality-diminished {
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
+}
+
+.progression-desc {
 	font-size: 0.72rem;
 	color: var(--text-muted);
 }
 
-.progressions-grid {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 7px;
-}
-
-.prog-btn {
-	text-align: left;
-	padding: 8px 10px;
-	border-radius: 10px;
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-hairline);
+/* Color Harmony Panel (Chromatic Passing, Diminished, Secondary Dominants, Tritone Subs) */
+.color-harmony-wrap {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 10px;
+}
+
+.color-topic-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.color-topic-pill {
+	padding: 5px 11px;
+	border-radius: 999px;
+	border: 1px solid var(--border-subtle);
+	background: var(--bg-subtle);
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	font-weight: 650;
 	transition:
 		border-color 140ms ease,
-		background-color 140ms ease;
+		background-color 140ms ease,
+		color 140ms ease;
 }
 
-.prog-btn:hover {
+.color-topic-pill:hover {
 	border-color: var(--border-strong);
+	color: var(--text-primary);
 }
 
-.prog-btn.is-playing {
+.color-topic-pill.is-active {
 	border-color: var(--color-fifth);
 	background: var(--color-fifth-soft);
-}
-
-.prog-top {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 4px;
-	font-size: 0.84rem;
-}
-
-.prog-play-tag {
-	font-size: 0.72rem;
 	color: var(--color-fifth);
 }
 
-.prog-label {
-	font-size: 0.71rem;
+.color-topic-body {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+}
+
+.color-topic-overview {
+	font-size: 0.76rem;
+	line-height: 1.45;
+	color: var(--text-secondary);
+	padding: 8px 11px;
+	border-radius: 10px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+}
+
+.color-cards-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.color-pattern-card,
+.dim-symmetry-box,
+.sec-dom-card {
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	border-radius: 11px;
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.color-pattern-card.is-compact {
+	padding: 9px 11px;
+}
+
+.color-pattern-head,
+.sec-dom-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.color-pattern-titles,
+.sec-dom-title-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 7px;
+}
+
+.color-kind-badge,
+.sec-dom-roman {
+	font-size: 0.65rem;
+	font-weight: 750;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: var(--color-minor-soft);
+	color: var(--color-minor);
+}
+
+.sec-dom-arrow {
+	font-size: 0.8rem;
+	font-weight: 750;
+	color: var(--text-primary);
+}
+
+.color-pattern-title {
+	font-size: 0.83rem;
+	font-weight: 750;
+	color: var(--text-primary);
+}
+
+.color-pattern-formula {
+	font-size: 0.72rem;
+	font-weight: 600;
 	color: var(--text-muted);
+}
+
+.color-pattern-desc {
+	font-size: 0.72rem;
+	line-height: 1.42;
+	color: var(--text-secondary);
+}
+
+.color-steps-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.dim-symmetry-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.color-step-chip {
+	text-align: left;
+	min-width: 82px;
+	padding: 6px 9px;
+	border-radius: 9px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		transform 100ms ease;
+}
+
+.color-step-chip:hover {
+	border-color: var(--border-strong);
+	transform: translateY(-1px);
+}
+
+.color-step-chip.is-highlight-target {
+	border-style: dashed;
+	border-color: var(--color-tonic);
+}
+
+.color-step-chip.is-active-step.chord-quality-major {
+	border-style: solid;
+	border-color: var(--color-tonic);
+	background: var(--color-tonic-soft);
+	box-shadow: 0 0 0 1px var(--color-tonic);
+}
+
+.color-step-chip.is-active-step.chord-quality-minor {
+	border-style: solid;
+	border-color: var(--color-minor);
+	background: var(--color-minor-soft);
+	box-shadow: 0 0 0 1px var(--color-minor);
+}
+
+.color-step-chip.is-active-step.chord-quality-diminished {
+	border-style: solid;
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
+	box-shadow: 0 0 0 1px var(--color-dim);
+}
+
+.csc-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 5px;
+}
+
+.csc-roman {
+	font-size: 0.65rem;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+
+.csc-badge {
+	font-size: 0.58rem;
+	font-weight: 750;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--color-tonic-soft);
+	color: var(--color-tonic);
+}
+
+.csc-sym {
+	font-size: 0.88rem;
+	font-weight: 800;
+	color: var(--text-primary);
+}
+
+.csc-notes {
+	font-size: 0.64rem;
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+.csc-borrowed {
+	font-size: 0.61rem;
+	font-weight: 700;
+	color: var(--color-fifth);
+}
+
+.sec-dom-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.tritone-guide-pill {
+	font-size: 0.69rem;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--color-fourth-soft);
+	color: var(--color-fourth);
+}
+
+.tritone-ab-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.tritone-branch {
+	padding: 8px 9px;
+	border-radius: 9px;
+	background: var(--bg-subtle);
+	border: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.tritone-branch.is-sub {
+	border-color: rgba(56, 189, 248, 0.35);
+}
+
+.tritone-branch-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
+.tritone-branch-label {
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--text-secondary);
+}
+
+.secondary-tritones-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.secondary-tritones-heading {
+	font-size: 0.76rem;
+	font-weight: 750;
+	color: var(--text-secondary);
 }
 
 .song-play-btn.is-paused {
@@ -2404,6 +3170,181 @@
 	color: var(--text-secondary);
 }
 
+/* Interactive Song Study Guide */
+.song-study-guide {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.song-guide-brief {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.guide-brief-item {
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.guide-brief-label {
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--color-fifth);
+}
+
+.guide-brief-text {
+	font-size: 0.74rem;
+	line-height: 1.4;
+	color: var(--text-secondary);
+}
+
+.song-sections-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.song-sections-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
+.song-sections-pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 5px;
+}
+
+.song-section-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 9px;
+	border-radius: 8px;
+	border: 1px solid var(--border-hairline);
+	background: var(--bg-card);
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-weight: 600;
+	transition:
+		border-color 130ms ease,
+		background-color 130ms ease,
+		color 130ms ease;
+}
+
+.song-section-pill:hover {
+	color: var(--text-primary);
+	border-color: var(--border-strong);
+}
+
+.song-section-pill.is-current-section {
+	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
+	color: var(--text-primary);
+}
+
+.section-pill-bars {
+	font-size: 0.66rem;
+	font-weight: 700;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.song-section-pill.is-current-section .section-pill-bars {
+	color: var(--color-fifth);
+}
+
+.song-section-spotlight {
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
+	border-left: 3px solid var(--color-fifth);
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.spotlight-top {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 7px;
+}
+
+.spotlight-range {
+	font-size: 0.71rem;
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.spotlight-prog {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 0.71rem;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: 5px;
+	background: var(--bg-subtle);
+	color: var(--color-fifth);
+}
+
+.spotlight-play-btn {
+	margin-left: auto;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--border-strong);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	font-size: 0.7rem;
+	font-weight: 700;
+	transition:
+		border-color 130ms ease,
+		color 130ms ease;
+}
+
+.spotlight-play-btn:hover {
+	border-color: var(--color-fifth);
+	color: var(--color-fifth);
+}
+
+.spotlight-insight {
+	font-size: 0.74rem;
+	line-height: 1.4;
+	color: var(--text-secondary);
+}
+
+.song-tips-drawer {
+	margin: 0;
+	padding: 8px 12px 8px 24px;
+	border-radius: 10px;
+	background: var(--color-tonic-soft);
+	border: 1px solid rgba(245, 158, 11, 0.35);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.74rem;
+	line-height: 1.42;
+	color: var(--text-primary);
+}
+
+.song-live-fn {
+	color: var(--text-secondary);
+	font-weight: 500;
+}
+
 .song-live-status {
 	display: inline-flex;
 	align-items: center;
@@ -2540,11 +3481,20 @@
 	.brand-subtitle {
 		display: none;
 	}
-	.chord-groups {
+	.chord-groups,
+	.song-guide-brief,
+	.guitar-scale-guide,
+	.sec-dom-grid,
+	.tritone-ab-grid {
 		grid-template-columns: 1fr;
 	}
-	.progressions-grid {
+	.dim-symmetry-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.chord-variations-bar {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
 	}
 	.root-pair-box {
 		margin-left: 0;
@@ -2552,7 +3502,8 @@
 }
 
 @media (max-width: 480px) {
-	.rel-grid {
+	.rel-grid,
+	.chromatic-phrases-row {
 		grid-template-columns: 1fr;
 	}
 	.chord-grid {

@@ -4,11 +4,13 @@ import { App } from "../src/react-app/App";
 import { CelloFingerboard } from "../src/react-app/components/CelloFingerboard";
 import { ChordsPanel } from "../src/react-app/components/ChordsPanel";
 import { CircleWheel } from "../src/react-app/components/CircleWheel";
+import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
 import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
+import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 import { getSongsForInstrument } from "../src/react-app/theory/songExamples";
@@ -22,6 +24,7 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("F Major");
 		expect(html).toContain("G Major");
 		expect(html).toContain("Chords &amp; Progressions");
+		expect(html).toContain("Passing &amp; Substitutions");
 		expect(html).toContain("Real Songs");
 		expect(html).toContain("Major Chords");
 		expect(html).toContain("Minor Chords");
@@ -30,7 +33,16 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Am");
 		expect(html).toContain("B°");
 		expect(html).toContain("Progressions in C");
+		expect(html).toContain("progression-select");
 		expect(html).toContain("I – IV – V – I");
+		expect(html).toContain("Pachelbel Canon Sequence");
+		expect(html).toContain("Jazz &amp; Circle");
+		expect(html).toContain("prog-step-chip");
+		expect(html).toContain("C Variations:");
+		expect(html).toContain("aug");
+		expect(html).toContain("add9");
+		expect(html).toContain("dim7");
+		expect(html).toContain("sus4");
 		expect(html).toContain("Piano");
 		expect(html).toContain("Guitar");
 		expect(html).toContain("Cello");
@@ -76,8 +88,44 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("D-Shape Upper");
 		expect(html).toContain("Voicing");
 		expect(html).toContain("All Notes");
+		expect(html).toContain("Pentatonic");
+		expect(html).toContain("+ Chromatic");
 		expect(html).toContain("Scale");
 		expect(html).toContain("Strings (6 → 1):");
+		expect(html).toContain("C Major Pentatonic");
+		expect(html).toContain("A Minor Pentatonic");
+		expect(html).toContain("1 · 2 · 3 · 5 · 6");
+		expect(html).toContain("Passing Notes");
+		expect(html).toContain("♭3 → 3 Scoop");
+
+		const dmChord = cMaj.chords[1];
+		const dmVoicings = getGuitarVoicings(
+			dmChord.root,
+			"minor",
+			dmChord.triadNotes,
+			false,
+		);
+		const dmHtml = renderToStaticMarkup(
+			<GuitarFretboard
+				activeLabel="Dm (ii)"
+				activeQuality="minor"
+				chordNotes={dmChord.triadNotes}
+				chordKind="minor"
+				voicings={dmVoicings}
+				selectedVoicing={dmVoicings[0]}
+				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
+				scaleNoteNames={cMaj.scaleNotes}
+				keyRootName="C"
+				keyMode="major"
+				preferFlats={false}
+				onSelectVoicing={() => {}}
+				onStrumVoicing={() => {}}
+				onPlayFretNote={() => {}}
+			/>,
+		);
+		expect(dmHtml).toContain("Pentatonic scale basis");
+		expect(dmHtml).toContain("Key");
+		expect(dmHtml).toContain("Chord");
 	});
 
 	test("renders CelloFingerboard with fretless positions, left-hand frame, and minor/7th chords", () => {
@@ -358,5 +406,28 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(songsEmbedded).not.toContain("Learn from Real Songs");
 		expect(songsEmbedded).toContain("songs-wrap is-embedded");
 		expect(songsEmbedded).toContain("Clair de lune");
+	});
+
+	test("renders ColorHarmonyPanel with Chromatic Passing, Diminished, Secondary Dominants, and Tritone Sub topics", () => {
+		const cMaj = analyzeKey(0, "major");
+		const color = analyzeColorHarmony(cMaj);
+		const html = renderToStaticMarkup(
+			<ColorHarmonyPanel
+				colorAnalysis={color}
+				activeChordId={null}
+				activeSequenceId={null}
+				activeSequenceStepIdx={null}
+				onSelectChord={() => {}}
+				onPlaySequence={() => {}}
+			/>,
+		);
+		expect(html).toContain("Chromatic Passing");
+		expect(html).toContain("Diminished Chords");
+		expect(html).toContain("Secondary Dominants");
+		expect(html).toContain("Tritone Subs");
+		expect(html).toContain("Parallel m7 Half-Step Slide");
+		expect(html).toContain("Em7");
+		expect(html).toContain("E♭m7");
+		expect(html).toContain("F♯m7♭5");
 	});
 });
