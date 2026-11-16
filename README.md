@@ -48,20 +48,20 @@
 
 ## Quick Tour
 
-1. **Pick any key on the wheel** — Click the outer **Major** or inner **Relative Minor** ring (or press `←` / `→`). Toggle **C Pinned at 12:00** / **Selected at 12:00** to keep `C` fixed or smoothly rotate your tonic to the top.
+1. **Pick any key on the wheel** — Click the outer **Major** or inner **Relative Minor** ring (or press `←` / `→`). Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or smoothly rotate your tonic to the top.
 2. **See why neighbors connect** — Compare counter-clockwise **4th (`+5`)** and clockwise **5th (`+7`)** keys side by side: `6/7` scale notes remain identical while only a single half-step shifts. Audition `I–IV–I` / `I–V–I` cadences or walk continuously around the wheel.
-3. **Audition chords & progressions** — Click any diatonic chord card, toggle **Triads / 7ths** and **Block Chord / Arpeggio On**, or launch progressions like `ii – V – I` to hear and trace harmony directly on the wheel.
-4. **Switch instruments & learn real songs** — Toggle between **Piano View**, **Guitar View**, and **Cello View** at any time. Audio, voicings, fingerings, and bar-by-bar song examples adapt automatically.
+3. **Explore chords, variations & chromatic color** — Switch across **Chords & Progressions** (with **Triads / 7ths** and **Arpeggio** toggles), **Passing & Substitutions** (chromatic slides, diminished symmetry, secondary dominants, tritone subs), or audition **13 chord variations** (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`) above the instrument dock.
+4. **Switch instruments & learn real songs** — Toggle between **Piano**, **Guitar**, and **Cello** at any time. Audio, voicings, fingerings, and interactive **Real Songs** study guides adapt automatically.
 
 ---
 
 ## Instrument Views
 
-| Tab             | Layout & Range                                 | Voicings, Overlays & Audio                                                                                                                               | Built-in Song Repertoire                                                                    |
-| :-------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
-| **Piano View**  | 2-octave clickable keyboard (`C4`–`B5`)        | Chord voicing highlights, scale-tone dots, procedural Grand Piano synthesis                                                                              | _Do-Re-Mi_ (_The Sound of Music_) — `C Major · 4/4 · 136 BPM`                               |
-| **Guitar View** | 6-string, 15-fret neck (`E A D G B e`)         | Open & movable CAGED/barre shapes, `Voicing + Neck` / `All Positions` / `Key Scale`, `Notes` / `Intervals`, `▶ Strum`, Karplus-Strong nylon string synth | _Amazing Grace_ — `G Major · 3/4 · 118 BPM`                                                 |
-| **Cello View**  | 4-string fretless neck (`C2–G2–D3–A3`, fifths) | Closed 4-semitone left-hand frames (`LH Frame`), `Notes` / `Intervals` / `Fingers` (`0–4`), `▶ Bow Roll`, bowed vibrato & body-formant synth             | _Bach — Cello Suite No. 1 Prelude (BWV 1007)_ — `G Major · 4/4 · 96 BPM` _(Cello tab only)_ |
+| Tab        | Layout & Range                                 | Voicings, Overlays & Audio                                                                                                                                                                    | Built-in Song Repertoire                                                                |
+| :--------- | :--------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`)        | Chord voicing highlights, scale-tone dots, procedural Grand Piano synthesis                                                                                                                   | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 54 BPM · 72 bars`)                  |
+| **Guitar** | 6-string, 15-fret neck (`E A D G B e`)         | Open & movable CAGED/barre shapes (`≤ 4` frets), `Voicing` / `All Notes` / `Pentatonic` / `Scale` + `+ Chromatic` overlay, `Notes` / `Intervals`, passing phrases, Karplus-Strong nylon synth | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 76 BPM · 34 bars`)              |
+| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`, fifths) | Closed 4-semitone left-hand frames (`LH Frame`), `Voicing` / `All Notes`, `Notes` / `Intervals` / `Fingers`, `▶ Bow Roll`, bowed vibrato & body-formant synth                                 | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 96 BPM · 42 bars`) |
 
 <table>
   <tr>
@@ -87,11 +87,16 @@
 - **Fifths & Fourths Harmony**
   - Exact `6/7` shared-note comparison and single-pitch half-step diff for adjacent keys
   - Instant `I–IV–I` / `I–V–I` cadence playback and continuous **Walk 4ths** / **Walk 5ths** stepping
-- **Chords & Progressions**
+- **Chords, Variations & Progressions**
   - Grouped diatonic **Major**, **Minor**, **Diminished**, **Harmonic Minor `V`**, and **Root Parallel Pair** cards
-  - 4 curated **Quick Chord Progressions** per mode (`I–IV–V–I`, `I–V–vi–IV`, `ii–V–I`, `I–vi–IV–V` in Major; `i–iv–v–i`, `i–VI–III–VII`, `i–iv–VII–III`, `ii°–V–i` in Minor)
+  - 13 interactive **Chord Variations** (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`) synced with the active root
+  - Curated **Progressions** grouped across **Classics & Cadences**, **Pop & Rock**, **Jazz & Circle**, and **Classical & Sequence** (11 Major, 10 Minor)
+- **Passing & Substitutions**
+  - Clickable chromatic passing slides, symmetric diminished 7th (`dim7`) families, secondary dominants (`V7/...`), and tritone substitutions (`♭II7`) highlighted live on the wheel and instrument dock
+- **Real Songs & Study Guides**
+  - Bar-by-bar transport controls, scrubbable timeline slider, jump-to-section **Study Guides**, and synchronized fingerings/stops (including guitar harmonics, hammers, and slides)
 - **Zero-Dependency Web Audio & Themes**
-  - Header sound switcher (**Instrument** auto-match, warm **Pad**, or **Mute**) with zero external audio files
+  - Header sound switcher (instrument-matched **Auto**, warm **Pad**, or **Muted**) with zero external audio files
   - **Dark** and **Light** UI themes
 
 ---
@@ -104,6 +109,7 @@
 | `→`     | Step clockwise to the **Perfect 5th** neighbor         |
 | `M`     | Toggle between **Major** and **Natural Minor** mode    |
 | `Space` | Play the selected key's **tonic chord**                |
+| `Esc`   | Stop active playback (or close the shortcuts popover)  |
 
 ---
 
@@ -150,8 +156,8 @@ musical-scales/
 │   ├── react-app/
 │   │   ├── App.tsx              # Root state, keyboard shortcuts, and sequencer
 │   │   ├── audio/synth.ts       # Web Audio synth (Piano, Guitar, Cello, Pad)
-│   │   ├── components/          # Wheel, staff, chord cards, and instrument views
-│   │   └── theory/              # Scales, circle neighbors, Guitar/Cello voicings, songs
+│   │   ├── components/          # Wheel, staff, chords, color harmony, songs, instruments
+│   │   └── theory/              # Scales, chromatic harmony, Guitar/Cello voicings, repertoire
 │   └── worker/index.ts          # Hono edge worker with security headers
 └── tests/                       # Theory, voicing, audio DSP, and SSR tests
 ```
