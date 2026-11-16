@@ -178,25 +178,17 @@ describe("Circle of Fifths music theory engine", () => {
 	});
 
 	test("major and minor progressions cover multiple categories with valid chord degrees", () => {
-		const maj = analyzeKey(0, "major");
-		const min = analyzeKey(0, "minor");
-		expect(maj.progressions.length).toBeGreaterThanOrEqual(10);
-		expect(min.progressions.length).toBeGreaterThanOrEqual(10);
-
-		for (const p of maj.progressions) {
-			expect(p.category.length).toBeGreaterThan(0);
-			expect(p.degrees.length).toBeGreaterThanOrEqual(3);
-			for (const deg of p.degrees) {
-				expect(deg).toBeGreaterThanOrEqual(1);
-				expect(deg).toBeLessThanOrEqual(7);
-			}
-		}
-
-		for (const p of min.progressions) {
-			expect(p.category.length).toBeGreaterThan(0);
-			expect(p.degrees.length).toBeGreaterThanOrEqual(3);
-			for (const deg of p.degrees) {
-				expect(deg === -5 || (deg >= 1 && deg <= 7)).toBe(true);
+		for (const mode of ["major", "minor"] as const) {
+			const analysis = analyzeKey(0, mode);
+			expect(analysis.progressions.length).toBeGreaterThanOrEqual(10);
+			for (const p of analysis.progressions) {
+				expect(p.category.length).toBeGreaterThan(0);
+				expect(p.degrees.length).toBeGreaterThanOrEqual(3);
+				for (const deg of p.degrees) {
+					expect(
+						(mode === "minor" && deg === -5) || (deg >= 1 && deg <= 7),
+					).toBe(true);
+				}
 			}
 		}
 	});

@@ -26,21 +26,13 @@ const CHORD_INTERVALS: Record<GuitarChordKind, number[]> = {
 	sus2: [0, 2, 7],
 };
 
-const REQUIRED_INTERVALS: Record<GuitarChordKind, number[]> = {
-	major: [0, 4, 7],
-	minor: [0, 3, 7],
-	diminished: [0, 3, 6],
-	aug: [0, 4, 8],
-	maj7: [0, 4, 11],
-	m7: [0, 3, 10],
-	"7": [0, 4, 10],
-	"m7♭5": [0, 3, 6, 10],
-	dim7: [0, 3, 6, 9],
-	add9: [0, 4, 2],
-	madd9: [0, 3, 2],
-	sus4: [0, 5, 7],
-	sus2: [0, 2, 7],
-};
+const OMIT_FIFTH_KINDS = new Set<GuitarChordKind>([
+	"maj7",
+	"m7",
+	"7",
+	"add9",
+	"madd9",
+]);
 
 const ALL_ROOTS = [
 	"C",
@@ -92,9 +84,9 @@ describe("celloFingerboard", () => {
 				const allowedPcs = new Set(
 					CHORD_INTERVALS[kind].map((off) => mod12(rootPc + off)),
 				);
-				const requiredPcs = REQUIRED_INTERVALS[kind].map((off) =>
-					mod12(rootPc + off),
-				);
+				const requiredPcs = CHORD_INTERVALS[kind]
+					.filter((off) => !(OMIT_FIFTH_KINDS.has(kind) && off === 7))
+					.map((off) => mod12(rootPc + off));
 
 				const voicings = getCelloVoicings(root, kind, [root], preferFlats);
 				expect(voicings.length).toBeGreaterThanOrEqual(3);

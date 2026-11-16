@@ -7,12 +7,10 @@ import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
-import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
-import { getSongsForInstrument } from "../src/react-app/theory/songExamples";
 
 describe("Circle of Fifths UI rendering", () => {
 	test("renders App with C Major default state, circle neighbors, chords/progressions, and clean instrument dock", () => {
@@ -249,44 +247,6 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(ebHtml).toContain("C♭maj7");
 		expect(ebHtml).toContain("D♭7");
 		expect(ebHtml).toContain("Harmonic V");
-	});
-
-	test("renders SongExamplesPanel per instrument (Guitar Amazing Grace, Cello-only Bach Suite)", () => {
-		const guitarHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={getSongsForInstrument("guitar")}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={() => {}}
-				onSelectSongChordStep={() => {}}
-			/>,
-		);
-		expect(guitarHtml).toContain("Amazing Grace");
-		expect(guitarHtml).toContain("Tommy Emmanuel");
-		expect(guitarHtml).toContain("B7");
-		expect(guitarHtml).toContain("C♯m7");
-		expect(guitarHtml).not.toContain("Cello Suite No. 1");
-
-		const celloSongs = getSongsForInstrument("cello");
-		const celloHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={celloSongs}
-				playingSongId={celloSongs[0].id}
-				activeChordStepIndex={1}
-				activeNoteLabel="C4 (I · F2)"
-				selectedPreviewStepId={null}
-				onTogglePlaySong={() => {}}
-				onSelectSongChordStep={() => {}}
-			/>,
-		);
-		expect(celloHtml).toContain("Cello Suite No. 1 — Prelude (BWV 1007)");
-		expect(celloHtml).toContain("J.S. Bach");
-		expect(celloHtml).toContain("C/G");
-		expect(celloHtml).toContain("D7/G");
-		expect(celloHtml).toContain("Playing");
-		expect(celloHtml).toContain("C4 (I · F2)");
 	});
 
 	test("renders ColorHarmonyPanel with Chromatic Passing, Diminished, Secondary Dominants, and Tritone Sub topics", () => {

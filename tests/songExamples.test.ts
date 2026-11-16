@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+	MAX_GUITAR_FRET,
+	STANDARD_TUNING,
+} from "../src/react-app/theory/guitarFretboard";
+import {
 	SONG_EXAMPLES,
 	describeRomanFunction,
 	findSongSectionForBar,
@@ -122,6 +126,24 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(allStops.some((st) => st.technique === "harmonic")).toBe(true);
 		expect(allStops.some((st) => st.technique === "hammer")).toBe(true);
 		expect(allStops.some((st) => st.technique === "slide")).toBe(true);
+
+		for (const step of grace.steps) {
+			for (const evt of step.events) {
+				expect(evt.guitarStops?.length).toBe(evt.midi.length);
+				evt.guitarStops?.forEach((stop, idx) => {
+					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
+					expect(stop.fret).toBeGreaterThanOrEqual(0);
+					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
+					const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
+					const harmonicOffset =
+						stop.technique === "harmonic"
+							? ({ 12: 12, 7: 19, 5: 24 }[stop.fret] ?? stop.fret)
+							: stop.fret;
+					expect(evt.midi[idx]).toBe(openMidi + harmonicOffset);
+				});
+			}
+		}
 	});
 
 	test("all curated songs expose a complete studyGuide covering every bar and beginner helper descriptions", () => {

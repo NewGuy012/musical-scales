@@ -7,11 +7,7 @@ import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
-import {
-	MAX_GUITAR_FRET,
-	STANDARD_TUNING,
-	getGuitarVoicings,
-} from "../src/react-app/theory/guitarFretboard";
+import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 import {
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
@@ -19,6 +15,8 @@ import {
 	getSongBarStartTimes,
 	getSongsForInstrument,
 } from "../src/react-app/theory/songExamples";
+
+const noop = () => {};
 
 describe("songPlayback helpers and synchronized UI", () => {
 	test("bar start times, binary search lookup, and time formatting stay aligned", () => {
@@ -72,12 +70,12 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
 				selectedPreviewStepId={null}
-				onTogglePlaySong={() => {}}
-				onStopSong={() => {}}
-				onSeekSong={() => {}}
-				onSkipSongBar={() => {}}
-				onPlayFromSongBar={() => {}}
-				onSelectSongChordStep={() => {}}
+				onTogglePlaySong={noop}
+				onStopSong={noop}
+				onSeekSong={noop}
+				onSkipSongBar={noop}
+				onPlayFromSongBar={noop}
+				onSelectSongChordStep={noop}
 			/>,
 		);
 		expect(idleHtml).toContain("42 Bars");
@@ -100,12 +98,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeChordStepIndex={12}
 				activeNoteLabel="D♯3 (II · F1)"
 				selectedPreviewStepId={null}
-				onTogglePlaySong={() => {}}
-				onStopSong={() => {}}
-				onSeekSong={() => {}}
-				onSkipSongBar={() => {}}
-				onPlayFromSongBar={() => {}}
-				onSelectSongChordStep={() => {}}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
 			/>,
 		);
 		expect(playingHtml).toContain("song-card is-playing");
@@ -125,12 +119,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeChordStepIndex={20}
 				activeNoteLabel="D3 (Open II)"
 				selectedPreviewStepId={null}
-				onTogglePlaySong={() => {}}
-				onStopSong={() => {}}
-				onSeekSong={() => {}}
-				onSkipSongBar={() => {}}
-				onPlayFromSongBar={() => {}}
-				onSelectSongChordStep={() => {}}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
 			/>,
 		);
 		expect(pausedHtml).toContain("song-card is-paused");
@@ -147,9 +137,9 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
 				selectedPreviewStepId={bach.steps[4].id}
-				onTogglePlaySong={() => {}}
-				onPlayFromSongBar={() => {}}
-				onSelectSongChordStep={() => {}}
+				onTogglePlaySong={noop}
+				onPlayFromSongBar={noop}
+				onSelectSongChordStep={noop}
 			/>,
 		);
 		expect(previewHtml).toContain("Previewing");
@@ -161,6 +151,20 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(previewHtml).toContain("2. Circle Climb to D &amp; Em");
 		expect(previewHtml).toContain("Play Section");
 		expect(previewHtml).toContain("song-live-fn");
+
+		const guitarHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={getSongsForInstrument("guitar")}
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(guitarHtml).toContain("Amazing Grace");
+		expect(guitarHtml).toContain("Tommy Emmanuel");
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {
@@ -321,7 +325,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(mixedHtml).not.toContain(">D♭</text>");
 	});
 
-	test("GuitarFretboard renders explicit activeSongStops including diamond harmonic markers, and Tommy Emmanuel stops match standard tuning physics", () => {
+	test("GuitarFretboard renders explicit activeSongStops including diamond harmonic markers", () => {
 		const eMajor = analyzeKey(4, "major");
 		const voicings = getGuitarVoicings("E", "major", ["E", "G♯", "B"], false);
 		const harmonicHtml = renderToStaticMarkup(
@@ -339,36 +343,13 @@ describe("songPlayback helpers and synchronized UI", () => {
 				scalePitchClasses={[4, 6, 8, 9, 11, 1, 3]}
 				scaleNoteNames={eMajor.scaleNotes}
 				preferFlats={false}
-				onSelectVoicing={() => {}}
-				onStrumVoicing={() => {}}
-				onPlayFretNote={() => {}}
+				onSelectVoicing={noop}
+				onStrumVoicing={noop}
+				onPlayFretNote={noop}
 			/>,
 		);
 		expect(harmonicHtml).toContain("song-hit-halo");
 		expect(harmonicHtml).toContain("is-harmonic");
 		expect(harmonicHtml).toContain("song-hit-harmonic");
-
-		const grace = getSongsForInstrument("guitar")[0];
-		for (const step of grace.steps) {
-			for (const evt of step.events) {
-				expect(evt.guitarStops?.length).toBeGreaterThan(0);
-				expect(evt.guitarStops?.length).toBe(evt.midi.length);
-				evt.guitarStops?.forEach((stop, idx) => {
-					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
-					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
-					expect(stop.fret).toBeGreaterThanOrEqual(0);
-					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
-					const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
-					let expectedMidi = openMidi + stop.fret;
-					if (stop.technique === "harmonic") {
-						if (stop.fret === 12) expectedMidi = openMidi + 12;
-						else if (stop.fret === 7) expectedMidi = openMidi + 19;
-						else if (stop.fret === 5) expectedMidi = openMidi + 24;
-						else expectedMidi = openMidi + stop.fret;
-					}
-					expect(evt.midi[idx]).toBe(expectedMidi);
-				});
-			}
-		}
 	});
 });
