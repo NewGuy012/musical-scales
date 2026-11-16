@@ -8,8 +8,7 @@ import {
 import type { GuitarChordKind } from "./guitarFretboard";
 import type {
 	CelloSongStop,
-	SongChordStep,
-	SongExample,
+	CompactSongSpec,
 	SongNoteEvent,
 } from "./songExamples";
 
@@ -613,23 +612,9 @@ const BACH_PRELUDE_BARS: BachBarSpec[] = [
 	},
 ];
 
-const BACH_STEPS: SongChordStep[] = BACH_PRELUDE_BARS.map((spec) => ({
-	id: `bach-bar-${spec.barNumber}`,
-	barLabel: `Bar ${spec.barNumber}`,
-	chordSymbol: spec.chordSymbol,
-	roman: spec.roman,
-	quality: spec.quality,
-	guitarKind: spec.guitarKind,
-	chordNotes: spec.chordNotes,
-	displayMidi: ascendingNotesToMidi(spec.chordNotes),
-	circleDegree: spec.circleDegree,
-	circleSlotIndex: spec.circleSlotIndex,
-	cue: spec.cue,
-	events: parseBachBarNotation(spec.notation),
-}));
-
-export const BACH_CELLO_SUITE_1: SongExample = {
+export const BACH_CELLO_SUITE_1_SPEC: CompactSongSpec = {
 	id: "bach-cello-suite-1",
+	idPrefix: "bach",
 	title: "Cello Suite No. 1 — Prelude (BWV 1007)",
 	composerOrSource: "J.S. Bach",
 	subtitle: "Full 42-bar solo bariolage & harmonic journey in G Major",
@@ -694,5 +679,17 @@ export const BACH_CELLO_SUITE_1: SongExample = {
 			},
 		],
 	},
-	steps: BACH_STEPS,
+	bars: BACH_PRELUDE_BARS.map((spec) => [
+		spec.barNumber,
+		spec.chordSymbol,
+		spec.roman,
+		spec.quality,
+		spec.guitarKind,
+		spec.chordNotes,
+		ascendingNotesToMidi(spec.chordNotes),
+		spec.circleDegree,
+		spec.cue,
+		parseBachBarNotation(spec.notation),
+		spec.circleSlotIndex,
+	]),
 };

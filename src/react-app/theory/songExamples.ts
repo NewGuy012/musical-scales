@@ -1,8 +1,8 @@
-import { BACH_CELLO_SUITE_1 } from "./bachCelloSuite1";
+import { BACH_CELLO_SUITE_1_SPEC } from "./bachCelloSuite1";
 import type { ChordQuality, KeyMode } from "./circleOfFifths";
-import { DEBUSSY_CLAIR_DE_LUNE } from "./debussyClairDeLune";
+import { DEBUSSY_CLAIR_DE_LUNE_SPEC } from "./debussyClairDeLune";
 import type { GuitarChordKind } from "./guitarFretboard";
-import { TOMMY_AMAZING_GRACE } from "./tommyAmazingGrace";
+import { TOMMY_AMAZING_GRACE_SPEC } from "./tommyAmazingGrace";
 
 export type InstrumentTab = "piano" | "guitar" | "cello";
 
@@ -90,10 +90,67 @@ export interface FlattenedSongStep {
 	guitarStops?: GuitarSongStop[];
 }
 
+export type CompactSongBar = [
+	barNumber: number,
+	chordSymbol: string,
+	roman: string,
+	quality: ChordQuality,
+	guitarKind: GuitarChordKind,
+	chordNotes: string[],
+	displayMidi: number[],
+	circleDegree: number,
+	cue: string,
+	events: SongNoteEvent[],
+	circleSlotIndex?: number,
+];
+
+export interface CompactSongSpec extends Omit<SongExample, "steps"> {
+	idPrefix: string;
+	bars: CompactSongBar[];
+}
+
+function hydrateSong({
+	idPrefix,
+	bars,
+	...meta
+}: CompactSongSpec): SongExample {
+	return {
+		...meta,
+		steps: bars.map(
+			([
+				barNumber,
+				chordSymbol,
+				roman,
+				quality,
+				guitarKind,
+				chordNotes,
+				displayMidi,
+				circleDegree,
+				cue,
+				events,
+				circleSlotIndex,
+			]) => ({
+				id: `${idPrefix}-bar-${barNumber}`,
+				barLabel: `Bar ${barNumber}`,
+				chordSymbol,
+				roman,
+				quality,
+				guitarKind,
+				chordNotes,
+				displayMidi,
+				circleDegree,
+				...(circleSlotIndex !== undefined ? { circleSlotIndex } : {}),
+				cue,
+				events,
+			}),
+		),
+	};
+}
+
 export const SONG_EXAMPLES: SongExample[] = [
-	DEBUSSY_CLAIR_DE_LUNE,
-	TOMMY_AMAZING_GRACE,
-	BACH_CELLO_SUITE_1,
+	hydrateSong(DEBUSSY_CLAIR_DE_LUNE_SPEC),
+	hydrateSong(TOMMY_AMAZING_GRACE_SPEC),
+	hydrateSong(BACH_CELLO_SUITE_1_SPEC),
 ];
 
 export function getSongsForInstrument(
