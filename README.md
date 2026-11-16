@@ -52,7 +52,7 @@ Use the **Contents** bar at the top of the app to jump straight to any section:
 | :--------- | :----------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
 | **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights & scale-tone dots                        | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)                  |
 | **Guitar** | 6-string, 15-fret neck (`E A D G B e`) with CAGED voicings, Pentatonic/Scale & `+ Chromatic` overlays  | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 34 bars`)              |
-| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 44 bars`)         |
+| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 71 bars`)         |
 | **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`) |
 
 <table>

@@ -193,7 +193,7 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
 	});
 
-	test("Massenet Méditation from Thaïs covers 44 bars in D Major with valid violin stops and final harmonic", () => {
+	test("Massenet Méditation from Thaïs covers 71 bars in D Major with authentic melody, valid violin stops, and final harmonic", () => {
 		const [thais] = getSongsForInstrument("violin");
 		expect(thais).toBeDefined();
 		expect(thais.id).toBe("massenet-meditation-thais");
@@ -202,12 +202,29 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(thais.keyLabel).toBe("D Major");
 		expect(thais.keySlot).toBe(2);
 		expect(thais.timeSignature).toBe("4/4");
-		expect(thais.steps).toHaveLength(44);
+		expect(thais.steps).toHaveLength(71);
 		expect(thais.steps[2].cue).toContain("F♯5");
 
+		// Authentic Bar 3–4 opening solo violin melody: F♯5 -> D5 -> A4–D5–F♯5 -> B5–C♯6–D6
+		expect(thais.steps[2].events.flatMap((e) => e.midi)).toEqual([
+			78, 74, 69, 74, 78,
+		]);
+		expect(thais.steps[3].events.flatMap((e) => e.midi)).toEqual([83, 85, 86]);
+		expect(thais.steps[58].chordSymbol).toBe("C♯7");
+		expect(thais.steps[59].chordSymbol).toBe("D");
+		expect(thais.steps[60].chordSymbol).toBe("E♭7");
+
+		for (let i = 0; i < 70; i++) {
+			const barMs = thais.steps[i].events.reduce(
+				(sum, ev) => sum + ev.stepDurationMs,
+				0,
+			);
+			expect(Math.abs(barMs - 3600)).toBeLessThanOrEqual(2);
+		}
+
 		const flat = flattenSongPlaybackSteps(thais);
-		expect(flat.events.length).toBeGreaterThan(150);
-		expect(flat.totalDurationMs).toBeGreaterThan(130000);
+		expect(flat.events.length).toBeGreaterThan(300);
+		expect(flat.totalDurationMs).toBeGreaterThan(240000);
 		for (const ev of flat.events) {
 			expect(ev.violinStops).toBeDefined();
 			expect(ev.violinStops?.length).toBeGreaterThan(0);
@@ -222,6 +239,7 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		}
 
 		const lastEvent = flat.events[flat.events.length - 1];
+		expect(lastEvent?.midi).toEqual([86]);
 		expect(lastEvent?.violinStops?.[0]?.technique).toBe("harmonic");
 	});
 });

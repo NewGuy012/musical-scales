@@ -57,7 +57,7 @@ musical-scales/
 │   │       ├── songExamples.ts       # CompactSongSpec hydrator, playback flattener & time lookup
 │   │       ├── debussyClairDeLune.ts # Piano repertoire: Clair de lune (72 bars)
 │   │       ├── tommyAmazingGrace.ts  # Guitar repertoire: Amazing Grace arr. Tommy Emmanuel (34 bars)
-│   │       ├── massenetMeditation.ts # Violin repertoire: Massenet Méditation from Thaïs (44 bars)
+│   │       ├── massenetMeditation.ts # Violin repertoire: Massenet Méditation from Thaïs (71 bars)
 │   │       └── bachCelloSuite1.ts    # Cello repertoire: Bach Cello Suite No. 1 Prelude (42 bars)
 │   └── worker/
 │       └── index.ts                  # Hono worker with CSP/COOP/CORP headers, 405 & 404 JSON
@@ -127,7 +127,7 @@ flowchart TD
   - `getCelloVoicings()` and `getViolinVoicings()` generate playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
 - **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)** (+ repertoire leaf modules):
-  - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 44 bars), and [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars).
+  - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 71 bars), and [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars).
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 
 ---
