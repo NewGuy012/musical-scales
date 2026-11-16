@@ -71,7 +71,10 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).not.toContain('id="tab-harmony-songs"');
 		expect(html).toContain("Piano Repertoire");
 		expect(html).toContain("Synced with Piano above");
+		expect(html).toContain("song-select");
+		expect(html).toContain("1 of 2 pieces");
 		expect(html).toContain("Clair de lune");
+		expect(html).toContain("Moment Musicaux No. 3");
 		expect(html).not.toContain("Méditation");
 		expect(html).not.toContain("Cello Suite No. 1");
 		expect(html).not.toContain("Amazing Grace");

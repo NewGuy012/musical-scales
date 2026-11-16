@@ -18,10 +18,19 @@ describe("songExamples", () => {
 		const violinSongs = getSongsForInstrument("violin");
 		const celloSongs = getSongsForInstrument("cello");
 
-		expect(pianoSongs.map((s) => s.id)).toEqual(["debussy-clair-de-lune"]);
-		expect(guitarSongs.map((s) => s.id)).toEqual(["amazing-grace-guitar"]);
+		expect(pianoSongs.map((s) => s.id)).toEqual([
+			"debussy-clair-de-lune",
+			"schubert-moment-musicaux-3",
+		]);
+		expect(guitarSongs.map((s) => s.id)).toEqual([
+			"amazing-grace-guitar",
+			"cannonball-rag-guitar",
+		]);
 		expect(violinSongs.map((s) => s.id)).toEqual(["massenet-meditation-thais"]);
-		expect(celloSongs.map((s) => s.id)).toEqual(["bach-cello-suite-1"]);
+		expect(celloSongs.map((s) => s.id)).toEqual([
+			"bach-cello-suite-1",
+			"haydn-cello-concerto-2",
+		]);
 
 		// Bach Cello Suite #1 must only be exposed for Cello View
 		expect(pianoSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
@@ -190,7 +199,38 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(describeRomanFunction("V7/ii", "major")).toContain(
 			"Secondary dominant",
 		);
+		expect(describeRomanFunction("i", "minor")).toContain("Minor tonic");
+		expect(describeRomanFunction("III", "major")).toContain("Relative major");
+		expect(describeRomanFunction("I (Picardy)", "major")).toContain("Picardy");
 		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
+	});
+
+	test("Schubert Moment Musicaux No. 3 covers 78 bars in F Minor (2/4) with A♭ episode and Picardy F Major coda", () => {
+		const [, schubert] = getSongsForInstrument("piano");
+		expect(schubert).toBeDefined();
+		expect(schubert.id).toBe("schubert-moment-musicaux-3");
+		expect(schubert.title).toBe("Moment Musicaux No. 3");
+		expect(schubert.composerOrSource).toContain("Franz Schubert");
+		expect(schubert.keyLabel).toBe("F Minor");
+		expect(schubert.keySlot).toBe(8);
+		expect(schubert.keyMode).toBe("minor");
+		expect(schubert.timeSignature).toBe("2/4");
+		expect(schubert.steps).toHaveLength(78);
+
+		// Bar 1 intro vamp and Bar 3 Air Russe entrance
+		expect(schubert.steps[0].events[0].midi).toEqual([53]);
+		expect(schubert.steps[2].events[0].midi).toEqual([53, 68]);
+		expect(schubert.steps[18].chordSymbol).toBe("A♭");
+		expect(schubert.steps[64].chordSymbol).toBe("F");
+		expect(schubert.steps[64].roman).toContain("Picardy");
+
+		for (let i = 0; i < 77; i++) {
+			const barMs = schubert.steps[i].events.reduce(
+				(sum, ev) => sum + ev.stepDurationMs,
+				0,
+			);
+			expect(Math.abs(barMs - 1500)).toBeLessThanOrEqual(4);
+		}
 	});
 
 	test("Massenet Méditation from Thaïs covers 71 bars in D Major with authentic melody, valid violin stops, and final harmonic", () => {

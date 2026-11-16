@@ -167,6 +167,28 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(guitarHtml).toContain("Amazing Grace");
 		expect(guitarHtml).toContain("Tommy Emmanuel");
+		expect(guitarHtml).toContain("song-select");
+		expect(guitarHtml).toContain("1 of 2 pieces");
+		expect(guitarHtml).toContain("Cannonball Rag");
+
+		const pianoSongs = getSongsForInstrument("piano");
+		const pianoSelectHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={pianoSongs}
+				selectedSongId="schubert-moment-musicaux-3"
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(pianoSelectHtml).toContain("2 of 2 pieces");
+		expect(pianoSelectHtml).toContain("Moment Musicaux No. 3");
+		expect(pianoSelectHtml).toContain("Franz Schubert");
+		expect(pianoSelectHtml).toContain("78 Bars");
+		expect(pianoSelectHtml).toContain("Clair de lune");
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {

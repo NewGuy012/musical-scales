@@ -42,18 +42,18 @@ Use the **Contents** bar at the top of the app to jump straight to any section:
    - **Chords & Progressions**: Diatonic Major, Minor, Diminished, Harmonic `V`, and Parallel chords (Triads or 7ths, block or Arpeggio) plus curated chord progressions.
    - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
 5. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
-6. **Real Songs** — Dedicated section below **Instruments** featuring full bar-by-bar arrangements with study guides, section jumps, practice tips, and a scrubbable transport bar synced to the active instrument above.
+6. **Real Songs** — Dedicated section below **Instruments** with a repertoire dropdown selector, full bar-by-bar arrangements, study guides, section jumps, practice tips, and a scrubbable transport bar synced to the active instrument above.
 
 ---
 
 ## Instruments & Real Songs
 
-| Instrument | Interactive View                                                                                       | Built-in Real Song                                                             |
-| :--------- | :----------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
-| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights & scale-tone dots                        | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)                  |
-| **Guitar** | 6-string, 15-fret neck (`E A D G B e`) with CAGED voicings, Pentatonic/Scale & `+ Chromatic` overlays  | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 34 bars`)              |
-| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 71 bars`)         |
-| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`) |
+| Instrument | Interactive View                                                                                       | Built-in Real Song                                                                                                                                                                     |
+| :--------- | :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights & scale-tone dots                        | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)<br />Franz Schubert — _Moment Musicaux No. 3_ (`F Minor · 2/4 · 78 bars`)                                                |
+| **Guitar** | 6-string, 15-fret neck (`E A D G B e`) with CAGED voicings, Pentatonic/Scale & `+ Chromatic` overlays  | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 34 bars`)<br />Merle Travis — _Cannonball Rag_ (`G Major · 4/4 · 75 bars`)                                                     |
+| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 71 bars`)                                                                                                                 |
+| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`)<br />Joseph Haydn — _Cello Concerto No. 2 in D Major (III. Rondo: Allegro)_ (`D Major · 6/8 · 50 bars`) |
 
 <table>
   <tr>

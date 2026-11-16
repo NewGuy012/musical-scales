@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
 	type SongExample,
 	describeRomanFunction,
@@ -11,12 +11,14 @@ import {
 
 export interface SongExamplesPanelProps {
 	songs: SongExample[];
+	selectedSongId?: string | null;
 	playingSongId: string | null;
 	cuedSongId?: string | null;
 	songPositionMs?: number;
 	activeChordStepIndex: number | null;
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
+	onSelectSong?: (songId: string) => void;
 	onTogglePlaySong: (song: SongExample) => void;
 	onStopSong?: () => void;
 	onSeekSong?: (
@@ -510,12 +512,14 @@ function SongCard({
 
 export function SongExamplesPanel({
 	songs,
+	selectedSongId = null,
 	playingSongId,
 	cuedSongId = null,
 	songPositionMs = 0,
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	onSelectSong,
 	onTogglePlaySong,
 	onStopSong,
 	onSeekSong,
@@ -524,29 +528,76 @@ export function SongExamplesPanel({
 	onPlayFromSongBar,
 	onSelectSongChordStep,
 }: SongExamplesPanelProps) {
+	const selectId = useId();
+	const [internalSongId, setInternalSongId] = useState<string | null>(
+		songs[0]?.id ?? null,
+	);
+
 	if (songs.length === 0) return null;
+
+	const resolvedSongId =
+		selectedSongId && songs.some((s) => s.id === selectedSongId)
+			? selectedSongId
+			: playingSongId && songs.some((s) => s.id === playingSongId)
+				? playingSongId
+				: cuedSongId && songs.some((s) => s.id === cuedSongId)
+					? cuedSongId
+					: internalSongId && songs.some((s) => s.id === internalSongId)
+						? internalSongId
+						: songs[0].id;
+	const activeSong = songs.find((s) => s.id === resolvedSongId) ?? songs[0];
+	const activeSongIndex = songs.findIndex((s) => s.id === activeSong.id);
 
 	return (
 		<div className="songs-list" aria-label="Real song chord examples">
-			{songs.map((song) => (
-				<SongCard
-					key={song.id}
-					song={song}
-					playingSongId={playingSongId}
-					cuedSongId={cuedSongId}
-					songPositionMs={songPositionMs}
-					activeChordStepIndex={activeChordStepIndex}
-					activeNoteLabel={activeNoteLabel}
-					selectedPreviewStepId={selectedPreviewStepId}
-					onTogglePlaySong={onTogglePlaySong}
-					onStopSong={onStopSong}
-					onSeekSong={onSeekSong}
-					onBeginScrubSong={onBeginScrubSong}
-					onSkipSongBar={onSkipSongBar}
-					onPlayFromSongBar={onPlayFromSongBar}
-					onSelectSongChordStep={onSelectSongChordStep}
-				/>
-			))}
+			<div className="song-selector-bar">
+				<div className="song-select-group">
+					<label htmlFor={selectId} className="song-select-label">
+						Piece
+					</label>
+					<select
+						id={selectId}
+						className="song-select"
+						aria-label="Choose real song arrangement"
+						value={activeSong.id}
+						onChange={(e) => {
+							const nextId = e.target.value;
+							setInternalSongId(nextId);
+							onSelectSong?.(nextId);
+						}}
+					>
+						{songs.map((song, idx) => (
+							<option key={song.id} value={song.id}>
+								{idx + 1}. {song.title} —{" "}
+								{song.composerOrSource.split(" · ")[0]} ({song.keyLabel} ·{" "}
+								{song.timeSignature} · {song.steps.length} bars)
+							</option>
+						))}
+					</select>
+				</div>
+				<span className="song-selector-count">
+					{activeSongIndex + 1} of {songs.length}{" "}
+					{songs.length === 1 ? "piece" : "pieces"}
+				</span>
+			</div>
+
+			<SongCard
+				key={activeSong.id}
+				song={activeSong}
+				playingSongId={playingSongId}
+				cuedSongId={cuedSongId}
+				songPositionMs={songPositionMs}
+				activeChordStepIndex={activeChordStepIndex}
+				activeNoteLabel={activeNoteLabel}
+				selectedPreviewStepId={selectedPreviewStepId}
+				onTogglePlaySong={onTogglePlaySong}
+				onStopSong={onStopSong}
+				onSeekSong={onSeekSong}
+				onBeginScrubSong={onBeginScrubSong}
+				onSkipSongBar={onSkipSongBar}
+				onPlayFromSongBar={onPlayFromSongBar}
+				onSelectSongChordStep={onSelectSongChordStep}
+			/>
 		</div>
 	);
 }

@@ -1,8 +1,11 @@
 import { BACH_CELLO_SUITE_1_SPEC } from "./bachCelloSuite1";
+import { CANNONBALL_RAG_SPEC } from "./cannonballRag";
 import type { ChordQuality, KeyMode } from "./circleOfFifths";
 import { DEBUSSY_CLAIR_DE_LUNE_SPEC } from "./debussyClairDeLune";
 import type { GuitarChordKind } from "./guitarFretboard";
+import { HAYDN_CELLO_CONCERTO_2_SPEC } from "./haydnCelloConcerto2";
 import { MASSENET_MEDITATION_SPEC } from "./massenetMeditation";
+import { SCHUBERT_MOMENT_MUSICAUX_3_SPEC } from "./schubertMomentMusicaux3";
 import { TOMMY_AMAZING_GRACE_SPEC } from "./tommyAmazingGrace";
 
 export type InstrumentTab = "piano" | "guitar" | "violin" | "cello";
@@ -154,9 +157,12 @@ function hydrateSong({
 
 export const SONG_EXAMPLES: SongExample[] = [
 	hydrateSong(DEBUSSY_CLAIR_DE_LUNE_SPEC),
+	hydrateSong(SCHUBERT_MOMENT_MUSICAUX_3_SPEC),
 	hydrateSong(TOMMY_AMAZING_GRACE_SPEC),
+	hydrateSong(CANNONBALL_RAG_SPEC),
 	hydrateSong(MASSENET_MEDITATION_SPEC),
 	hydrateSong(BACH_CELLO_SUITE_1_SPEC),
+	hydrateSong(HAYDN_CELLO_CONCERTO_2_SPEC),
 ];
 
 export function getSongsForInstrument(
@@ -277,11 +283,23 @@ export function describeRomanFunction(
 	if (roman.includes("♯iv") || roman.includes("vii°")) {
 		return "Chromatic / leading-tone tension";
 	}
+	if (roman.includes("Picardy")) {
+		return "Picardy third · minor turns major";
+	}
 	if (roman.startsWith("i♭") || roman.startsWith("i♯")) {
 		return "Borrowed parallel minor color";
 	}
 	if (roman.startsWith("iv")) {
 		return "Minor subdominant · bittersweet lift";
+	}
+	if (roman === "i" || roman.startsWith("i6")) {
+		return "Minor tonic · home base";
+	}
+	if (roman.startsWith("III")) {
+		return "Relative major (III) · bright lift";
+	}
+	if (roman.startsWith("VI")) {
+		return "Submediant (VI) · warm major color";
 	}
 	if (roman.startsWith("IV")) {
 		return "Subdominant (4th) · warm harmonic lift";

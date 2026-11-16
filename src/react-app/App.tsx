@@ -179,6 +179,9 @@ export function App() {
 	const [selectedSongPreviewId, setSelectedSongPreviewId] = useState<
 		string | null
 	>(null);
+	const [selectedSongByInstrument, setSelectedSongByInstrument] = useState<
+		Partial<Record<InstrumentTab, string>>
+	>({});
 	const [activeGuitarRunMidi, setActiveGuitarRunMidi] = useState<number | null>(
 		null,
 	);
@@ -1335,6 +1338,26 @@ export function App() {
 		[instrumentView, playingSongId, cuedSongId, stopActiveSequence],
 	);
 
+	const selectedSongId =
+		selectedSongByInstrument[instrumentView] ??
+		songsForInstrument[0]?.id ??
+		null;
+
+	const handleSelectSong = useCallback(
+		(nextSongId: string) => {
+			if (playingSongId || cuedSongId) {
+				stopActiveSequence();
+				setAuditionOverride(null);
+			}
+			setSelectedSongPreviewId(null);
+			setSelectedSongByInstrument((prev) => ({
+				...prev,
+				[instrumentView]: nextSongId,
+			}));
+		},
+		[playingSongId, cuedSongId, stopActiveSequence, instrumentView],
+	);
+
 	const handleFlipEnharmonic = useCallback(() => {
 		if (!analysis.enharmonicTwin) return;
 		const nextSide = analysis.enharmonicTwin.side;
@@ -2307,12 +2330,14 @@ export function App() {
 
 						<SongExamplesPanel
 							songs={songsForInstrument}
+							selectedSongId={selectedSongId}
 							playingSongId={playingSongId}
 							cuedSongId={cuedSongId}
 							songPositionMs={songPositionMs}
 							activeChordStepIndex={activeSongStepIndex}
 							activeNoteLabel={activeSongNoteLabel}
 							selectedPreviewStepId={selectedSongPreviewId}
+							onSelectSong={handleSelectSong}
 							onTogglePlaySong={handleTogglePlaySong}
 							onStopSong={handleStopSong}
 							onSeekSong={handleSeekSong}
