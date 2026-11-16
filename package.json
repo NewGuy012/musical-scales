@@ -1,6 +1,6 @@
 {
 	"name": "musical-scales",
-	"description": "Interactive Circle of Fifths, scales, and chord voicing explorer for piano, guitar, and cello",
+	"description": "Interactive Circle of Fifths, scales, and chord voicing explorer for piano, guitar, violin, and cello",
 	"packageManager": "bun@1.4.4",
 	"dependencies": {
 		"hono": "^4.13.18",

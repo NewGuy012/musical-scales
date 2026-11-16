@@ -2,15 +2,18 @@ import { BACH_CELLO_SUITE_1_SPEC } from "./bachCelloSuite1";
 import type { ChordQuality, KeyMode } from "./circleOfFifths";
 import { DEBUSSY_CLAIR_DE_LUNE_SPEC } from "./debussyClairDeLune";
 import type { GuitarChordKind } from "./guitarFretboard";
+import { MASSENET_MEDITATION_SPEC } from "./massenetMeditation";
 import { TOMMY_AMAZING_GRACE_SPEC } from "./tommyAmazingGrace";
 
-export type InstrumentTab = "piano" | "guitar" | "cello";
+export type InstrumentTab = "piano" | "guitar" | "violin" | "cello";
 
-export interface CelloSongStop {
+export interface BowedSongStop {
 	stringIndex: number;
 	semitone: number;
 	finger: number;
+	technique?: "normal" | "harmonic" | "portamento";
 }
+export type CelloSongStop = BowedSongStop;
 
 export type GuitarStopTechnique = "normal" | "harmonic" | "hammer" | "slide";
 
@@ -26,7 +29,8 @@ export interface SongNoteEvent {
 	stepDurationMs: number;
 	noteLabel: string;
 	spreadSec?: number;
-	celloStops?: CelloSongStop[];
+	celloStops?: BowedSongStop[];
+	violinStops?: BowedSongStop[];
 	guitarStops?: GuitarSongStop[];
 }
 
@@ -86,7 +90,8 @@ export interface FlattenedSongStep {
 	chordStepIndex: number;
 	chordStep: SongChordStep;
 	noteLabel: string;
-	celloStops?: CelloSongStop[];
+	celloStops?: BowedSongStop[];
+	violinStops?: BowedSongStop[];
 	guitarStops?: GuitarSongStop[];
 }
 
@@ -150,6 +155,7 @@ function hydrateSong({
 export const SONG_EXAMPLES: SongExample[] = [
 	hydrateSong(DEBUSSY_CLAIR_DE_LUNE_SPEC),
 	hydrateSong(TOMMY_AMAZING_GRACE_SPEC),
+	hydrateSong(MASSENET_MEDITATION_SPEC),
 	hydrateSong(BACH_CELLO_SUITE_1_SPEC),
 ];
 
@@ -177,6 +183,7 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 				chordStep,
 				noteLabel: evt.noteLabel,
 				celloStops: evt.celloStops,
+				violinStops: evt.violinStops,
 				guitarStops: evt.guitarStops,
 			});
 			currentMs += evt.stepDurationMs;
@@ -258,7 +265,13 @@ export function describeRomanFunction(
 	roman: string,
 	quality: ChordQuality,
 ): string {
-	if (roman.includes("/vi") || roman.includes("/V") || roman.includes("/IV")) {
+	if (
+		roman.includes("/vi") ||
+		roman.includes("/V") ||
+		roman.includes("/IV") ||
+		roman.includes("/ii") ||
+		roman.includes("/iii")
+	) {
 		return "Secondary dominant · pulls to next chord";
 	}
 	if (roman.includes("♯iv") || roman.includes("vii°")) {

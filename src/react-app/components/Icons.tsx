@@ -140,3 +140,26 @@ export function IconRotateCcw({ size = 13 }: IconProps) {
 		</StrokeIcon>
 	);
 }
+
+export function IconList({ size = 14 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<line x1="8" y1="6" x2="21" y2="6" />
+			<line x1="8" y1="12" x2="21" y2="12" />
+			<line x1="8" y1="18" x2="21" y2="18" />
+			<line x1="3" y1="6" x2="3.01" y2="6" />
+			<line x1="3" y1="12" x2="3.01" y2="12" />
+			<line x1="3" y1="18" x2="3.01" y2="18" />
+		</StrokeIcon>
+	);
+}
+
+export function IconMusic({ size = 13 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<path d="M9 18V5l12-2v13" />
+			<circle cx="6" cy="18" r="3" />
+			<circle cx="18" cy="16" r="3" />
+		</StrokeIcon>
+	);
+}

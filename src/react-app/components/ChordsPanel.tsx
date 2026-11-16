@@ -89,7 +89,7 @@ export function ChordsPanel({
 					<div key={dot} className="chord-group">
 						<div className="chord-group-header">
 							<span className={`group-dot group-dot-${dot}`} />
-							<h3 className="group-title">{title}</h3>
+							<h4 className="group-title">{title}</h4>
 							<span className="group-count">
 								{chords.map((c) => c.roman).join(" · ")}
 							</span>

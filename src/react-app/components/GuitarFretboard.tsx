@@ -296,6 +296,7 @@ export function GuitarFretboard({
 					role="group"
 					aria-label="Chord fretboard voicings"
 				>
+					<span className="voicing-row-label">Voicings:</span>
 					{voicings.map((v) => (
 						<button
 							key={v.id}

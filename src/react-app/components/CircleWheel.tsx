@@ -30,6 +30,7 @@ interface CircleWheelProps {
 	highlightedChord: WheelChordHighlight | null;
 	highlightedNotes?: string[] | null;
 	rotateToSelected: boolean;
+	isTargeted?: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
 	onPlayTonic: () => void;
 	onStepFourth: () => void;
@@ -86,6 +87,7 @@ export function CircleWheel({
 	highlightedChord,
 	highlightedNotes = null,
 	rotateToSelected,
+	isTargeted = false,
 	onSelectKey,
 	onPlayTonic,
 	onStepFourth,
@@ -158,7 +160,22 @@ export function CircleWheel({
 	] as const;
 
 	return (
-		<div className="wheel-shell">
+		<section
+			id="section-circle"
+			className={`wheel-shell${isTargeted ? " is-toc-targeted" : ""}`}
+			aria-labelledby="circle-heading"
+		>
+			<div className="section-header section-header-compact">
+				<div className="section-heading">
+					<h2 id="circle-heading" className="section-title">
+						Circle of Fifths
+					</h2>
+					<p className="section-desc">
+						Click outer Major or inner Minor rings to choose a key
+					</p>
+				</div>
+			</div>
+
 			<div className="wheel-toolbar">
 				<div className="wheel-legend" aria-label="Color legend">
 					<span className="legend-item">
@@ -576,6 +593,6 @@ export function CircleWheel({
 					</g>
 				</svg>
 			</div>
-		</div>
+		</section>
 	);
 }

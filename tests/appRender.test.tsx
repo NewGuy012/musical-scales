@@ -7,22 +7,36 @@ import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
+import { ViolinFingerboard } from "../src/react-app/components/ViolinFingerboard";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import { getViolinVoicings } from "../src/react-app/theory/violinFingerboard";
 
-describe("Circle of Fifths UI rendering", () => {
-	test("renders App with C Major default state, circle neighbors, chords/progressions, and clean instrument dock", () => {
+describe("Musical Scales UI rendering", () => {
+	test("renders App with Musical Scales branding, table of contents, clearly labeled sections, and clean instrument dock", () => {
 		const html = renderToStaticMarkup(<App />);
+		expect(html).toContain("Musical Scales");
+		expect(html).toContain("Table of contents");
 		expect(html).toContain("Circle of Fifths");
+		expect(html).toContain("Key &amp; Scale");
+		expect(html).toContain("Key Signature");
+		expect(html).toContain("Exploration");
+		expect(html).toContain("Instruments");
 		expect(html).toContain("C Major");
 		expect(html).toContain("Neighbors");
 		expect(html).toContain("F Major");
 		expect(html).toContain("G Major");
+		expect(html).toContain("Diatonic Chords in C");
 		expect(html).toContain("Chords &amp; Progressions");
 		expect(html).toContain("Passing &amp; Substitutions");
 		expect(html).toContain("Real Songs");
+		expect(html).toContain('href="#section-circle"');
+		expect(html).toContain('href="#section-neighbors"');
+		expect(html).toContain('href="#section-key-scale"');
+		expect(html).toContain('href="#section-exploration"');
+		expect(html).toContain('href="#section-instruments"');
 		expect(html).toContain("Major Chords");
 		expect(html).toContain("Minor Chords");
 		expect(html).toContain("Dm");
@@ -42,6 +56,7 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("sus4");
 		expect(html).toContain("Piano");
 		expect(html).toContain("Guitar");
+		expect(html).toContain("Violin");
 		expect(html).toContain("Cello");
 		expect(html).toContain("Instrument");
 		expect(html).toContain("is-in-chord");
@@ -49,6 +64,7 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(html).toContain("Keyboard shortcuts");
 		// Real Songs are cleanly separated into the Real Songs tab by default
 		expect(html).not.toContain("Clair de lune");
+		expect(html).not.toContain("Méditation");
 		expect(html).not.toContain("Cello Suite No. 1");
 		expect(html).not.toContain("Amazing Grace");
 	});
@@ -186,6 +202,40 @@ describe("Circle of Fifths UI rendering", () => {
 		expect(dmHtml).toContain("5th-Bass m7");
 		expect(dmHtml).toContain("Upper Shell (R-♭7-♭3)");
 		expect(dmHtml).toContain("LH Frame");
+	});
+
+	test("renders ViolinFingerboard with G3-D4-A4-E5 tuning, open voicings, and left-hand frame", () => {
+		const dMaj = analyzeKey(2, "major");
+		const dTonic = dMaj.chords[0];
+		const dVoicings = getViolinVoicings(
+			dTonic.root,
+			"major",
+			dTonic.triadNotes,
+			false,
+		);
+		const dHtml = renderToStaticMarkup(
+			<ViolinFingerboard
+				chordLabel="D (I)"
+				chordQuality="major"
+				chordKind="major"
+				chordNotes={dTonic.triadNotes}
+				scaleNotes={dMaj.scaleNotes}
+				keyRootName="D"
+				preferFlats={false}
+				voicings={dVoicings}
+				activeVoicing={dVoicings[0] ?? null}
+				onSelectVoicing={() => {}}
+				onRollVoicing={() => {}}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(dHtml).toContain("Open D-Str");
+		expect(dHtml).toContain("G3");
+		expect(dHtml).toContain("D4");
+		expect(dHtml).toContain("A4");
+		expect(dHtml).toContain("E5");
+		expect(dHtml).toContain("Strings IV → I");
+		expect(dHtml).toContain("Bow Roll");
 	});
 
 	test("renders F♯ Major and E♭ Minor cleanly with proper accidentals and harmonic minor V", () => {

@@ -1,121 +1,114 @@
 <div align="center">
-  <img src="./public/logo.png" alt="Circle of Fifths Explorer Logo" width="96" />
-  <h1>Circle of Fifths Explorer</h1>
+  <img src="./public/logo.png" alt="Musical Scales Logo" width="88" />
+  <h1>Musical Scales</h1>
   <p>
     <strong>An interactive music theory studio &amp; multi-instrument companion</strong><br />
-    Explore keys, fifths/fourths harmony, diatonic chords, and hand placement across <strong>Piano</strong>, <strong>Guitar</strong>, and <strong>Cello</strong> — powered by zero-dependency Web Audio synthesis.
+    Explore keys on the Circle of Fifths, build chords and progressions, study real songs, and hear live voicings across <strong>Piano</strong>, <strong>Guitar</strong>, <strong>Violin</strong>, and <strong>Cello</strong> — powered by built-in Web Audio synthesis.
   </p>
 
   <p>
     <a href="https://musical-scales.juyoung-m-yoo.workers.dev/">
-      <img src="https://img.shields.io/badge/Live_Demo-Launch_Explorer-2563eb?style=for-the-badge&logo=cloudflareworkers&logoColor=white" alt="Launch Live Demo" />
+      <img src="https://img.shields.io/badge/Live_Demo-Launch_App-2563eb?style=for-the-badge&logo=cloudflareworkers&logoColor=white" alt="Launch Live Demo" />
     </a>
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/React-19-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React 19" />
-    <img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-    <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite 8" />
-    <img src="https://img.shields.io/badge/Web_Audio_API-Synth-10B981?style=flat-square" alt="Web Audio API" />
-    <img src="https://img.shields.io/badge/Hono-Cloudflare_Workers-F38020?style=flat-square&logo=hono&logoColor=white" alt="Hono and Cloudflare Workers" />
-    <img src="https://img.shields.io/badge/Bun-1.4-000000?style=flat-square&logo=bun&logoColor=white" alt="Bun" />
-  </p>
-
-  <p>
     <a href="https://musical-scales.juyoung-m-yoo.workers.dev/">Live App</a> ·
-    <a href="#quick-tour">Quick Tour</a> ·
-    <a href="#instrument-views">Instruments</a> ·
-    <a href="#features">Features</a> ·
+    <a href="#whats-inside">What's Inside</a> ·
+    <a href="#instruments--real-songs">Instruments &amp; Real Songs</a> ·
     <a href="#keyboard-shortcuts">Shortcuts</a> ·
-    <a href="#run-locally">Run Locally</a> ·
-    <a href="./docs/architecture.md">Architecture</a>
+    <a href="#run-locally">Run Locally</a>
   </p>
 </div>
 
 <br />
 
 <p align="center">
-  <img src="./docs/images/circle-of-fifths-wheel.jpg" alt="Interactive Circle of Fifths Wheel" width="100%" />
+  <img src="./docs/images/studio-piano-dark.png" alt="Musical Scales workspace in dark theme" width="100%" />
   <br />
-  <sub>Dark &amp; Light themes — interactive Circle of Fifths wheel, treble key signature staff, 4th/5th pitch diffs, diatonic chords, and live instrument views.</sub>
+  <sub><strong>Musical Scales</strong> — top Table of Contents bar with clearly labeled <strong>Circle of Fifths</strong>, <strong>Neighbors</strong>, <strong>Key &amp; Scale</strong>, <strong>Exploration</strong>, and <strong>Instruments</strong> sections.</sub>
 </p>
 
 ---
 
-## Quick Tour
+## What's Inside
 
-1. **Pick any key on the wheel** — Click the outer **Major** or inner **Relative Minor** ring (or press `←` / `→`). Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or smoothly rotate your tonic to the top.
-2. **See why neighbors connect** — Compare counter-clockwise **4th (`+5`)** and clockwise **5th (`+7`)** keys side by side: `6/7` scale notes remain identical while only a single half-step shifts. Audition `I–IV–I` / `I–V–I` cadences or walk continuously around the wheel.
-3. **Explore chords, variations & chromatic color** — Switch across **Chords & Progressions** (with **Triads / 7ths** and **Arpeggio** toggles), **Passing & Substitutions** (chromatic slides, diminished symmetry, secondary dominants, tritone subs), or audition **13 chord variations** (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`) above the instrument dock.
-4. **Switch instruments & learn real songs** — Toggle between **Piano**, **Guitar**, and **Cello** at any time. Audio, voicings, fingerings, and interactive **Real Songs** study guides adapt automatically.
+Use the **Contents** bar at the top of the app to jump straight to any section—including a direct **Real Songs** shortcut:
+
+1. **Circle of Fifths** — Click the outer **Major** or inner **Relative Minor** ring to switch keys and hear the tonic chord. Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or rotate the active key to the top.
+2. **Neighbors** — Compare adjacent **4th** and **5th** keys side by side (`6/7` shared notes, single half-step change), audition `I–IV–I` / `I–V–I` cadences, or walk smoothly around the circle.
+3. **Key & Scale** — View the treble **Key Signature** staff, jump to **Relative** or **Parallel** keys, flip enharmonic spellings (`B/C♭`, `F♯/G♭`, `D♭/C♯`), and play the 7-note scale.
+4. **Exploration** — Switch across three focused tabs:
+   - **Chords & Progressions**: Diatonic Major, Minor, Diminished, Harmonic `V`, and Parallel chords (Triads or 7ths, block or Arpeggio) plus curated chord progressions.
+   - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
+   - **Real Songs**: Full bar-by-bar arrangements with study guides, section jumps, practice tips, and a scrubbable transport bar synced to the instrument below.
+5. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
 
 ---
 
-## Instrument Views
+## Instruments & Real Songs
 
-| Tab        | Layout & Range                                 | Voicings, Overlays & Audio                                                                                                                                                                    | Built-in Song Repertoire                                                                |
-| :--------- | :--------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
-| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`)        | Chord voicing highlights, scale-tone dots, procedural Grand Piano synthesis                                                                                                                   | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 54 BPM · 72 bars`)                  |
-| **Guitar** | 6-string, 15-fret neck (`E A D G B e`)         | Open & movable CAGED/barre shapes (`≤ 4` frets), `Voicing` / `All Notes` / `Pentatonic` / `Scale` + `+ Chromatic` overlay, `Notes` / `Intervals`, passing phrases, Karplus-Strong nylon synth | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 76 BPM · 34 bars`)              |
-| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`, fifths) | Closed 4-semitone left-hand frames (`LH Frame`), `Voicing` / `All Notes`, `Notes` / `Intervals` / `Fingers`, `▶ Bow Roll`, bowed vibrato & body-formant synth                                 | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 96 BPM · 42 bars`) |
+| Instrument | Interactive View                                                                                       | Built-in Real Song                                                             |
+| :--------- | :----------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights & scale-tone dots                        | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)                  |
+| **Guitar** | 6-string, 15-fret neck (`E A D G B e`) with CAGED voicings, Pentatonic/Scale & `+ Chromatic` overlays  | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 34 bars`)              |
+| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 44 bars`)         |
+| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`) |
 
 <table>
   <tr>
     <td width="50%" align="center">
-      <strong>Guitar View — 15-Fret CAGED Neck &amp; <em>Amazing Grace</em></strong><br /><br />
-      <img src="./docs/images/instrument-guitar.png" alt="Guitar Fretboard View showing Open G chord and Amazing Grace song bars" width="100%" />
+      <strong>Exploration (Real Songs) &amp; Guitar</strong><br /><br />
+      <img src="./docs/images/instrument-guitar.png" alt="Real Songs study guide for Amazing Grace paired with the 15-fret Guitar fretboard" width="100%" />
     </td>
     <td width="50%" align="center">
-      <strong>Cello View — Fretless 5ths Neck &amp; <em>Bach Suite No. 1</em></strong><br /><br />
-      <img src="./docs/images/instrument-cello.png" alt="Cello Fingerboard View showing left-hand frame and Bach Cello Suite No. 1 Prelude" width="100%" />
+      <strong>Exploration (Real Songs) &amp; Violin</strong><br /><br />
+      <img src="./docs/images/instrument-violin.png" alt="Real Songs study guide for Massenet Méditation from Thaïs paired with the fretless Violin fingerboard" width="100%" />
     </td>
   </tr>
 </table>
 
----
+<details>
+<summary><strong>More screenshots</strong> — Cello &amp; Real Songs, Light theme &amp; Circle of Fifths close-up</summary>
 
-## Features
+<br />
 
-- **Circle & Key Signatures**
-  - Concentric Major and Relative Minor rings with Roman numeral overlays (`I–vii°` / `i–VII`) and clickable `↺ 4th` / `5th ↻` arcs
-  - Live treble-clef key signature staff SVG and clickable scale-degree strip (`▶ Play Scale`)
-  - Global accidental preference (`Standard`, `Sharps ♯`, `Flats ♭`), per-key enharmonic flips (`B/C♭`, `F♯/G♭`, `D♭/C♯`), and one-click **Relative** / **Parallel** key jumps
-- **Fifths & Fourths Harmony**
-  - Exact `6/7` shared-note comparison and single-pitch half-step diff for adjacent keys
-  - Instant `I–IV–I` / `I–V–I` cadence playback and continuous **Walk 4ths** / **Walk 5ths** stepping
-- **Chords, Variations & Progressions**
-  - Grouped diatonic **Major**, **Minor**, **Diminished**, **Harmonic Minor `V`**, and **Root Parallel Pair** cards
-  - 13 interactive **Chord Variations** (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`) synced with the active root
-  - Curated **Progressions** grouped across **Classics & Cadences**, **Pop & Rock**, **Jazz & Circle**, and **Classical & Sequence** (11 Major, 10 Minor)
-- **Passing & Substitutions**
-  - Clickable chromatic passing slides, symmetric diminished 7th (`dim7`) families, secondary dominants (`V7/...`), and tritone substitutions (`♭II7`) highlighted live on the wheel and instrument dock
-- **Real Songs & Study Guides**
-  - Bar-by-bar transport controls, scrubbable timeline slider, jump-to-section **Study Guides**, and synchronized fingerings/stops (including guitar harmonics, hammers, and slides)
-- **Zero-Dependency Web Audio & Themes**
-  - Header sound switcher (instrument-matched **Auto**, warm **Pad**, or **Muted**) with zero external audio files
-  - **Dark** and **Light** UI themes
+<table>
+  <tr>
+    <td width="34%" align="center">
+      <strong>Cello &amp; Real Songs</strong><br /><br />
+      <img src="./docs/images/instrument-cello.png" alt="Real Songs study guide for Bach Cello Suite No. 1 paired with the fretless Cello fingerboard" width="100%" />
+    </td>
+    <td width="38%" align="center">
+      <strong>Light Theme (G Major)</strong><br /><br />
+      <img src="./docs/images/studio-piano-light.png" alt="Musical Scales in light theme showing G Major" width="100%" />
+    </td>
+    <td width="28%" align="center">
+      <strong>Circle of Fifths Wheel</strong><br /><br />
+      <img src="./docs/images/circle-of-fifths-wheel.jpg" alt="Circle of Fifths interactive key wheel" width="100%" />
+    </td>
+  </tr>
+</table>
+
+</details>
 
 ---
 
 ## Keyboard Shortcuts
 
-| Key     | Action                                                 |
-| :------ | :----------------------------------------------------- |
-| `←`     | Step counter-clockwise to the **Perfect 4th** neighbor |
-| `→`     | Step clockwise to the **Perfect 5th** neighbor         |
-| `M`     | Toggle between **Major** and **Natural Minor** mode    |
-| `Space` | Play the selected key's **tonic chord**                |
-| `Esc`   | Stop active playback (or close the shortcuts popover)  |
+| Key     | Action                                  |
+| :------ | :-------------------------------------- |
+| `←`     | Step counter-clockwise to the **4th**   |
+| `→`     | Step clockwise to the **5th**           |
+| `M`     | Toggle **Major** / **Minor** mode       |
+| `Space` | Play the active **tonic chord**         |
+| `Esc`   | Stop playback (or close shortcuts menu) |
 
 ---
 
 ## Run Locally
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) (`bun@1.4.4` recommended)
-
-### Quick Start
+Requires [Bun](https://bun.sh/) (`bun@1.4.4` recommended).
 
 ```bash
 git clone https://github.com/NewGuy012/musical-scales.git
@@ -124,40 +117,22 @@ bun install
 bun dev       # open http://localhost:5173
 ```
 
-### Available Scripts
-
-| Command           | Description                                                              |
-| :---------------- | :----------------------------------------------------------------------- |
-| `bun dev`         | Start the Vite + Cloudflare Workers dev server (`http://localhost:5173`) |
-| `bun test`        | Run unit, voicing, DSP, and UI tests plus `bun fmt --check`              |
-| `bun fmt`         | Format codebase with Bun's native formatter (`bunfig.toml`)              |
-| `bun check -b`    | Typecheck across app, Node, and Worker `tsconfig` projects               |
-| `bun lint`        | Run `bun check -b` and `bun fmt --check`                                 |
-| `bun run build`   | Typecheck and build client + worker bundles into `dist/`                 |
-| `bun run preview` | Build and preview the production bundle locally                          |
-| `bun deploy`      | Deploy to Cloudflare Workers via Wrangler                                |
-
 <details>
-<summary><strong>Project Structure &amp; Architecture</strong> — explore source directories and technical docs</summary>
+<summary><strong>Developer scripts &amp; architecture</strong></summary>
 
 <br />
 
-```text
-musical-scales/
-├── docs/
-│   ├── architecture.md          # Data flow, DSP, and theory engine overview
-│   └── images/                  # README showcase screenshots
-├── public/                      # Static brand assets and security headers
-├── src/
-│   ├── react-app/
-│   │   ├── App.tsx              # Root state, keyboard shortcuts, and sequencer
-│   │   ├── audio/synth.ts       # Web Audio synth (Piano, Guitar, Cello, Pad)
-│   │   ├── components/          # Wheel, staff, chords, color harmony, songs, instruments
-│   │   └── theory/              # Scales, chromatic harmony, Guitar/Cello voicings, repertoire
-│   └── worker/index.ts          # Hono edge worker with security headers
-└── tests/                       # Theory, voicing, audio DSP, and SSR tests
-```
+| Command           | Description                                                   |
+| :---------------- | :------------------------------------------------------------ |
+| `bun dev`         | Start Vite + Cloudflare Workers dev server                    |
+| `bun test`        | Run unit, voicing, audio, and UI tests plus `bun fmt --check` |
+| `bun fmt`         | Format codebase with Bun                                      |
+| `bun check -b`    | Typecheck app, Node, and Worker projects                      |
+| `bun lint`        | Run typecheck and format verification                         |
+| `bun run build`   | Build production client and worker bundles into `dist/`       |
+| `bun run preview` | Build and preview production bundle locally                   |
+| `bun deploy`      | Deploy to Cloudflare Workers via Wrangler                     |
 
-See [`docs/architecture.md`](./docs/architecture.md) for the full Mermaid data-flow diagram, Karplus-Strong guitar DSP details, and module-by-module breakdown.
+See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, and data-flow diagrams.
 
 </details>

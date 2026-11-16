@@ -5,17 +5,19 @@ import {
 	getIntervalLabel,
 } from "./guitarFretboard";
 
-export type CelloSemitoneTuple = [number, number, number, number];
+export type BowedSemitoneTuple = [number, number, number, number];
+export type CelloSemitoneTuple = BowedSemitoneTuple;
 
-export interface CelloStringInfo {
-	stringNumber: 4 | 3 | 2 | 1; // 4 = low C, 1 = high A
+export interface BowedStringInfo {
+	stringNumber: 4 | 3 | 2 | 1; // 4 = lowest string, 1 = highest string
 	label: string;
 	openMidi: number;
 	openPc: number;
 }
+export type CelloStringInfo = BowedStringInfo;
 
-export interface CelloVoicingNote {
-	stringIndex: number; // 0 (low C) .. 3 (high A)
+export interface BowedVoicingNote {
+	stringIndex: number; // 0 (lowest string) .. 3 (highest string)
 	semitone: number; // -1 = unplayed, 0 = open, 1..14 = fingered
 	finger: number | null; // 0 = open, 1..4 = left-hand finger, null = unplayed
 	midi: number | null;
@@ -23,19 +25,21 @@ export interface CelloVoicingNote {
 	intervalLabel: string;
 	noteName: string | null;
 }
+export type CelloVoicingNote = BowedVoicingNote;
 
-export interface CelloVoicing {
+export interface BowedVoicing {
 	id: string;
 	name: string;
 	positionLabel: string;
 	handBaseSemitone: number;
-	semitones: CelloSemitoneTuple;
-	notes: CelloVoicingNote[];
+	semitones: BowedSemitoneTuple;
+	notes: BowedVoicingNote[];
 	soundingMidi: number[];
 }
+export type CelloVoicing = BowedVoicing;
 
 // Standard cello tuning in Perfect Fifths: C2 G2 D3 A3
-export const CELLO_TUNING: CelloStringInfo[] = [
+export const CELLO_TUNING: BowedStringInfo[] = [
 	{ stringNumber: 4, label: "C", openMidi: 36, openPc: 0 },
 	{ stringNumber: 3, label: "G", openMidi: 43, openPc: 7 },
 	{ stringNumber: 2, label: "D", openMidi: 50, openPc: 2 },
@@ -55,15 +59,17 @@ function getPositionLabel(minNonZero: number, hasOpen: boolean): string {
 	return `${prefix}Upper Pos`;
 }
 
-function buildCelloVoicing(
+function buildBowedVoicing(
+	tuning: readonly BowedStringInfo[],
+	maxSemitone: number,
 	id: string,
 	name: string,
-	semitones: CelloSemitoneTuple,
+	semitones: BowedSemitoneTuple,
 	rootPc: number,
 	kind: GuitarChordKind,
 	resolveNoteName: (pc: number) => string,
-): CelloVoicing | null {
-	if (Math.max(0, ...semitones) > MAX_CELLO_SEMITONE) return null;
+): BowedVoicing | null {
+	if (Math.max(0, ...semitones) > maxSemitone) return null;
 	if (semitones.some((s) => s < -1)) return null;
 
 	const nonZero = semitones.filter((s) => s > 0);
@@ -75,7 +81,7 @@ function buildCelloVoicing(
 		return null;
 	}
 
-	const notes: CelloVoicingNote[] = semitones.map((semitone, stringIndex) => {
+	const notes: BowedVoicingNote[] = semitones.map((semitone, stringIndex) => {
 		if (semitone < 0) {
 			return {
 				stringIndex,
@@ -87,7 +93,7 @@ function buildCelloVoicing(
 				noteName: null,
 			};
 		}
-		const info = CELLO_TUNING[stringIndex];
+		const info = tuning[stringIndex];
 		const midi = info.openMidi + semitone;
 		const pc = mod12(info.openPc + semitone);
 		return {
@@ -109,32 +115,42 @@ function buildCelloVoicing(
 		semitones,
 		notes,
 		soundingMidi: notes
-			.filter((n): n is CelloVoicingNote & { midi: number } => n.midi !== null)
+			.filter((n): n is BowedVoicingNote & { midi: number } => n.midi !== null)
 			.map((n) => n.midi),
 	};
 }
 
-export function getCelloVoicings(
+/**
+ * Generates idiomatic closed-frame chord voicings for any 4-string instrument
+ * tuned in ascending Perfect Fifths (e.g. Cello C2-G2-D3-A3 or Violin G3-D4-A4-E5).
+ */
+export function getBowedFifthsVoicings(
+	tuning: readonly BowedStringInfo[],
+	maxSemitone: number,
 	rootNote: string,
 	kind: GuitarChordKind,
 	chordNotes: string[],
 	preferFlats = false,
-): CelloVoicing[] {
+): BowedVoicing[] {
 	const rootPc = noteToPitchClass(rootNote);
+	const basePc = tuning[0].openPc;
+	const secondPc = tuning[1].openPc;
+	const thirdStrLabel = tuning[2].label;
+	const secondStrLabel = tuning[1].label;
 	const resolveName = createPitchClassNameResolver(chordNotes, [], preferFlats);
-	const candidates: [string, string, CelloSemitoneTuple][] = [];
+	const candidates: [string, string, BowedSemitoneTuple][] = [];
 
-	const f4 = mod12(rootPc); // C string (0)
-	const f3 = mod12(rootPc - 7); // G string (7)
-	const t4 = mod12(rootPc + 4);
-	const m4 = mod12(rootPc + 3);
-	const m3 = mod12(rootPc - 4);
-	const s4 = mod12(rootPc + 7);
+	const f4 = mod12(rootPc - basePc); // String IV offset
+	const f3 = mod12(rootPc - secondPc); // String III offset
+	const t4 = mod12(rootPc - basePc + 4);
+	const m4 = mod12(rootPc - basePc + 3);
+	const m3 = mod12(rootPc - secondPc + 3);
+	const s4 = mod12(rootPc - basePc + 7);
 	const s4Pos = s4 < 2 ? s4 + 12 : s4;
 
 	switch (kind) {
 		case "major": {
-			const t3 = mod12(rootPc - 3);
+			const t3 = mod12(rootPc - secondPc + 4);
 			candidates.push(
 				[
 					"root-4str",
@@ -148,11 +164,11 @@ export function getCelloVoicings(
 								"Upper 4-Str",
 								[f4 + 12, f4 + 12, f4 + 14, f4 + 15],
 							],
-						] as [string, string, CelloSemitoneTuple][])
+						] as [string, string, BowedSemitoneTuple][])
 					: []),
 				[
 					"root-g3str",
-					f3 === 0 ? "Open G-Str" : "Upper 3-Str",
+					f3 === 0 ? `Open ${secondStrLabel}-Str` : "Upper 3-Str",
 					[-1, f3, f3, f3 + 2],
 				],
 				["root-c3str", "Low 3-Str", [f4, f4, f4 + 2, -1]],
@@ -170,7 +186,7 @@ export function getCelloVoicings(
 				],
 				[
 					"root-g3str",
-					f3 === 0 ? "Open G-Str" : "Upper 3-Str",
+					f3 === 0 ? `Open ${secondStrLabel}-Str` : "Upper 3-Str",
 					[-1, f3, f3, f3 + 1],
 				],
 				["root-c3str", "Low 3-Str", [f4, f4, f4 + 1, -1]],
@@ -190,11 +206,9 @@ export function getCelloVoicings(
 				],
 				["jazz-maj7", "Close R-3-7-5", [j4, j4 - 3, j4 - 3, j4 - 2]],
 				...(f3 === 0
-					? ([["open-g-maj7", "Open G Maj7", [-1, 0, 4, 2]]] as [
-							string,
-							string,
-							CelloSemitoneTuple,
-						][])
+					? ([
+							["open-g-maj7", `Open ${secondStrLabel} Maj7`, [-1, 0, 4, 2]],
+						] as [string, string, BowedSemitoneTuple][])
 					: []),
 				["inv1-maj7", "1st Inv Maj7", [t4Pos, t4Pos, t4Pos + 1, t4Pos - 1]],
 				["inv3-g-maj7", "Upper 7th-Bass", [-1, g7Pos, g7Pos - 2, g7Pos - 1]],
@@ -236,9 +250,9 @@ export function getCelloVoicings(
 		}
 		case "m7♭5": {
 			const h4 = f4 < 1 ? f4 + 12 : f4;
-			const s7 = mod12(rootPc + 10);
+			const s7 = mod12(rootPc - basePc + 10);
 			const s7Pos = s7 < 2 ? s7 + 12 : s7;
-			const b4 = mod12(rootPc + 6);
+			const b4 = mod12(rootPc - basePc + 6);
 			const b4Pos = b4 < 1 ? b4 + 12 : b4;
 			candidates.push(
 				["halfdim-root", "4-Str Root", [h4, h4 - 1, h4 + 1, h4 + 1]],
@@ -259,9 +273,9 @@ export function getCelloVoicings(
 		case "dim7": {
 			const pRoot = f4 < 1 ? f4 + 12 : f4;
 			const pMin3 = m4 < 1 ? m4 + 12 : m4;
-			const pDim5 = mod12(rootPc + 6);
+			const pDim5 = mod12(rootPc - basePc + 6);
 			const pDim5Pos = pDim5 < 1 ? pDim5 + 12 : pDim5;
-			const pDim7 = mod12(rootPc + 9);
+			const pDim7 = mod12(rootPc - basePc + 9);
 			const pDim7Pos = pDim7 < 1 ? pDim7 + 12 : pDim7;
 			candidates.push(
 				["dim7-root", "4-Str Root", [pRoot, pRoot - 1, pRoot + 1, pRoot]],
@@ -280,8 +294,8 @@ export function getCelloVoicings(
 			break;
 		}
 		case "add9": {
-			const t3 = mod12(rootPc - 3);
-			const d2 = mod12(rootPc + 2);
+			const t3 = mod12(rootPc - secondPc + 4);
+			const d2 = mod12(rootPc - basePc + 2);
 			const d2Pos = d2 < 2 ? d2 + 12 : d2;
 			const f3Pos = f3 < 3 ? f3 + 12 : f3;
 			candidates.push(
@@ -293,7 +307,7 @@ export function getCelloVoicings(
 			break;
 		}
 		case "madd9": {
-			const d2 = mod12(rootPc + 2);
+			const d2 = mod12(rootPc - basePc + 2);
 			const d2Pos = d2 < 2 ? d2 + 12 : d2;
 			candidates.push(
 				[
@@ -309,12 +323,16 @@ export function getCelloVoicings(
 				["madd9-3str", "Upper Shell", [d2Pos, -1, d2Pos - 1, d2Pos + 1]],
 			);
 			if (d2 === 1) {
-				candidates.push(["madd9-open-d", "Open D Shell", [1, -1, 0, 2]]);
+				candidates.push([
+					"madd9-open-d",
+					`Open ${thirdStrLabel} Shell`,
+					[1, -1, 0, 2],
+				]);
 			}
 			break;
 		}
 		case "sus4": {
-			const u4 = mod12(rootPc + 5);
+			const u4 = mod12(rootPc - basePc + 5);
 			candidates.push(
 				["sus4-4str", "4-Str Sus4", [f4, f4, f4 + 3, f4 + 3]],
 				["sus4-upper", "Upper 3-Str", [-1, f3, f3, f3 + 3]],
@@ -324,7 +342,7 @@ export function getCelloVoicings(
 			break;
 		}
 		case "sus2": {
-			const d2 = mod12(rootPc + 2);
+			const d2 = mod12(rootPc - basePc + 2);
 			const d2Pos = d2 < 2 ? d2 + 12 : d2;
 			candidates.push(
 				["sus2-4str", "4-Str Sus2", [f4, f4, f4, f4 + 3]],
@@ -337,12 +355,14 @@ export function getCelloVoicings(
 	}
 
 	const seen = new Set<string>();
-	const built: CelloVoicing[] = [];
+	const built: BowedVoicing[] = [];
 
 	for (const [id, name, semitones] of candidates) {
 		const key = semitones.join(",");
 		if (seen.has(key)) continue;
-		const voicing = buildCelloVoicing(
+		const voicing = buildBowedVoicing(
+			tuning,
+			maxSemitone,
 			id,
 			name,
 			semitones,
@@ -357,4 +377,20 @@ export function getCelloVoicings(
 	}
 
 	return built.sort((a, b) => a.handBaseSemitone - b.handBaseSemitone);
+}
+
+export function getCelloVoicings(
+	rootNote: string,
+	kind: GuitarChordKind,
+	chordNotes: string[],
+	preferFlats = false,
+): CelloVoicing[] {
+	return getBowedFifthsVoicings(
+		CELLO_TUNING,
+		MAX_CELLO_SEMITONE,
+		rootNote,
+		kind,
+		chordNotes,
+		preferFlats,
+	);
 }

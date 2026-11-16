@@ -16,7 +16,9 @@ import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import {
 	IconKeyboard,
+	IconList,
 	IconMoon,
+	IconMusic,
 	IconPlay,
 	IconStop,
 	IconSun,
@@ -27,7 +29,8 @@ import {
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
 import { SongExamplesPanel } from "./components/SongExamplesPanel";
-import { CelloVoicing, getCelloVoicings } from "./theory/celloFingerboard";
+import { ViolinFingerboard } from "./components/ViolinFingerboard";
+import { BowedVoicing, getCelloVoicings } from "./theory/celloFingerboard";
 import {
 	HarmonyChordSpec,
 	analyzeColorHarmony,
@@ -67,6 +70,7 @@ import {
 	getSongBarStartTimes,
 	getSongsForInstrument,
 } from "./theory/songExamples";
+import { getViolinVoicings } from "./theory/violinFingerboard";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -88,6 +92,35 @@ const PROGRESSION_CATEGORIES: readonly ProgressionCategory[] = [
 	"Jazz & Circle",
 	"Classical & Sequence",
 ] as const;
+
+const INSTRUMENT_TABS: readonly InstrumentTab[] = [
+	"piano",
+	"guitar",
+	"violin",
+	"cello",
+] as const;
+
+const INSTRUMENT_META: Record<
+	InstrumentTab,
+	{ label: string; repertoire: string; tuning: string }
+> = {
+	piano: { label: "Piano", repertoire: "Piano Repertoire", tuning: "C4–B5" },
+	guitar: {
+		label: "Guitar",
+		repertoire: "Guitar Repertoire",
+		tuning: "E A D G B e",
+	},
+	violin: {
+		label: "Violin",
+		repertoire: "Violin Repertoire",
+		tuning: "G3–D4–A4–E5",
+	},
+	cello: {
+		label: "Cello",
+		repertoire: "Cello Repertoire",
+		tuning: "C2–G2–D3–A3",
+	},
+};
 
 export function App() {
 	const [selectedSlot, setSelectedSlot] = useState<number>(0);
@@ -111,6 +144,9 @@ export function App() {
 	const soundPreset: SoundPreset =
 		soundMode === "auto" ? instrumentView : soundMode;
 	const [selectedGuitarVoicingId, setSelectedGuitarVoicingId] = useState<
+		string | null
+	>(null);
+	const [selectedViolinVoicingId, setSelectedViolinVoicingId] = useState<
 		string | null
 	>(null);
 	const [selectedCelloVoicingId, setSelectedCelloVoicingId] = useState<
@@ -152,10 +188,41 @@ export function App() {
 	const [activeColorStepIdx, setActiveColorStepIdx] = useState<number | null>(
 		null,
 	);
+	const [highlightedSectionId, setHighlightedSectionId] = useState<
+		string | null
+	>(null);
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
+	const flashTimerRef = useRef<number | null>(null);
 	const songPositionMsRef = useRef<number>(0);
 	const lastUiProgressMsRef = useRef<number>(-100);
+
+	const jumpToSection = useCallback((sectionId: string) => {
+		if (typeof document === "undefined") return;
+		const el = document.getElementById(sectionId);
+		if (!el) return;
+		const rect = el.getBoundingClientRect();
+		const isInView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+		if (!isInView) {
+			el.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+		setHighlightedSectionId(sectionId);
+		if (flashTimerRef.current !== null) {
+			window.clearTimeout(flashTimerRef.current);
+		}
+		flashTimerRef.current = window.setTimeout(() => {
+			setHighlightedSectionId((curr) => (curr === sectionId ? null : curr));
+			flashTimerRef.current = null;
+		}, 1100);
+	}, []);
+
+	const jumpToExplorationTab = useCallback(
+		(tab: "chords" | "color" | "songs") => {
+			setHarmonyTab(tab);
+			jumpToSection("section-exploration");
+		},
+		[jumpToSection],
+	);
 
 	const updateSongPosition = useCallback((ms: number) => {
 		songPositionMsRef.current = ms;
@@ -220,6 +287,9 @@ export function App() {
 	useEffect(() => {
 		return () => {
 			cancelSequenceRef.current?.();
+			if (flashTimerRef.current !== null) {
+				window.clearTimeout(flashTimerRef.current);
+			}
 		};
 	}, []);
 
@@ -292,6 +362,24 @@ export function App() {
 		[guitarVoicings, selectedGuitarVoicingId],
 	);
 
+	const violinVoicings = useMemo(() => {
+		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) return [];
+		return getViolinVoicings(
+			activeVoicing.notes[0],
+			activeVoicing.guitarKind,
+			activeVoicing.notes,
+			preferFlats,
+		);
+	}, [activeVoicing.guitarKind, activeVoicing.notes, preferFlats]);
+
+	const activeViolinVoicing = useMemo(
+		() =>
+			violinVoicings.find((v) => v.id === selectedViolinVoicingId) ??
+			violinVoicings[0] ??
+			null,
+		[violinVoicings, selectedViolinVoicingId],
+	);
+
 	const celloVoicings = useMemo(() => {
 		if (!activeVoicing.guitarKind || activeVoicing.notes.length < 3) return [];
 		return getCelloVoicings(
@@ -326,11 +414,15 @@ export function App() {
 				const voicings =
 					instrumentView === "guitar"
 						? getGuitarVoicings(notes[0], guitarKind, notes, flatBias)
-						: getCelloVoicings(notes[0], guitarKind, notes, flatBias);
+						: instrumentView === "violin"
+							? getViolinVoicings(notes[0], guitarKind, notes, flatBias)
+							: getCelloVoicings(notes[0], guitarKind, notes, flatBias);
 				const selectedId =
 					instrumentView === "guitar"
 						? selectedGuitarVoicingId
-						: selectedCelloVoicingId;
+						: instrumentView === "violin"
+							? selectedViolinVoicingId
+							: selectedCelloVoicingId;
 				const chosen = voicings.find((v) => v.id === selectedId) ?? voicings[0];
 				if (chosen) {
 					return { midi: chosen.soundingMidi, spreadSec: instrumentSpreadSec };
@@ -341,6 +433,7 @@ export function App() {
 		[
 			instrumentView,
 			selectedGuitarVoicingId,
+			selectedViolinVoicingId,
 			selectedCelloVoicingId,
 			instrumentSpreadSec,
 		],
@@ -906,22 +999,26 @@ export function App() {
 		[handleStrumGuitarVoicing],
 	);
 
-	const handleRollCelloVoicing = useCallback(
-		(voicing: CelloVoicing) => {
+	const handleRollBowedVoicing = useCallback(
+		(instrument: "violin" | "cello", voicing: BowedVoicing) => {
 			playChordNotes(voicing.soundingMidi, {
 				preset: soundPreset,
-				spreadSec: getDefaultChordSpread("cello", arpeggiate),
+				spreadSec: getDefaultChordSpread(instrument, arpeggiate),
 			});
 		},
 		[soundPreset, arpeggiate],
 	);
 
-	const handleSelectCelloVoicing = useCallback(
-		(voicing: CelloVoicing) => {
-			setSelectedCelloVoicingId(voicing.id);
-			handleRollCelloVoicing(voicing);
+	const handleSelectBowedVoicing = useCallback(
+		(instrument: "violin" | "cello", voicing: BowedVoicing) => {
+			if (instrument === "violin") {
+				setSelectedViolinVoicingId(voicing.id);
+			} else {
+				setSelectedCelloVoicingId(voicing.id);
+			}
+			handleRollBowedVoicing(instrument, voicing);
 		},
-		[handleRollCelloVoicing],
+		[handleRollBowedVoicing],
 	);
 
 	const songsForInstrument = useMemo(
@@ -991,6 +1088,7 @@ export function App() {
 			cancelActivePlaybackEngine();
 			clearTransientSequences();
 			setSelectedGuitarVoicingId(null);
+			setSelectedViolinVoicingId(null);
 			setSelectedCelloVoicingId(null);
 			setPlayingSongId(isPlaying ? song.id : null);
 			setCuedSongId(song.id);
@@ -1208,6 +1306,7 @@ export function App() {
 			stopActiveSequence();
 			setSelectedSongPreviewId(step.id);
 			setSelectedGuitarVoicingId(null);
+			setSelectedViolinVoicingId(null);
 			setSelectedCelloVoicingId(null);
 			setSelectedSlot(song.keySlot);
 			setMode(song.keyMode);
@@ -1319,13 +1418,15 @@ export function App() {
 					<div className="brand-emblem">
 						<img
 							src="/logo.png"
-							alt="Circle of Fifths logo"
+							alt="Musical Scales logo"
 							className="brand-logo-img"
 						/>
 					</div>
 					<div className="brand-copy">
-						<h1 className="brand-title">Circle of Fifths</h1>
-						<p className="brand-subtitle">Keys, Harmony &amp; Voicings</p>
+						<h1 className="brand-title">Musical Scales</h1>
+						<p className="brand-subtitle">
+							Circle of Fifths, Harmony &amp; Instruments
+						</p>
 					</div>
 				</div>
 
@@ -1374,7 +1475,7 @@ export function App() {
 							type="button"
 							className={`seg-btn ${soundMode === "auto" ? "is-active" : ""}`}
 							onClick={() => setSoundMode("auto")}
-							title="Match active instrument sound (Piano, Acoustic Guitar, or Bowed Cello)"
+							title="Match active instrument sound (Piano, Acoustic Guitar, Solo Violin, or Bowed Cello)"
 						>
 							Instrument
 						</button>
@@ -1452,11 +1553,114 @@ export function App() {
 				</div>
 			</header>
 
+			<nav className="toc-bar" aria-label="Table of contents">
+				<span className="toc-label">
+					<IconList size={13} />
+					<span>Contents</span>
+				</span>
+				<div className="toc-items">
+					<a
+						href="#section-circle"
+						className="toc-link"
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-circle");
+						}}
+						title="Interactive 12-key Circle of Fifths wheel"
+					>
+						<span className="toc-num">1</span>
+						<span>Circle of Fifths</span>
+					</a>
+					<a
+						href="#section-neighbors"
+						className="toc-link"
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-neighbors");
+						}}
+						title="Adjacent 4th and 5th keys & shared notes"
+					>
+						<span className="toc-num">2</span>
+						<span>Neighbors</span>
+					</a>
+					<a
+						href="#section-key-scale"
+						className="toc-link"
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-key-scale");
+						}}
+						title="Key signature, relative & parallel links, and 7-note scale"
+					>
+						<span className="toc-num">3</span>
+						<span>Key &amp; Scale</span>
+					</a>
+					<div
+						className="toc-group"
+						role="group"
+						aria-label="Exploration subsections"
+					>
+						<a
+							href="#section-exploration"
+							className="toc-link toc-group-root"
+							onClick={(e) => {
+								e.preventDefault();
+								jumpToSection("section-exploration");
+							}}
+							title="Chords, progressions, passing harmony & real songs"
+						>
+							<span className="toc-num">4</span>
+							<span>Exploration</span>
+						</a>
+						<span className="toc-sub-sep" aria-hidden="true">
+							·
+						</span>
+						<button
+							type="button"
+							className={`toc-sub-btn ${harmonyTab === "chords" ? "is-active" : ""}`}
+							onClick={() => jumpToExplorationTab("chords")}
+							title="Jump to Diatonic Chords & Progressions"
+						>
+							Chords
+						</button>
+						<button
+							type="button"
+							className={`toc-sub-btn ${harmonyTab === "color" ? "is-active" : ""}`}
+							onClick={() => jumpToExplorationTab("color")}
+							title="Jump to Passing & Substitutions"
+						>
+							Passing
+						</button>
+						<button
+							type="button"
+							className={`toc-sub-btn toc-sub-songs ${harmonyTab === "songs" ? "is-active" : ""}`}
+							onClick={() => jumpToExplorationTab("songs")}
+							title="Jump directly to Real Songs bar-by-bar arrangements"
+						>
+							<IconMusic size={11} />
+							<span>Real Songs</span>
+							<span className="toc-count-pill">
+								{songsForInstrument.length}
+							</span>
+						</button>
+					</div>
+					<a
+						href="#section-instruments"
+						className="toc-link"
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-instruments");
+						}}
+						title="Piano, Guitar, and Cello voicings & chord variations"
+					>
+						<span className="toc-num">5</span>
+						<span>Instruments</span>
+					</a>
+				</div>
+			</nav>
+
 			<main className="studio-layout">
-				<section
-					className="wheel-column"
-					aria-label="Interactive Circle of Fifths"
-				>
+				<div className="wheel-column">
 					<CircleWheel
 						analysis={analysis}
 						selectedSlot={selectedSlot}
@@ -1468,6 +1672,7 @@ export function App() {
 							activeVoicing.wheelHighlight ? activeVoicing.notes : null
 						}
 						rotateToSelected={rotateToSelected}
+						isTargeted={highlightedSectionId === "section-circle"}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onPlayTonic={handlePlayTonic}
 						onStepFourth={() => selectKey(selectedSlot - 1, mode)}
@@ -1478,20 +1683,40 @@ export function App() {
 					<FifthsFourthsPanel
 						analysis={analysis}
 						walkingDirection={walkingDirection}
+						isTargeted={highlightedSectionId === "section-neighbors"}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onAuditionRelationship={handleAuditionRelationship}
 						onToggleWalk={handleToggleWalk}
 					/>
-				</section>
+				</div>
 
 				<div className="inspector-column">
-					<section className="panel-card hero-card" aria-labelledby="key-title">
+					<section
+						id="section-key-scale"
+						className={`panel-card hero-card${
+							highlightedSectionId === "section-key-scale"
+								? " is-toc-targeted"
+								: ""
+						}`}
+						aria-labelledby="key-scale-heading"
+					>
+						<div className="section-header">
+							<div className="section-heading">
+								<h2 id="key-scale-heading" className="section-title">
+									Key &amp; Scale
+								</h2>
+								<p className="section-desc">
+									Key signature, relative &amp; parallel links, and 7-note scale
+								</p>
+							</div>
+						</div>
+
 						<div className="hero-top">
 							<div className="hero-identity">
 								<div className="hero-title-row">
-									<h2 id="key-title" className="hero-key-title">
+									<h3 id="key-title" className="hero-key-title">
 										{analysis.name}
-									</h2>
+									</h3>
 
 									<div
 										className="segmented-control"
@@ -1629,14 +1854,30 @@ export function App() {
 					</section>
 
 					<section
-						className="panel-card harmony-card"
-						aria-label="Harmony and Repertoire"
+						id="section-exploration"
+						className={`panel-card harmony-card${
+							highlightedSectionId === "section-exploration"
+								? " is-toc-targeted"
+								: ""
+						}`}
+						aria-labelledby="exploration-heading"
 					>
+						<div className="section-header">
+							<div className="section-heading">
+								<h2 id="exploration-heading" className="section-title">
+									Exploration
+								</h2>
+								<p className="section-desc">
+									Chords &amp; progressions, passing harmony, and real songs
+								</p>
+							</div>
+						</div>
+
 						<div className="harmony-tabs-bar">
 							<div
 								className="instrument-tablist"
 								role="tablist"
-								aria-label="Harmony workspace"
+								aria-label="Exploration topics"
 							>
 								<button
 									type="button"
@@ -1673,11 +1914,12 @@ export function App() {
 									id="tab-harmony-songs"
 									aria-selected={harmonyTab === "songs"}
 									aria-controls="panel-harmony"
-									className={`instrument-tab ${
+									className={`instrument-tab instrument-tab-songs ${
 										harmonyTab === "songs" ? "is-active" : ""
 									}`}
 									onClick={() => setHarmonyTab("songs")}
 								>
+									<IconMusic size={13} />
 									<span>Real Songs</span>
 									<span className="tab-count-pill">
 										{songsForInstrument.length}
@@ -1725,11 +1967,8 @@ export function App() {
 								</div>
 							) : (
 								<span className="instrument-tab-meta">
-									{instrumentView === "piano"
-										? "Piano Repertoire"
-										: instrumentView === "guitar"
-											? "Guitar Repertoire"
-											: "Cello Repertoire"}
+									{INSTRUMENT_META[instrumentView].repertoire} · Synced with
+									instrument below
 								</span>
 							)}
 						</div>
@@ -1741,6 +1980,14 @@ export function App() {
 						>
 							{harmonyTab === "chords" ? (
 								<>
+									<div className="sub-section-head">
+										<h3 className="sub-section-title">
+											Diatonic Chords in {analysis.shortName}
+										</h3>
+										<span className="sub-section-hint">
+											Click a chord to hear it and inspect its notes
+										</span>
+									</div>
 									<ChordsPanel
 										analysis={analysis}
 										voicingMode={voicingMode}
@@ -1883,22 +2130,32 @@ export function App() {
 					</section>
 
 					<section
-						className="panel-card instrument-card"
-						aria-label="Instrument visualizer"
+						id="section-instruments"
+						className={`panel-card instrument-card${
+							highlightedSectionId === "section-instruments"
+								? " is-toc-targeted"
+								: ""
+						}`}
+						aria-labelledby="instruments-heading"
 					>
+						<div className="section-header">
+							<div className="section-heading">
+								<h2 id="instruments-heading" className="section-title">
+									Instruments
+								</h2>
+								<p className="section-desc">
+									Interactive chord voicings, chord variations &amp; fingerings
+								</p>
+							</div>
+						</div>
+
 						<div className="instrument-tabs-bar">
 							<div
 								className="instrument-tablist"
 								role="tablist"
 								aria-label="Instrument view"
 							>
-								{(
-									[
-										["piano", "Piano"],
-										["guitar", "Guitar"],
-										["cello", "Cello"],
-									] as const
-								).map(([tabId, label]) => (
+								{INSTRUMENT_TABS.map((tabId) => (
 									<button
 										key={tabId}
 										type="button"
@@ -1911,7 +2168,7 @@ export function App() {
 										}`}
 										onClick={() => handleSelectInstrumentTab(tabId)}
 									>
-										{label}
+										{INSTRUMENT_META[tabId].label}
 									</button>
 								))}
 							</div>
@@ -1926,11 +2183,7 @@ export function App() {
 									{activeVoicing.notes.join(" · ")}
 								</span>
 								<span className="instrument-tab-meta">
-									{instrumentView === "piano"
-										? "C4–B5"
-										: instrumentView === "guitar"
-											? "E A D G B e"
-											: "C2–G2–D3–A3"}
+									{INSTRUMENT_META[instrumentView].tuning}
 								</span>
 							</div>
 						</div>
@@ -2012,6 +2265,26 @@ export function App() {
 									}
 									onPlayNoteSequence={handlePlayGuitarNoteSequence}
 								/>
+							) : instrumentView === "violin" ? (
+								<ViolinFingerboard
+									chordLabel={activeVoicing.label}
+									chordQuality={activeVoicing.quality}
+									chordKind={activeVoicing.guitarKind}
+									chordNotes={activeVoicing.notes}
+									scaleNotes={analysis.scaleNotes}
+									keyRootName={analysis.scaleNotes[0]}
+									preferFlats={preferFlats}
+									voicings={violinVoicings}
+									activeVoicing={activeViolinVoicing}
+									activeSongStops={
+										playingSongId !== null || cuedSongId !== null
+											? (activeSongEvent?.violinStops ?? null)
+											: null
+									}
+									onSelectVoicing={(v) => handleSelectBowedVoicing("violin", v)}
+									onRollVoicing={(v) => handleRollBowedVoicing("violin", v)}
+									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.8)}
+								/>
 							) : (
 								<CelloFingerboard
 									chordLabel={activeVoicing.label}
@@ -2028,8 +2301,8 @@ export function App() {
 											? (activeSongEvent?.celloStops ?? null)
 											: null
 									}
-									onSelectVoicing={handleSelectCelloVoicing}
-									onRollVoicing={handleRollCelloVoicing}
+									onSelectVoicing={(v) => handleSelectBowedVoicing("cello", v)}
+									onRollVoicing={(v) => handleRollBowedVoicing("cello", v)}
 									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.85)}
 								/>
 							)}

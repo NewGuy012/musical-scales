@@ -15,15 +15,21 @@ describe("songExamples", () => {
 	test("maps curated songs exclusively to each instrument tab", () => {
 		const pianoSongs = getSongsForInstrument("piano");
 		const guitarSongs = getSongsForInstrument("guitar");
+		const violinSongs = getSongsForInstrument("violin");
 		const celloSongs = getSongsForInstrument("cello");
 
 		expect(pianoSongs.map((s) => s.id)).toEqual(["debussy-clair-de-lune"]);
 		expect(guitarSongs.map((s) => s.id)).toEqual(["amazing-grace-guitar"]);
+		expect(violinSongs.map((s) => s.id)).toEqual(["massenet-meditation-thais"]);
 		expect(celloSongs.map((s) => s.id)).toEqual(["bach-cello-suite-1"]);
 
 		// Bach Cello Suite #1 must only be exposed for Cello View
 		expect(pianoSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
 		expect(guitarSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
+		expect(violinSongs.some((s) => s.id === "bach-cello-suite-1")).toBe(false);
+		expect(celloSongs.some((s) => s.id === "massenet-meditation-thais")).toBe(
+			false,
+		);
 	});
 
 	test("all song progressions flatten with valid timestamps and playable MIDI notes", () => {
@@ -44,7 +50,7 @@ describe("songExamples", () => {
 				expect(ev.midi.length).toBeGreaterThanOrEqual(1);
 				for (const m of ev.midi) {
 					expect(m).toBeGreaterThanOrEqual(36);
-					expect(m).toBeLessThanOrEqual(84);
+					expect(m).toBeLessThanOrEqual(96);
 				}
 			}
 		}
@@ -181,6 +187,41 @@ describe("Clair de lune and Tommy Emmanuel Amazing Grace arrangements", () => {
 		expect(describeRomanFunction("V7/vi", "major")).toContain(
 			"Secondary dominant",
 		);
+		expect(describeRomanFunction("V7/ii", "major")).toContain(
+			"Secondary dominant",
+		);
 		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
+	});
+
+	test("Massenet Méditation from Thaïs covers 44 bars in D Major with valid violin stops and final harmonic", () => {
+		const [thais] = getSongsForInstrument("violin");
+		expect(thais).toBeDefined();
+		expect(thais.id).toBe("massenet-meditation-thais");
+		expect(thais.title).toContain("Méditation");
+		expect(thais.composerOrSource).toContain("Jules Massenet");
+		expect(thais.keyLabel).toBe("D Major");
+		expect(thais.keySlot).toBe(2);
+		expect(thais.timeSignature).toBe("4/4");
+		expect(thais.steps).toHaveLength(44);
+		expect(thais.steps[2].cue).toContain("F♯5");
+
+		const flat = flattenSongPlaybackSteps(thais);
+		expect(flat.events.length).toBeGreaterThan(150);
+		expect(flat.totalDurationMs).toBeGreaterThan(130000);
+		for (const ev of flat.events) {
+			expect(ev.violinStops).toBeDefined();
+			expect(ev.violinStops?.length).toBeGreaterThan(0);
+			for (const stop of ev.violinStops ?? []) {
+				expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
+				expect(stop.stringIndex).toBeLessThanOrEqual(3);
+				expect(stop.semitone).toBeGreaterThanOrEqual(0);
+				expect(stop.semitone).toBeLessThanOrEqual(14);
+				expect(stop.finger).toBeGreaterThanOrEqual(0);
+				expect(stop.finger).toBeLessThanOrEqual(4);
+			}
+		}
+
+		const lastEvent = flat.events[flat.events.length - 1];
+		expect(lastEvent?.violinStops?.[0]?.technique).toBe("harmonic");
 	});
 });

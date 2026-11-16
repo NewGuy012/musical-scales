@@ -92,10 +92,18 @@ describe("instrument synthesis engine", () => {
 
 	test("playback helpers safely handle presets, invalid MIDI, and stopAllAudio outside browser", () => {
 		expect(getDefaultChordSpread("guitar")).toBe(0.038);
+		expect(getDefaultChordSpread("violin")).toBe(0.048);
 		expect(getDefaultChordSpread("cello")).toBe(0.058);
 		expect(getDefaultChordSpread("piano")).toBe(0.01);
 
-		const presets = ["piano", "guitar", "cello", "pad", "muted"] as const;
+		const presets = [
+			"piano",
+			"guitar",
+			"violin",
+			"cello",
+			"pad",
+			"muted",
+		] as const;
 		for (const preset of presets) {
 			expect(() => playSingleNote(60, preset, 0.5)).not.toThrow();
 			expect(() => playSingleNote(-5, preset, 0.5)).not.toThrow();

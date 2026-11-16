@@ -5,9 +5,11 @@ import { CelloFingerboard } from "../src/react-app/components/CelloFingerboard";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
 import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
+import { ViolinFingerboard } from "../src/react-app/components/ViolinFingerboard";
 import { getCelloVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import { getViolinVoicings } from "../src/react-app/theory/violinFingerboard";
 import {
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
@@ -229,6 +231,50 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(guitarHtml).toContain("is-song-hit");
 		expect(guitarHtml).toContain("song-hit-halo");
+
+		const dMajor = analyzeKey(2, "major", "standard");
+		const violinVoicings = getViolinVoicings(
+			"D",
+			"major",
+			["D", "F♯", "A"],
+			false,
+		);
+		const violinHtml = renderToStaticMarkup(
+			<ViolinFingerboard
+				chordLabel="D (I)"
+				chordQuality="major"
+				chordKind="major"
+				chordNotes={["D", "F♯", "A"]}
+				scaleNotes={dMajor.scaleNotes}
+				preferFlats={false}
+				voicings={violinVoicings}
+				activeVoicing={violinVoicings[0] ?? null}
+				activeSongStops={[
+					{ stringIndex: 3, semitone: 14, finger: 3, technique: "harmonic" },
+				]}
+				onSelectVoicing={() => {}}
+				onRollVoicing={() => {}}
+				onPlayNote={() => {}}
+			/>,
+		);
+		expect(violinHtml).toContain("is-song-hit");
+		expect(violinHtml).toContain("is-harmonic");
+		expect(violinHtml).toContain("song-hit-harmonic");
+
+		const violinSongs = getSongsForInstrument("violin");
+		const thaisHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={violinSongs}
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(thaisHtml).toContain("Méditation (from Thaïs)");
+		expect(thaisHtml).toContain("Jules Massenet");
 	});
 
 	test("playTimedSequence supports startOffsetMs, onProgress updates, and cancellation", async () => {

@@ -4,6 +4,7 @@ import { IconPlay, IconRotate, IconRotateCcw, IconStop } from "./Icons";
 interface FifthsFourthsPanelProps {
 	analysis: KeyAnalysis;
 	walkingDirection: "fourth" | "fifth" | null;
+	isTargeted?: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
 	onAuditionRelationship: (direction: "fourth" | "fifth") => void;
 	onToggleWalk: (direction: "fourth" | "fifth") => void;
@@ -12,6 +13,7 @@ interface FifthsFourthsPanelProps {
 export function FifthsFourthsPanel({
 	analysis,
 	walkingDirection,
+	isTargeted = false,
 	onSelectKey,
 	onAuditionRelationship,
 	onToggleWalk,
@@ -33,15 +35,18 @@ export function FifthsFourthsPanel({
 
 	return (
 		<section
-			className="panel-card neighbors-panel"
+			id="section-neighbors"
+			className={`panel-card neighbors-panel${isTargeted ? " is-toc-targeted" : ""}`}
 			aria-labelledby="rel-heading"
 		>
-			<div className="neighbors-header">
-				<div className="neighbors-title-wrap">
-					<h2 id="rel-heading" className="neighbors-title">
+			<div className="section-header section-header-compact neighbors-header">
+				<div className="section-heading">
+					<h2 id="rel-heading" className="section-title">
 						Neighbors
 					</h2>
-					<span className="neighbors-meta">6/7 notes shared · 1 half-step</span>
+					<p className="section-desc">
+						Adjacent 4th &amp; 5th keys · 6/7 notes shared · 1 half-step
+					</p>
 				</div>
 				<div className="walk-controls">
 					<button

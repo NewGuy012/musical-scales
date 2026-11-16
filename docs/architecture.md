@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Circle of Fifths Studio** (`musical-scales`) is an interactive music theory, chord voicing, and synthesis web application built with React 19, TypeScript, Vite, Web Audio API, and Cloudflare Workers (Hono).
+**Musical Scales** (`musical-scales`) is an interactive music theory, chord voicing, and synthesis web application built with React 19, TypeScript, Vite, Web Audio API, and Cloudflare Workers (Hono).
 
 ---
 
@@ -34,7 +34,7 @@ musical-scales/
 │   │   ├── index.css                 # Base styles & CSS custom properties
 │   │   ├── main.tsx                  # React DOM entry point
 │   │   ├── audio/
-│   │   │   └── synth.ts              # Web Audio synthesizer (Piano, Guitar, Cello, Pad) & scheduler
+│   │   │   └── synth.ts              # Web Audio synthesizer (Piano, Guitar, Violin, Cello, Pad) & scheduler
 │   │   ├── components/
 │   │   │   ├── CircleWheel.tsx       # Interactive 12-wedge SVG Circle of Fifths wheel
 │   │   │   ├── KeySignatureStaff.tsx # Treble clef SVG key signature renderer
@@ -43,17 +43,21 @@ musical-scales/
 │   │   │   ├── ColorHarmonyPanel.tsx # Chromatic passing, dim7 symmetry, V7/x, tritone subs
 │   │   │   ├── PianoKeyboard.tsx     # 2-octave (C4–B5) SVG piano visualizer
 │   │   │   ├── GuitarFretboard.tsx   # 6-string, 15-fret CAGED, pentatonic & passing visualizer
-│   │   │   ├── CelloFingerboard.tsx  # 4-string fretless cello fingerboard & hand-frame visualizer
+│   │   │   ├── BowedFingerboard.tsx  # Shared 4-string fretless bowed fingerboard & LH frame SVG
+│   │   │   ├── ViolinFingerboard.tsx # 4-string violin fingerboard (G3–D4–A4–E5)
+│   │   │   ├── CelloFingerboard.tsx  # 4-string cello fingerboard (C2–G2–D3–A3)
 │   │   │   ├── SongExamplesPanel.tsx # Interactive bar-by-bar song repertoire player & study guide
 │   │   │   └── Icons.tsx             # Inline SVG icons shared across panels
 │   │   └── theory/
 │   │       ├── circleOfFifths.ts     # Note tables, scales, signatures, diatonic chords, progressions
 │   │       ├── chromaticHarmony.ts   # Passing slides, symmetric dim7, secondary dominants, tritone subs
 │   │       ├── guitarFretboard.ts    # Tuning, 13 chord variations, CAGED voicings, pentatonic/passing guides
-│   │       ├── celloFingerboard.ts   # Cello tuning, closed left-hand frame voicings across 13 qualities
+│   │       ├── celloFingerboard.ts   # Bowed fifths voicing engine & Cello tuning (C2–G2–D3–A3)
+│   │       ├── violinFingerboard.ts  # Violin tuning (G3–D4–A4–E5) & closed-frame voicings
 │   │       ├── songExamples.ts       # CompactSongSpec hydrator, playback flattener & time lookup
 │   │       ├── debussyClairDeLune.ts # Piano repertoire: Clair de lune (72 bars)
 │   │       ├── tommyAmazingGrace.ts  # Guitar repertoire: Amazing Grace arr. Tommy Emmanuel (34 bars)
+│   │       ├── massenetMeditation.ts # Violin repertoire: Massenet Méditation from Thaïs (44 bars)
 │   │       └── bachCelloSuite1.ts    # Cello repertoire: Bach Cello Suite No. 1 Prelude (42 bars)
 │   └── worker/
 │       └── index.ts                  # Hono worker with CSP/COOP/CORP headers, 405 & 404 JSON
@@ -70,7 +74,7 @@ flowchart TD
     State["App.tsx (Slot, Mode, HarmonyTab, InstrumentTab, ActiveVoicing)"]
     Theory["circleOfFifths.ts — analyzeKey()"]
     ColorTheory["chromaticHarmony.ts — analyzeColorHarmony()"]
-    Voicings["guitarFretboard.ts / celloFingerboard.ts"]
+    Voicings["guitarFretboard.ts / violinFingerboard.ts / celloFingerboard.ts"]
     Songs["songExamples.ts (hydrateSong)"]
     Synth["synth.ts — Web Audio Engine"]
 
@@ -85,13 +89,16 @@ flowchart TD
 
     State --> Piano["PianoKeyboard.tsx"]
     State --> Guitar["GuitarFretboard.tsx"]
+    State --> Violin["ViolinFingerboard.tsx"]
     State --> Cello["CelloFingerboard.tsx"]
 
     Voicings --> Guitar
+    Voicings --> Violin
     Voicings --> Cello
 
     State --> Synth
     Guitar --> Synth
+    Violin --> Synth
     Cello --> Synth
     Piano --> Synth
 ```
@@ -115,12 +122,12 @@ flowchart TD
   - `getGuitarVoicings()` generates open and movable CAGED/shell voicings (`<= 4` fret span) across all 15 roots and 13 chord kinds, ranked by playability.
   - `buildGuitarScalePassGuide()` derives key/chord pentatonic overlays, CAGED pockets, and playable chromatic passing phrases; `createPitchClassNameResolver()` handles enharmonic note naming across string instruments.
 
-- **[`celloFingerboard.ts`](../src/react-app/theory/celloFingerboard.ts)**:
-  - Defines standard 4-string cello tuning in fifths (`C2–G2–D3–A3`) across 14 semitones (First through Fourth/Thumb position).
-  - `getCelloVoicings()` generates playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
+- **[`celloFingerboard.ts`](../src/react-app/theory/celloFingerboard.ts)** & **[`violinFingerboard.ts`](../src/react-app/theory/violinFingerboard.ts)**:
+  - Share `getBowedFifthsVoicings()` across 4-string fifths-tuned instruments (`C2–G2–D3–A3` for Cello and `G3–D4–A4–E5` for Violin) over 14 semitones.
+  - `getCelloVoicings()` and `getViolinVoicings()` generate playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
 - **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)** (+ repertoire leaf modules):
-  - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), and [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars).
+  - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 44 bars), and [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars).
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 
 ---
@@ -130,7 +137,7 @@ flowchart TD
 - Procedural synthesis with no external audio dependencies:
   - **Piano (`piano`)**: Filtered hammer noise burst + fundamental triangle, warm sub-octave sine, and detuned harmonic sines.
   - **Acoustic Guitar (`guitar`)**: Extended Karplus-Strong physical string model (`synthesizeGuitarPluckSamples`) with pick-position comb filtering, one-pole + all-pass fractional delay tuning, and spruce/air-cavity body resonance filters.
-  - **Solo Cello (`cello`)**: Bowed sawtooth + triangle oscillators with 5.2 Hz vibrato LFO, bow-rosin attack transient, and 4 body formant filters (`78 Hz`, `195 Hz`, `490 Hz`, `1150 Hz`).
+  - **Solo Violin (`violin`) & Solo Cello (`cello`)**: Bowed sawtooth + triangle oscillators via `scheduleBowedVoice()` with vibrato LFO, bow-rosin attack transient, and instrument-specific body formant filters (`278/490/980/2450 Hz` for Violin, `78/195/490/1150 Hz` for Cello).
   - **Warm Pad (`pad`)**: Detuned dual-oscillator low-pass sustain voice.
 - **Lifecycle & Safety**:
   - Validates all MIDI inputs (`0..127`) via `isValidMidi()` and guards `AudioContext` initialization in `getAudioEngine()`.
@@ -141,7 +148,7 @@ flowchart TD
 ### 3. UI & State Management (`src/react-app/`)
 
 - **[`App.tsx`](../src/react-app/App.tsx)**:
-  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony tab (`chords`, `color`, `songs`), instrument dock (`piano`, `guitar`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), and active chord/song state (`ActiveVoicing`, `WheelChordHighlight`).
+  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony tab (`chords`, `color`, `songs`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), and active chord/song state (`ActiveVoicing`, `WheelChordHighlight`).
   - Manages scheduled sequences via `cancelSequenceRef` and cancels both sequence scheduling and active Web Audio voices (`stopActiveSequence()`, `stopAllAudio()`) whenever playback stops, resets, or changes keys.
 - **[`CircleWheel.tsx`](../src/react-app/components/CircleWheel.tsx)**:
   - Computes shortest-path cumulative rotation (`±180°` delta normalization) so stepping clockwise/counter-clockwise smoothly animates the selected tonic to 12 o'clock while counter-rotating text labels to remain upright.

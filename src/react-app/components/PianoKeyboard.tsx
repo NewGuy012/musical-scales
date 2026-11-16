@@ -152,6 +152,17 @@ export function PianoKeyboard({
 				{whiteKeys.map((key) => renderKey(key, false))}
 				{blackKeys.map((key) => renderKey(key, true))}
 			</svg>
+			<div className="piano-legend" aria-label="Piano keyboard legend">
+				<span className="legend-chip">
+					<span className={`legend-dot is-primary ${qualityClass}`} />
+					<span>Active chord</span>
+				</span>
+				<span className="legend-chip">
+					<span className="legend-dot is-piano-scale" />
+					<span>Key scale note</span>
+				</span>
+				<span className="piano-legend-hint">Click any key to play (C4–B5)</span>
+			</div>
 		</div>
 	);
 }

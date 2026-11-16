@@ -1,4 +1,4 @@
-export type InstrumentVoice = "piano" | "guitar" | "cello" | "pad";
+export type InstrumentVoice = "piano" | "guitar" | "violin" | "cello" | "pad";
 export type SoundPreset = InstrumentVoice | "muted";
 
 interface AudioEngine {
@@ -175,6 +175,7 @@ export function getDefaultChordSpread(
 ): number {
 	if (arpeggiate) return preset === "piano" || preset === "pad" ? 0.075 : 0.08;
 	if (preset === "cello") return 0.058;
+	if (preset === "violin") return 0.048;
 	if (preset === "guitar") return 0.038;
 	return 0.01;
 }
@@ -524,58 +525,153 @@ function scheduleGuitarVoice(
 	registerAuxSource(pluckSrc);
 }
 
-function scheduleCelloVoice(
+interface BowedVoiceProfile {
+	attackSustained: number;
+	attackShortFloor: number;
+	attackShortRatio: number;
+	releaseShort: number;
+	releaseSustained: number;
+	bowPeakCap: number;
+	bowPeakMin: number;
+	bowPeakMult: number;
+	bowSusCap: number;
+	bowSusMin: number;
+	bowSusMult: number;
+	vibratoHz: number;
+	vibratoDelayMax: number;
+	vibratoDepthShort: number;
+	vibratoDepthSustained: number;
+	gainScale: number;
+	sawGain: number;
+	triGain: number;
+	bowBandpassMin: number;
+	bowBandpassMax: number;
+	formants: readonly [freq: number, q: number, gainDb: number][];
+}
+
+const BOWED_VOICE_PROFILES: Record<"cello" | "violin", BowedVoiceProfile> = {
+	cello: {
+		attackSustained: 0.078,
+		attackShortFloor: 0.025,
+		attackShortRatio: 0.14,
+		releaseShort: 0.26,
+		releaseSustained: 0.44,
+		bowPeakCap: 2500,
+		bowPeakMin: 720,
+		bowPeakMult: 7.2,
+		bowSusCap: 1850,
+		bowSusMin: 520,
+		bowSusMult: 4.5,
+		vibratoHz: 5.2,
+		vibratoDelayMax: 0.13,
+		vibratoDepthShort: 3.5,
+		vibratoDepthSustained: 11.5,
+		gainScale: 1.0,
+		sawGain: 0.7,
+		triGain: 0.36,
+		bowBandpassMin: 520,
+		bowBandpassMax: 1300,
+		// Cello body formants: A0 f-hole air, B1 chest wood, box scoop, singing bridge hill
+		formants: [
+			[78, 1.8, 4.0],
+			[195, 2.1, 4.2],
+			[490, 1.4, -3.2],
+			[1150, 1.5, 3.0],
+		],
+	},
+	violin: {
+		attackSustained: 0.068,
+		attackShortFloor: 0.022,
+		attackShortRatio: 0.13,
+		releaseShort: 0.24,
+		releaseSustained: 0.38,
+		bowPeakCap: 4600,
+		bowPeakMin: 1350,
+		bowPeakMult: 6.2,
+		bowSusCap: 3400,
+		bowSusMin: 950,
+		bowSusMult: 4.2,
+		vibratoHz: 5.8,
+		vibratoDelayMax: 0.14,
+		vibratoDepthShort: 4.0,
+		vibratoDepthSustained: 13.5,
+		gainScale: 0.92,
+		sawGain: 0.64,
+		triGain: 0.4,
+		bowBandpassMin: 900,
+		bowBandpassMax: 2400,
+		// Violin body formants: A0 air (278 Hz), B1 wood (490 Hz), nasal scoop, singing bridge hill
+		formants: [
+			[278, 2.0, 3.5],
+			[490, 2.0, 3.8],
+			[980, 1.4, -3.5],
+			[2450, 1.4, 3.2],
+		],
+	},
+};
+
+function scheduleBowedVoice(
 	engine: AudioEngine,
 	midi: number,
 	startTime: number,
 	duration: number,
 	peakGain: number,
+	profile: BowedVoiceProfile,
 ) {
 	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
 	const isShort = duration <= 0.42;
-	const attack = isShort ? Math.max(0.025, duration * 0.14) : 0.078;
-	const release = isShort ? 0.26 : 0.44;
+	const attack = isShort
+		? Math.max(profile.attackShortFloor, duration * profile.attackShortRatio)
+		: profile.attackSustained;
+	const release = isShort ? profile.releaseShort : profile.releaseSustained;
 	const stopTime = startTime + duration + release;
 
 	const bowLPF = createFilter(ctx, "lowpass", Math.max(360, freq * 2.4), 0.75);
 	bowLPF.frequency.exponentialRampToValueAtTime(
-		Math.min(2500, Math.max(720, freq * 7.2)),
+		Math.min(
+			profile.bowPeakCap,
+			Math.max(profile.bowPeakMin, freq * profile.bowPeakMult),
+		),
 		startTime + attack + 0.04,
 	);
 	bowLPF.frequency.exponentialRampToValueAtTime(
-		Math.min(1850, Math.max(520, freq * 4.5)),
+		Math.min(
+			profile.bowSusCap,
+			Math.max(profile.bowSusMin, freq * profile.bowSusMult),
+		),
 		startTime + Math.max(attack + 0.12, duration),
 	);
 
 	const vibratoLfo = ctx.createOscillator();
 	vibratoLfo.type = "sine";
-	vibratoLfo.frequency.setValueAtTime(5.2, startTime);
+	vibratoLfo.frequency.setValueAtTime(profile.vibratoHz, startTime);
 	const vibratoDepth = ctx.createGain();
 	vibratoDepth.gain.setValueAtTime(0, startTime);
 	vibratoDepth.gain.setValueAtTime(
 		0,
-		startTime + Math.min(0.13, duration * 0.35),
+		startTime + Math.min(profile.vibratoDelayMax, duration * 0.35),
 	);
 	vibratoDepth.gain.linearRampToValueAtTime(
-		isShort ? 3.5 : 11.5,
+		isShort ? profile.vibratoDepthShort : profile.vibratoDepthSustained,
 		startTime + Math.min(0.42, Math.max(0.2, duration * 0.72)),
 	);
 	vibratoLfo.connect(vibratoDepth);
 
+	const scaledPeak = peakGain * profile.gainScale;
 	const noteGain = ctx.createGain();
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(peakGain * 0.88, startTime + attack);
+	noteGain.gain.linearRampToValueAtTime(scaledPeak * 0.88, startTime + attack);
 	noteGain.gain.linearRampToValueAtTime(
-		peakGain * 0.94,
+		scaledPeak * 0.94,
 		startTime + Math.max(attack + 0.04, duration * 0.82),
 	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
 	(
 		[
-			["sawtooth", 0.7],
-			["triangle", 0.36],
+			["sawtooth", profile.sawGain],
+			["triangle", profile.triGain],
 		] as const
 	).forEach(([type, gainVal], idx) => {
 		const osc = ctx.createOscillator();
@@ -596,34 +692,26 @@ function scheduleCelloVoice(
 	const bowBandpass = createFilter(
 		ctx,
 		"bandpass",
-		Math.min(1300, Math.max(520, freq * 5)),
+		Math.min(
+			profile.bowBandpassMax,
+			Math.max(profile.bowBandpassMin, freq * 5),
+		),
 		2.2,
 	);
 	const bowNoiseGain = ctx.createGain();
 	const noiseDur = isShort ? 0.04 : 0.075;
 	bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
 	bowNoiseGain.gain.linearRampToValueAtTime(
-		peakGain * 0.055,
+		scaledPeak * 0.055,
 		startTime + noiseDur * 0.35,
 	);
 	bowNoiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + noiseDur);
 	chainNodes(bowNoise, bowBandpass, bowNoiseGain, bowLPF);
 
-	// Cello body formants: A0 f-hole air, B1 chest wood, box scoop, singing bridge hill
-	const airChamber = createFilter(ctx, "peaking", 78, 1.8, 4.0);
-	const chestBody = createFilter(ctx, "peaking", 195, 2.1, 4.2);
-	const midScoop = createFilter(ctx, "peaking", 490, 1.4, -3.2);
-	const bridgeHill = createFilter(ctx, "peaking", 1150, 1.5, 3.0);
-
-	chainNodes(
-		bowLPF,
-		airChamber,
-		chestBody,
-		midScoop,
-		bridgeHill,
-		noteGain,
-		master,
+	const formantFilters = profile.formants.map(([fFreq, q, gainDb]) =>
+		createFilter(ctx, "peaking", fFreq, q, gainDb),
 	);
+	chainNodes(bowLPF, ...formantFilters, noteGain, master);
 
 	vibratoLfo.start(startTime);
 	bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
@@ -691,8 +779,25 @@ function scheduleVoice(
 		case "guitar":
 			scheduleGuitarVoice(engine, midi, startTime, duration, peakGain);
 			break;
+		case "violin":
+			scheduleBowedVoice(
+				engine,
+				midi,
+				startTime,
+				duration,
+				peakGain,
+				BOWED_VOICE_PROFILES.violin,
+			);
+			break;
 		case "cello":
-			scheduleCelloVoice(engine, midi, startTime, duration, peakGain);
+			scheduleBowedVoice(
+				engine,
+				midi,
+				startTime,
+				duration,
+				peakGain,
+				BOWED_VOICE_PROFILES.cello,
+			);
 			break;
 		case "pad":
 			schedulePadVoice(engine, midi, startTime, duration, peakGain);

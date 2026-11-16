@@ -30,6 +30,7 @@ export function KeySignatureStaff({
 					: "Key signature: no sharps or flats"
 			}
 		>
+			<span className="staff-caption">Key Signature</span>
 			<svg
 				viewBox="0 0 132 50"
 				className="staff-svg"
