@@ -35,11 +35,7 @@
 <br />
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/studio-piano-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="./docs/images/studio-piano-light.png" />
-    <img src="./docs/images/studio-piano-dark.png" alt="Circle of Fifths Explorer Studio Interface" width="100%" />
-  </picture>
+  <img src="./docs/images/circle-of-fifths-wheel.jpg" alt="Interactive Circle of Fifths Wheel" width="100%" />
   <br />
   <sub>Dark &amp; Light themes — interactive Circle of Fifths wheel, treble key signature staff, 4th/5th pitch diffs, diatonic chords, and live instrument views.</sub>
 </p>
