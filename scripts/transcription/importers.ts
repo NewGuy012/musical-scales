@@ -10,8 +10,8 @@ import {
 } from "../../src/react-app/theory/circleOfFifths";
 import { DEFAULT_GUITAR_TUNING_MIDI } from "../../src/react-app/theory/guitarFretboard";
 import type {
-	CompactSongSpec,
 	InstrumentTab,
+	SongDocumentV2,
 	SongNoteTechnique,
 } from "../../src/react-app/theory/songExamples";
 import { resolveKeySignatureFromRootPc } from "./harmonicAnalyzer";
@@ -22,7 +22,7 @@ import {
 	type ScoreNoteIR,
 	type ScoreTempoEvent,
 	type ScoreTrackIR,
-	compileScoreTrackToSongSpec,
+	compileScoreTrackToSongDocumentV2,
 } from "./scoreIr";
 
 const ALPHATAB_TICKS_PER_QUARTER = 960;
@@ -72,7 +72,7 @@ export interface CommonImportOptions {
 
 export interface ImportedSongResult {
 	trackIr: ScoreTrackIR;
-	songSpec: CompactSongSpec;
+	songDoc: SongDocumentV2;
 	selectedTrack: TrackSummary;
 	availableTracks: TrackSummary[];
 }
@@ -539,6 +539,9 @@ function buildScoreIrFromAlphaTab(
 								note.isDead,
 							),
 							voiceIndex: sIdx * 8 + vIdx,
+							...(instrument === "piano" && stavesToImport.length >= 2
+								? { hand: sIdx === 0 ? ("rh" as const) : ("lh" as const) }
+								: {}),
 							...(stringIndex !== undefined ? { stringIndex } : {}),
 							...(fret !== undefined ? { fret } : {}),
 							...(finger !== undefined ? { finger } : {}),
@@ -606,7 +609,7 @@ function buildScoreIrFromAlphaTab(
 
 /**
  * Imports a Guitar Pro (.gp, .gp3-.gp8, .gpx) or MusicXML (.xml, .musicxml, .mxl)
- * buffer into canonical `ScoreTrackIR` and compiled `CompactSongSpec`.
+ * buffer into canonical `ScoreTrackIR` and compiled `SongDocumentV2`.
  */
 export function importScoreWithAlphaTab(
 	bytes: Uint8Array,
@@ -632,8 +635,8 @@ export function importScoreWithAlphaTab(
 		...(options.subtitle ? { subtitle: options.subtitle } : {}),
 		splitHalfBarHarmony: options.splitHalfBarHarmony,
 	};
-	const songSpec = compileScoreTrackToSongSpec(trackIr, compileOpts);
-	return { trackIr, songSpec, selectedTrack, availableTracks };
+	const songDoc = compileScoreTrackToSongDocumentV2(trackIr, compileOpts);
+	return { trackIr, songDoc, selectedTrack, availableTracks };
 }
 
 function summarizeMidiTrack(
@@ -736,7 +739,7 @@ function resolveMidiKeySignature(
 
 /**
  * Imports a Standard MIDI (.mid/.midi) binary buffer into canonical `ScoreTrackIR`
- * and compiled `CompactSongSpec`, running the Viterbi ergonomic solver & harmonic analyzer.
+ * and compiled `SongDocumentV2`, running the Viterbi ergonomic solver & harmonic analyzer.
  */
 export function importMidiBuffer(
 	bytes: Uint8Array,
@@ -904,6 +907,6 @@ export function importMidiBuffer(
 		...(options.subtitle ? { subtitle: options.subtitle } : {}),
 		splitHalfBarHarmony: options.splitHalfBarHarmony,
 	};
-	const songSpec = compileScoreTrackToSongSpec(trackIr, compileOpts);
-	return { trackIr, songSpec, selectedTrack, availableTracks };
+	const songDoc = compileScoreTrackToSongDocumentV2(trackIr, compileOpts);
+	return { trackIr, songDoc, selectedTrack, availableTracks };
 }

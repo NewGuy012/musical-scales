@@ -2,8 +2,11 @@ import { BACH_CELLO_SUITE_1_SPEC } from "./bachCelloSuite1";
 import { CANNONBALL_RAG_SPEC } from "./cannonballRag";
 import {
 	type ChordQuality,
+	FLAT_CHROMATIC,
 	type KeyMode,
+	SHARP_CHROMATIC,
 	ascendingNotesToMidi,
+	mod12,
 } from "./circleOfFifths";
 import { DEBUSSY_CLAIR_DE_LUNE_SPEC } from "./debussyClairDeLune";
 import type {
@@ -33,6 +36,8 @@ export type SongNoteTechnique =
 	| "pizzicato"
 	| "slur";
 
+export type SongHand = "rh" | "lh";
+
 export interface SongPerformanceNote {
 	midi: number;
 	durationSec: number;
@@ -40,6 +45,7 @@ export interface SongPerformanceNote {
 	technique?: SongNoteTechnique;
 	slideFromMidi?: number;
 	slurToNext?: boolean;
+	hand?: SongHand;
 }
 
 export interface SongSubBarChord {
@@ -126,6 +132,8 @@ export interface SongExample {
 	capo?: number;
 	theorySummary: string;
 	studyGuide?: SongStudyGuide;
+	/** Optional total bar count for lightweight catalog stubs prior to lazy load. */
+	barCount?: number;
 	steps: SongChordStep[];
 }
 
@@ -207,12 +215,455 @@ export function mapNotationBars(
 	});
 }
 
-export function hydrateSong({
-	idPrefix,
-	bars,
-	...meta
-}: CompactSongSpec): SongExample {
+export type SongStopTupleV2 =
+	| [stringIndex: number, fretOrSemitone: number]
+	| [stringIndex: number, semitone: number, finger: number]
+	| SongHand;
+
+/**
+ * Compact V2 note tuple:
+ * `[offsetTicks, durationTicks, midi, velocityPct(0..100), tech?, stop?, slideFromMidi?]`
+ */
+export type SongNoteTupleV2 = [
+	offsetTicks: number,
+	durationTicks: number,
+	midi: number,
+	velocity: number,
+	tech?: SongNoteTechnique | null,
+	stop?: SongStopTupleV2 | null,
+	slideFromMidi?: number,
+];
+
+export interface SongChordPaletteEntry {
+	roman: string;
+	quality: ChordQuality;
+	notes: string[];
+	degree: number;
+	slot?: number;
+	guitarKind?: GuitarChordKind;
+	displayMidi?: number[];
+}
+
+export interface SongBarV2 {
+	ts?: string;
+	barTicks?: number;
+	harmony: Array<[offsetTicks: number, chordKey: string]>;
+	cue?: string;
+	notes: SongNoteTupleV2[];
+}
+
+export interface SongDocumentV2 {
+	version: 2;
+	id: string;
+	idPrefix?: string;
+	title: string;
+	composerOrSource: string;
+	subtitle?: string;
+	instruments: InstrumentTab[];
+	tpq: number;
+	keySlot: number;
+	keyMode: KeyMode;
+	keyLabel: string;
+	timeSignature: string;
+	tempoMap: Array<[tick: number, bpm: number]>;
+	tuning?: number[];
+	capo?: number;
+	theorySummary: string;
+	studyGuide?: SongStudyGuide;
+	chords: Record<string, SongChordPaletteEntry>;
+	/** Optional playback order of 0-based indices into `bars` (supports repeat reuse). */
+	form?: number[];
+	bars: SongBarV2[];
+}
+
+export type AnySongSpec = CompactSongSpec | SongDocumentV2;
+
+export function isSongDocumentV2(spec: AnySongSpec): spec is SongDocumentV2 {
+	return (spec as SongDocumentV2).version === 2;
+}
+
+function defaultGuitarKindForQuality(quality: ChordQuality): GuitarChordKind {
+	return quality;
+}
+
+function preferFlatsForSongKey(keyLabel: string, keySlot: number): boolean {
+	if (keyLabel.includes("♭")) return true;
+	if (keyLabel.includes("♯")) return false;
+	return keySlot >= 8;
+}
+
+function formatMidiNoteLabelV2(midi: number, preferFlats: boolean): string {
+	const pc = mod12(midi);
+	const oct = Math.floor(midi / 12) - 1;
+	const names = preferFlats ? FLAT_CHROMATIC : SHARP_CHROMATIC;
+	return `${names[pc]}${oct}`;
+}
+
+function parseTimeSignatureTicksV2(ts: string, tpq: number): number {
+	const parts = ts.split("/");
+	const num = Number(parts[0]) || 4;
+	const den = Number(parts[1]) || 4;
+	return Math.max(1, Math.round((tpq * 4 * num) / den));
+}
+
+function buildTempoTicksToMs(
+	tpq: number,
+	tempoMap: readonly [number, number][],
+	speed = 1,
+): (tick: number) => number {
+	const safeTpq = Math.max(1, tpq);
+	const safeSpeed = Math.max(0.25, Math.min(2.5, speed));
+	const sorted = [...tempoMap]
+		.filter(([, bpm]) => bpm > 0)
+		.sort((a, b) => a[0] - b[0]);
+	if (sorted.length === 0 || sorted[0][0] > 0) {
+		sorted.unshift([0, sorted[0]?.[1] ?? 120]);
+	}
+
+	const segments: Array<{ startTick: number; startMs: number; bpm: number }> =
+		[];
+	let accMs = 0;
+	for (let i = 0; i < sorted.length; i++) {
+		const [tick, bpm] = sorted[i];
+		if (i > 0) {
+			const prev = sorted[i - 1];
+			accMs += ((tick - prev[0]) * 60000) / (prev[1] * safeSpeed * safeTpq);
+		}
+		segments.push({ startTick: tick, startMs: accMs, bpm });
+	}
+
+	return (tick: number) => {
+		let seg = segments[0];
+		for (let i = 1; i < segments.length; i++) {
+			if (segments[i].startTick <= tick) {
+				seg = segments[i];
+			} else {
+				break;
+			}
+		}
+		return (
+			seg.startMs +
+			((tick - seg.startTick) * 60000) / (seg.bpm * safeSpeed * safeTpq)
+		);
+	};
+}
+
+function resolvePaletteEntry(
+	chords: Record<string, SongChordPaletteEntry>,
+	key: string | undefined,
+): SongChordPaletteEntry {
+	if (key && chords[key]) return chords[key];
+	const firstKey = Object.keys(chords)[0];
+	if (firstKey) return chords[firstKey];
 	return {
+		roman: "I",
+		quality: "major",
+		notes: ["C", "E", "G"],
+		degree: 1,
+	};
+}
+
+export function scaleSongExampleSpeed(
+	song: SongExample,
+	speed: number,
+): SongExample {
+	const safeSpeed = Math.max(0.25, Math.min(2.5, speed));
+	if (Math.abs(safeSpeed - 1) < 0.001) return song;
+	const k = 1 / safeSpeed;
+	return {
+		...song,
+		bpm: Math.max(1, Math.round(song.bpm * safeSpeed)),
+		steps: song.steps.map((step) => ({
+			...step,
+			...(step.barDurationMs !== undefined
+				? { barDurationMs: Math.round(step.barDurationMs * k * 100) / 100 }
+				: {}),
+			...(step.subBarChords
+				? {
+						subBarChords: step.subBarChords.map((sub) => ({
+							...sub,
+							offsetMs: Math.round(sub.offsetMs * k * 100) / 100,
+						})),
+					}
+				: {}),
+			events: step.events.map((ev) => ({
+				...ev,
+				durationSec: Math.round(ev.durationSec * k * 1000) / 1000,
+				stepDurationMs: Math.max(
+					1,
+					Math.round(ev.stepDurationMs * k * 100) / 100,
+				),
+				...(ev.offsetMs !== undefined
+					? { offsetMs: Math.round(ev.offsetMs * k * 100) / 100 }
+					: {}),
+				...(ev.notes
+					? {
+							notes: ev.notes.map((n) => ({
+								...n,
+								durationSec: Math.round(n.durationSec * k * 1000) / 1000,
+							})),
+						}
+					: {}),
+			})),
+		})),
+	};
+}
+
+function hydrateSongV2(doc: SongDocumentV2, speed = 1): SongExample {
+	const ticksToMs = buildTempoTicksToMs(doc.tpq, doc.tempoMap, speed);
+	const initialBpm = Math.max(
+		1,
+		Math.round((doc.tempoMap[0]?.[1] ?? 120) * speed),
+	);
+	const preferFlats = preferFlatsForSongKey(doc.keyLabel, doc.keySlot);
+	const instrument = doc.instruments[0] ?? "guitar";
+	const idPrefix =
+		doc.idPrefix ?? doc.id.replace(/[^a-z0-9]/gi, "").slice(0, 6);
+	const barOrder =
+		doc.form && doc.form.length > 0 ? doc.form : doc.bars.map((_, idx) => idx);
+
+	let barStartTick = 0;
+	const steps: SongChordStep[] = barOrder.map((barIdx, playIdx) => {
+		const bar = doc.bars[barIdx] ?? doc.bars[0];
+		const barTicks =
+			bar?.barTicks ??
+			parseTimeSignatureTicksV2(bar?.ts ?? doc.timeSignature, doc.tpq);
+		const barStartMs = ticksToMs(barStartTick);
+		const barEndMs = ticksToMs(barStartTick + barTicks);
+		const barDurationMs = Math.max(
+			1,
+			Math.round((barEndMs - barStartMs) * 100) / 100,
+		);
+
+		const primaryChordKey = bar?.harmony[0]?.[1];
+		const primaryChord = resolvePaletteEntry(doc.chords, primaryChordKey);
+		const chordSymbol = primaryChordKey ?? doc.keyLabel.split(" ")[0] ?? "C";
+		const guitarKind =
+			primaryChord.guitarKind ??
+			defaultGuitarKindForQuality(primaryChord.quality);
+		const displayMidi =
+			primaryChord.displayMidi ?? ascendingNotesToMidi(primaryChord.notes);
+
+		const subBarChords: SongSubBarChord[] | undefined =
+			bar && bar.harmony.length > 1
+				? bar.harmony.map(([offTick, hKey]) => {
+						const hEntry = resolvePaletteEntry(doc.chords, hKey);
+						const offMs = Math.max(
+							0,
+							Math.round(
+								(ticksToMs(barStartTick + offTick) - barStartMs) * 100,
+							) / 100,
+						);
+						return {
+							offsetMs: offMs,
+							chordSymbol: hKey,
+							roman: hEntry.roman,
+							quality: hEntry.quality,
+							guitarKind:
+								hEntry.guitarKind ??
+								defaultGuitarKindForQuality(hEntry.quality),
+							chordNotes: hEntry.notes,
+							circleDegree: hEntry.degree,
+							...(hEntry.slot !== undefined
+								? { circleSlotIndex: hEntry.slot }
+								: {}),
+						};
+					})
+				: undefined;
+
+		const sortedNotes = [...(bar?.notes ?? [])].sort(
+			(a, b) => a[0] - b[0] || a[2] - b[2],
+		);
+		const groups: Array<{ offsetTicks: number; items: SongNoteTupleV2[] }> = [];
+		for (const note of sortedNotes) {
+			const last = groups[groups.length - 1];
+			if (last && last.offsetTicks === note[0]) {
+				last.items.push(note);
+			} else {
+				groups.push({ offsetTicks: note[0], items: [note] });
+			}
+		}
+
+		const events: SongNoteEvent[] = groups.map((group, gIdx) => {
+			const absStartTick = barStartTick + group.offsetTicks;
+			const absStartMs = ticksToMs(absStartTick);
+			const offsetMs = Math.round((absStartMs - barStartMs) * 100) / 100;
+			const nextTick =
+				gIdx + 1 < groups.length
+					? barStartTick + groups[gIdx + 1].offsetTicks
+					: barStartTick + barTicks;
+			const stepDurationMs = Math.max(
+				10,
+				Math.round((ticksToMs(nextTick) - absStartMs) * 100) / 100,
+			);
+
+			const perfNotes: SongPerformanceNote[] = group.items.map((item) => {
+				const [, durTicks, midi, velPct, tech, stop, slideFromMidi] = item;
+				const absEndMs = ticksToMs(absStartTick + Math.max(1, durTicks));
+				const durationSec = Math.max(
+					0.03,
+					Math.round(((absEndMs - absStartMs) / 1000) * 1000) / 1000,
+				);
+				const velocity = Math.max(0.05, Math.min(1, velPct / 100));
+				const hand = stop === "rh" || stop === "lh" ? stop : undefined;
+				return {
+					midi,
+					durationSec,
+					velocity,
+					...(tech && tech !== "normal" ? { technique: tech } : {}),
+					...(slideFromMidi !== undefined ? { slideFromMidi } : {}),
+					...(hand ? { hand } : {}),
+				};
+			});
+
+			const midis = perfNotes.map((n) => n.midi);
+			const maxDurationSec = Math.max(...perfNotes.map((n) => n.durationSec));
+			const avgVelocity =
+				Math.round(
+					(perfNotes.reduce((acc, n) => acc + (n.velocity ?? 0.8), 0) /
+						perfNotes.length) *
+						1000,
+				) / 1000;
+			const labels = midis.map((m) => formatMidiNoteLabelV2(m, preferFlats));
+			const noteLabel =
+				labels.length <= 3
+					? labels.join(" + ")
+					: `${labels[0]} chord (${labels.length} notes)`;
+
+			const event: SongNoteEvent = {
+				midi: midis,
+				offsetMs,
+				durationSec: maxDurationSec,
+				stepDurationMs,
+				notes: perfNotes,
+				velocity: avgVelocity,
+				noteLabel,
+				spreadSec: midis.length >= 3 ? 0.015 : 0,
+			};
+
+			const tupleStops = group.items.map((item) => item[5]);
+			if (
+				instrument === "guitar" &&
+				tupleStops.some((st) => Array.isArray(st))
+			) {
+				event.guitarStops = tupleStops
+					.filter((st): st is [number, number] | [number, number, number] =>
+						Array.isArray(st),
+					)
+					.map((st, idx): GuitarSongStop => {
+						const tech = perfNotes[idx]?.technique;
+						const mappedTech =
+							tech &&
+							(tech === "normal" ||
+								tech === "harmonic" ||
+								tech === "hammer" ||
+								tech === "pull" ||
+								tech === "slide" ||
+								tech === "palmMute" ||
+								tech === "letRing" ||
+								tech === "staccato")
+								? tech
+								: undefined;
+						return {
+							stringIndex: st[0],
+							fret: st[1],
+							...(mappedTech && mappedTech !== "normal"
+								? { technique: mappedTech }
+								: {}),
+						};
+					});
+			} else if (
+				(instrument === "cello" || instrument === "violin") &&
+				tupleStops.some((st) => Array.isArray(st))
+			) {
+				const bowedStops: BowedSongStop[] = tupleStops
+					.filter((st): st is [number, number] | [number, number, number] =>
+						Array.isArray(st),
+					)
+					.map((st, idx) => {
+						const tech = perfNotes[idx]?.technique;
+						const mappedTech =
+							tech &&
+							(tech === "normal" ||
+								tech === "harmonic" ||
+								tech === "portamento" ||
+								tech === "staccato" ||
+								tech === "pizzicato" ||
+								tech === "slur")
+								? tech
+								: undefined;
+						return {
+							stringIndex: st[0],
+							semitone: st[1],
+							finger: st[2] ?? 1,
+							...(mappedTech && mappedTech !== "normal"
+								? { technique: mappedTech }
+								: {}),
+						};
+					});
+				if (instrument === "cello") event.celloStops = bowedStops;
+				else event.violinStops = bowedStops;
+			}
+
+			return event;
+		});
+
+		const firstEventMidi = events[0]?.midi;
+		const effectiveDisplayMidi =
+			firstEventMidi && firstEventMidi.length > 0
+				? firstEventMidi
+				: displayMidi;
+
+		barStartTick += barTicks;
+		return {
+			id: `${idPrefix}-bar-${playIdx + 1}`,
+			barLabel: `Bar ${playIdx + 1}`,
+			chordSymbol,
+			roman: primaryChord.roman,
+			quality: primaryChord.quality,
+			guitarKind,
+			chordNotes: primaryChord.notes,
+			displayMidi: effectiveDisplayMidi,
+			circleDegree: primaryChord.degree,
+			...(primaryChord.slot !== undefined
+				? { circleSlotIndex: primaryChord.slot }
+				: {}),
+			cue: bar?.cue || `${chordSymbol} (${primaryChord.roman})`,
+			barDurationMs,
+			...(subBarChords ? { subBarChords } : {}),
+			events,
+		};
+	});
+
+	return {
+		id: doc.id,
+		title: doc.title,
+		composerOrSource: doc.composerOrSource,
+		subtitle: doc.subtitle ?? `${doc.keyLabel} (${doc.timeSignature})`,
+		instruments: doc.instruments,
+		keySlot: doc.keySlot,
+		keyMode: doc.keyMode,
+		keyLabel: doc.keyLabel,
+		timeSignature: doc.timeSignature,
+		bpm: initialBpm,
+		...(doc.tuning ? { tuning: doc.tuning } : {}),
+		...(doc.capo ? { capo: doc.capo } : {}),
+		theorySummary: doc.theorySummary,
+		...(doc.studyGuide ? { studyGuide: doc.studyGuide } : {}),
+		steps,
+	};
+}
+
+export function hydrateSong(
+	spec: AnySongSpec,
+	options?: { speed?: number },
+): SongExample {
+	const speed = options?.speed ?? 1;
+	if (isSongDocumentV2(spec)) {
+		return hydrateSongV2(spec, speed);
+	}
+	const { idPrefix, bars, ...meta } = spec;
+	const song: SongExample = {
 		...meta,
 		steps: bars.map(
 			([
@@ -250,6 +701,9 @@ export function hydrateSong({
 			}),
 		),
 	};
+	return Math.abs(speed - 1) >= 0.001
+		? scaleSongExampleSpeed(song, speed)
+		: song;
 }
 
 export const SONG_EXAMPLES: SongExample[] = [

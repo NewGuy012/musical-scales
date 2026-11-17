@@ -16,6 +16,7 @@ import {
 	type ScoreBarIR,
 	type ScoreTrackIR,
 	buildTempoConverter,
+	compileScoreTrackToSongDocumentV2,
 	compileScoreTrackToSongSpec,
 	formatSongSpecModule,
 	linearizeRepeatedBars,
@@ -299,20 +300,25 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 			id: "drop-d-study",
 			composerOrSource: "Test Suite",
 		});
-		const { trackIr, songSpec } = imported;
+		const { trackIr, songDoc } = imported;
+		expect(songDoc.version).toBe(2);
 		expect(trackIr.tuningMidi).toEqual([38, 45, 50, 55, 59, 64]);
-		expect(songSpec.tuning).toEqual([38, 45, 50, 55, 59, 64]);
-		expect(songSpec.keyLabel).toBe("D Major");
-		// Bar 1 repeated (pass 1 = 1st ending), then skipped into Bar 2 (2nd ending) => 2 or 3 linear bars depending on ending structure;
-		// specifically Bar 1 is both body+1st ending so repeat unrolls cleanly to [Bar 1, Bar 2] or [Bar 1, Bar 1, Bar 2]
-		expect(songSpec.bars.length).toBeGreaterThanOrEqual(2);
+		expect(songDoc.tuning).toEqual([38, 45, 50, 55, 59, 64]);
+		expect(songDoc.keyLabel).toBe("D Major");
+		expect(Object.keys(songDoc.chords).length).toBeGreaterThanOrEqual(1);
+		expect(songDoc.bars.length).toBeGreaterThanOrEqual(2);
 		// Tied quarter + quarter merges into half-note durationTicks (1920 ticks) on Beat 1
 		expect(trackIr.bars[0].notes).toHaveLength(3);
 		expect(trackIr.bars[0].notes[0].durationTicks).toBe(1920);
 		expect(trackIr.bars[0].notes[1].technique).toBe("harmonic");
 
-		const song = hydrateSong(songSpec);
+		const roundtripped = JSON.parse(JSON.stringify(songDoc));
+		const song = hydrateSong(roundtripped);
 		const flat = flattenSongPlaybackSteps(song);
+		const halfSpeedSong = hydrateSong(roundtripped, { speed: 0.5 });
+		expect(halfSpeedSong.steps[0].barDurationMs).toBe(
+			(song.steps[0].barDurationMs ?? 0) * 2,
+		);
 		const pcm = renderTimedSequenceOfflineSamples(flat.events, {
 			preset: "guitar",
 			sampleRate: 22050,
@@ -346,10 +352,10 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 </score-partwise>`;
 
 		const bytes = new TextEncoder().encode(celloXml);
-		const { trackIr, songSpec } = importScoreWithAlphaTab(bytes);
+		const { trackIr, songDoc } = importScoreWithAlphaTab(bytes);
 		expect(trackIr.instrument).toBe("cello");
-		expect(songSpec.keyLabel).toBe("G Major");
-		const song = hydrateSong(songSpec);
+		expect(songDoc.keyLabel).toBe("G Major");
+		const song = hydrateSong(songDoc);
 		expect(song.steps[0].events).toHaveLength(3);
 		// D5 (MIDI 74) = 17 semitones above Cello A3 (57) -> needs extended MAX_SONG_BOWED_SEMITONE
 		const thumbStop = song.steps[0].events[2].celloStops?.[0];
@@ -413,14 +419,14 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 		expect(inspected.tracks).toHaveLength(2);
 		expect(inspected.tracks[0].isPercussion).toBe(true);
 
-		const { songSpec, selectedTrack } = importMidiBuffer(bytes, {
+		const { songDoc, selectedTrack } = importMidiBuffer(bytes, {
 			quantizeSubdivision: 16,
 		});
 		expect(selectedTrack.index).toBe(1);
-		expect(songSpec.instruments).toEqual(["guitar"]);
-		expect(songSpec.keyLabel).toBe("A Minor");
+		expect(songDoc.instruments).toEqual(["guitar"]);
+		expect(songDoc.keyLabel).toBe("A Minor");
 
-		const song = hydrateSong(songSpec);
+		const song = hydrateSong(songDoc);
 		expect(song.steps).toHaveLength(2);
 		// Quantizer should align staggered 0-tick and 10-tick attacks into a single dyad
 		expect(song.steps[0].events[0].midi).toEqual([45, 64]);
@@ -430,7 +436,7 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 		expect(song.steps[1].barDurationMs).toBe(1600);
 	});
 
-	test("imports grand-staff Piano MusicXML merging treble and bass staves", () => {
+	test("imports grand-staff Piano MusicXML merging treble and bass staves with hand tags", () => {
 		const pianoXml = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="3.1">
   <work><work-title>Grand Staff Prelude</work-title></work>
@@ -456,13 +462,18 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 </score-partwise>`;
 
 		const bytes = new TextEncoder().encode(pianoXml);
-		const { trackIr, songSpec } = importScoreWithAlphaTab(bytes);
+		const { trackIr, songDoc } = importScoreWithAlphaTab(bytes);
 		expect(trackIr.instrument).toBe("piano");
-		expect(songSpec.instruments).toEqual(["piano"]);
+		expect(songDoc.instruments).toEqual(["piano"]);
 
-		const song = hydrateSong(songSpec);
+		const song = hydrateSong(songDoc);
 		// Beat 1 combines LH C3 (48) + RH C5 (72), E5 (76) from both staves
 		expect(song.steps[0].events[0].midi).toEqual([48, 72, 76]);
+		expect(song.steps[0].events[0].notes?.map((n) => n.hand)).toEqual([
+			"lh",
+			"rh",
+			"rh",
+		]);
 		expect(song.steps[0].events[0].guitarStops).toBeUndefined();
 		expect(song.steps[0].events[0].celloStops).toBeUndefined();
 		expect(song.steps[0].events[1].midi).toEqual([79]);
@@ -501,13 +512,50 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 		pianoTrack.addCC({ number: 64, ticks: 0, value: 1 });
 		pianoTrack.addCC({ number: 64, ticks: ppq * 3, value: 0 });
 
-		const { trackIr, songSpec } = importMidiBuffer(midi.toArray(), {
+		const { trackIr, songDoc } = importMidiBuffer(midi.toArray(), {
 			quantizeSubdivision: 16,
 		});
 		expect(trackIr.instrument).toBe("piano");
-		expect(songSpec.instruments).toEqual(["piano"]);
+		expect(songDoc.instruments).toEqual(["piano"]);
 		// Both C3 and E4 should sustain until pedal lift at tick 3 * ppq
 		expect(trackIr.bars[0].notes[0].durationTicks).toBe(ppq * 3);
 		expect(trackIr.bars[0].notes[1].durationTicks).toBe(ppq * 2);
+	});
+
+	test("compileScoreTrackToSongDocumentV2 deduplicates repeated bars into form sequence", () => {
+		const v2 = compileScoreTrackToSongDocumentV2({
+			id: "form-repeat-test",
+			title: "Form Repeat Test",
+			composerOrSource: "Test",
+			instrument: "guitar",
+			ticksPerQuarter: 480,
+			tempoEvents: [{ atTick: 0, bpm: 120 }],
+			bars: [
+				{
+					barNumber: 1,
+					repeatStart: true,
+					repeatEndCount: 2,
+					notes: [
+						{ midi: 43, offsetTicks: 0, durationTicks: 480, velocity: 0.8 },
+						{ midi: 59, offsetTicks: 480, durationTicks: 480, velocity: 0.75 },
+					],
+				},
+				{
+					barNumber: 2,
+					notes: [
+						{ midi: 48, offsetTicks: 0, durationTicks: 960, velocity: 0.85 },
+					],
+				},
+			],
+		});
+		expect(v2.bars).toHaveLength(2);
+		expect(v2.form).toEqual([0, 0, 1]);
+		const hydrated = hydrateSong(v2);
+		expect(hydrated.steps).toHaveLength(3);
+		expect(hydrated.steps[0].barDurationMs).toBe(2000);
+		expect(hydrated.steps[1].barDurationMs).toBe(2000);
+		expect(formatSongSpecModule(v2, "formRepeatSpec")).toContain(
+			"export const formRepeatSpec: SongDocumentV2",
+		);
 	});
 });

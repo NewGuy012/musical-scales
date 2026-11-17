@@ -15,7 +15,10 @@ import {
 	inspectAlphaTabScore,
 	inspectMidiFile,
 } from "./transcription/importers";
-import { formatSongSpecModule } from "./transcription/scoreIr";
+import {
+	compileScoreTrackToSongSpec,
+	formatSongSpecModule,
+} from "./transcription/scoreIr";
 
 const MIDI_EXTENSIONS = new Set([".mid", ".midi"]);
 const SCORE_EXTENSIONS = new Set([
@@ -49,9 +52,10 @@ Options:
       --subtitle <text>     Override subtitle
       --quantize <n>        Snap note offsets to 4/n quarter-note grid (e.g. 16, 8, 0 to disable)
       --split-chords        Infer half-bar sub-bar harmony splits
+      --legacy              Emit legacy v1 CompactSongSpec instead of SongDocumentV2
       --export <name>       TypeScript export identifier (when --out ends in .ts)
-  -o, --out <path>          Write CompactSongSpec as .ts module or .json file
-      --json                Print CompactSongSpec JSON to stdout
+  -o, --out <path>          Write SongDocumentV2 (or legacy spec) as .ts or .json file
+      --json                Print compiled JSON to stdout
       --wav <path>          Render offline 22.05 kHz WAV preview for listening verification
   -h, --help                Show this help
 `);
@@ -86,6 +90,7 @@ async function main(): Promise<void> {
 			subtitle: { type: "string" },
 			quantize: { type: "string" },
 			"split-chords": { type: "boolean" },
+			legacy: { type: "boolean" },
 			export: { type: "string" },
 			out: { type: "string", short: "o" },
 			json: { type: "boolean" },
@@ -181,8 +186,19 @@ async function main(): Promise<void> {
 		? importMidiBuffer(bytes, importOptions)
 		: importScoreWithAlphaTab(bytes, importOptions);
 
-	const { songSpec, selectedTrack } = imported;
-	const song = hydrateSong(songSpec);
+	const { trackIr, songDoc, selectedTrack } = imported;
+	const outputSpec = values.legacy
+		? compileScoreTrackToSongSpec(trackIr, {
+				...(importOptions.id ? { id: importOptions.id } : {}),
+				...(importOptions.title ? { title: importOptions.title } : {}),
+				...(importOptions.composerOrSource
+					? { composerOrSource: importOptions.composerOrSource }
+					: {}),
+				...(importOptions.subtitle ? { subtitle: importOptions.subtitle } : {}),
+				splitHalfBarHarmony: importOptions.splitHalfBarHarmony,
+			})
+		: songDoc;
+	const song = hydrateSong(outputSpec);
 	const flat = flattenSongPlaybackSteps(song);
 
 	if (values.out) {
@@ -190,10 +206,10 @@ async function main(): Promise<void> {
 		const content =
 			outExt === ".ts"
 				? formatSongSpecModule(
-						songSpec,
-						values.export || toCamelCaseExportName(songSpec.id),
+						outputSpec,
+						values.export || toCamelCaseExportName(outputSpec.id),
 					)
-				: `${JSON.stringify(songSpec, null, "\t")}\n`;
+				: `${JSON.stringify(outputSpec, null, "\t")}\n`;
 		await Bun.write(values.out, content);
 		console.error(`Wrote ${values.out}`);
 	}
@@ -215,15 +231,15 @@ async function main(): Promise<void> {
 	}
 
 	if (values.json) {
-		console.log(JSON.stringify(songSpec, null, "\t"));
+		console.log(JSON.stringify(outputSpec, null, "\t"));
 		return;
 	}
 
 	console.error(
-		`Imported "${songSpec.title}" (${primaryInstrument}) from track [${selectedTrack.index}] "${selectedTrack.name}"`,
+		`Imported "${song.title}" (${primaryInstrument}, v${values.legacy ? 1 : 2}) from track [${selectedTrack.index}] "${selectedTrack.name}"`,
 	);
 	console.error(
-		`  Key: ${songSpec.keyLabel} | Tempo: ~${songSpec.bpm} BPM | Bars: ${song.steps.length} | Steps: ${flat.events.length} | Duration: ${(flat.totalDurationMs / 1000).toFixed(2)}s`,
+		`  Key: ${song.keyLabel} | Tempo: ~${song.bpm} BPM | Bars: ${song.steps.length} | Steps: ${flat.events.length} | Duration: ${(flat.totalDurationMs / 1000).toFixed(2)}s`,
 	);
 }
 

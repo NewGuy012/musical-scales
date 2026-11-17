@@ -8,9 +8,15 @@ import type {
 	CompactSongSpec,
 	GuitarSongStop,
 	InstrumentTab,
+	SongBarV2,
+	SongChordPaletteEntry,
+	SongDocumentV2,
+	SongHand,
 	SongNoteEvent,
 	SongNoteTechnique,
+	SongNoteTupleV2,
 	SongPerformanceNote,
+	SongStopTupleV2,
 	SongStudyGuide,
 	SongSubBarChord,
 } from "../../src/react-app/theory/songExamples";
@@ -44,6 +50,7 @@ export interface ScoreNoteIR {
 	technique?: SongNoteTechnique;
 	slideFromMidi?: number;
 	slurToNext?: boolean;
+	hand?: SongHand;
 }
 
 export interface ScoreBarIR {
@@ -259,13 +266,61 @@ function inferSectionGuide(
 	};
 }
 
-export function compileScoreTrackToSongSpec(
+interface PreparedOnsetBatch {
+	barIdx: number;
+	offsetTicks: number;
+	notes: ScoreNoteIR[];
+}
+
+interface PreparedBarPlan {
+	barStartTick: number;
+	barDurationTicks: number;
+	ts: { numerator: number; denominator: number };
+	onsetBatches: PreparedOnsetBatch[];
+	stopsPerBatch: ReturnType<typeof solveInstrumentStops>;
+	primaryHarmony: InferredHarmony;
+	harmonyMarks: Array<{ offsetTicks: number; harmony: InferredHarmony }>;
+}
+
+interface PreparedScorePlan {
+	tpq: number;
+	firstTs: string;
+	title: string;
+	id: string;
+	idPrefix: string;
+	composerOrSource: string;
+	subtitle: string;
+	keyInfo: ReturnType<typeof detectKeyFromEvents>;
+	initialBpm: number;
+	tempoMap: Array<[number, number]>;
+	tickToMs: (tick: number) => number;
+	linearBars: ScoreBarIR[];
+	bars: PreparedBarPlan[];
+	guideInput: {
+		barNumber: number;
+		sectionMarker?: string;
+		harmony: InferredHarmony;
+	}[];
+}
+
+function prepareScoreCompilationPlan(
 	track: ScoreTrackIR,
 	options: CompileScoreOptions = {},
-): CompactSongSpec {
+): PreparedScorePlan {
 	const linearBars = linearizeRepeatedBars(track.bars);
 	const tpq = Math.max(1, track.ticksPerQuarter);
 	const { tickToMs, initialBpm } = buildTempoConverter(tpq, track.tempoEvents);
+
+	const rawTempos = [...track.tempoEvents]
+		.filter((t) => t.bpm > 0 && Number.isFinite(t.bpm))
+		.sort((a, b) => a.atTick - b.atTick);
+	const tempoMap: Array<[number, number]> =
+		rawTempos.length === 0 || rawTempos[0].atTick > 0
+			? [
+					[0, initialBpm],
+					...rawTempos.map((t): [number, number] => [t.atTick, t.bpm]),
+				]
+			: rawTempos.map((t): [number, number] => [t.atTick, t.bpm]);
 
 	let activeTs = linearBars[0]?.timeSignature ?? {
 		numerator: 4,
@@ -283,17 +338,11 @@ export function compileScoreTrackToSongSpec(
 	const keyInfo =
 		track.keySignature ?? detectKeyFromEvents(allWeightedNotes, false);
 
-	// 1. Assign exact bar start ticks and onset groups for the ergonomic solver
-	interface OnsetBatch {
-		barIdx: number;
-		offsetTicks: number;
-		notes: ScoreNoteIR[];
-	}
 	const barMetaList: {
 		barStartTick: number;
 		barDurationTicks: number;
 		ts: { numerator: number; denominator: number };
-		onsetBatches: OnsetBatch[];
+		onsetBatches: PreparedOnsetBatch[];
 	}[] = [];
 	const allOnsetGroups: SolverOnsetGroup[] = [];
 	let curBarTick = 0;
@@ -304,7 +353,7 @@ export function compileScoreTrackToSongSpec(
 		const sortedNotes = [...bar.notes].sort(
 			(a, b) => a.offsetTicks - b.offsetTicks || a.midi - b.midi,
 		);
-		const batches: OnsetBatch[] = [];
+		const batches: PreparedOnsetBatch[] = [];
 		for (const note of sortedNotes) {
 			const prevBatch = batches[batches.length - 1];
 			if (
@@ -339,7 +388,6 @@ export function compileScoreTrackToSongSpec(
 		curBarTick += barDurTicks;
 	});
 
-	// 2. Solve ergonomic stops across the entire piece continuously
 	const solvedStops = solveInstrumentStops(
 		allOnsetGroups,
 		track.instrument,
@@ -348,25 +396,17 @@ export function compileScoreTrackToSongSpec(
 	);
 	let globalBatchCursor = 0;
 
-	// 3. Build CompactSongBar entries + harmony
-	const compactBars: CompactSongBar[] = [];
-	const guideInput: {
-		barNumber: number;
-		sectionMarker?: string;
-		harmony: InferredHarmony;
-	}[] = [];
-
-	linearBars.forEach((bar, idx) => {
+	const guideInput: PreparedScorePlan["guideInput"] = [];
+	const bars: PreparedBarPlan[] = linearBars.map((bar, idx) => {
 		const meta = barMetaList[idx];
-		const barStartMs = tickToMs(meta.barStartTick);
-		const barEndMs = tickToMs(meta.barStartTick + meta.barDurationTicks);
-		const barDurationMs = Math.max(1, Math.round(barEndMs - barStartMs));
+		const stopsPerBatch = meta.onsetBatches.map(
+			() => solvedStops[globalBatchCursor++] ?? [],
+		);
 
-		// Resolve bar harmony (explicit harmony mark or beat-weighted inference)
-		let harmony: InferredHarmony;
+		let primaryHarmony: InferredHarmony;
 		const explicitMarks = bar.harmonies ?? [];
 		if (explicitMarks.length > 0) {
-			harmony =
+			primaryHarmony =
 				resolveExplicitChordSymbol(
 					explicitMarks[0].chordSymbol,
 					keyInfo.keySlot,
@@ -380,7 +420,7 @@ export function compileScoreTrackToSongSpec(
 					tpq,
 				);
 		} else {
-			harmony = inferHarmonyForWindow(
+			primaryHarmony = inferHarmonyForWindow(
 				bar.notes,
 				keyInfo.keySlot,
 				keyInfo.keyMode,
@@ -389,33 +429,26 @@ export function compileScoreTrackToSongSpec(
 			);
 		}
 
-		let subBarChords: SongSubBarChord[] | undefined;
+		let harmonyMarks: Array<{
+			offsetTicks: number;
+			harmony: InferredHarmony;
+		}> = [{ offsetTicks: 0, harmony: primaryHarmony }];
+
 		if (explicitMarks.length > 1) {
-			subBarChords = explicitMarks.map((mark) => {
-				const resolved =
+			harmonyMarks = explicitMarks.map((mark) => ({
+				offsetTicks: Math.max(0, mark.offsetTicks),
+				harmony:
 					resolveExplicitChordSymbol(
 						mark.chordSymbol,
 						keyInfo.keySlot,
 						keyInfo.keyMode,
-					) ?? harmony;
-				const absTick = meta.barStartTick + mark.offsetTicks;
-				return {
-					offsetMs: Math.max(0, Math.round(tickToMs(absTick) - barStartMs)),
-					chordSymbol: resolved.chordSymbol,
-					roman: resolved.roman,
-					quality: resolved.quality,
-					guitarKind: resolved.guitarKind,
-					chordNotes: resolved.chordNotes,
-					circleDegree: resolved.circleDegree,
-					circleSlotIndex: resolved.circleSlotIndex,
-				};
-			});
+					) ?? primaryHarmony,
+			}));
 		} else if (
 			options.splitHalfBarHarmony &&
 			meta.barDurationTicks >= tpq * 2 &&
 			bar.notes.length >= 4
 		) {
-			const midTick = Math.round(meta.barStartTick + meta.barDurationTicks / 2);
 			const halfOffset = Math.round(meta.barDurationTicks / 2);
 			const firstHalf = bar.notes.filter((n) => n.offsetTicks < halfOffset);
 			const secondHalf = bar.notes.filter((n) => n.offsetTicks >= halfOffset);
@@ -435,43 +468,105 @@ export function compileScoreTrackToSongSpec(
 					tpq,
 				);
 				if (h1.chordSymbol !== h2.chordSymbol) {
-					harmony = h1;
-					subBarChords = [
-						{
-							offsetMs: 0,
-							chordSymbol: h1.chordSymbol,
-							roman: h1.roman,
-							quality: h1.quality,
-							guitarKind: h1.guitarKind,
-							chordNotes: h1.chordNotes,
-							circleDegree: h1.circleDegree,
-							circleSlotIndex: h1.circleSlotIndex,
-						},
-						{
-							offsetMs: Math.max(0, Math.round(tickToMs(midTick) - barStartMs)),
-							chordSymbol: h2.chordSymbol,
-							roman: h2.roman,
-							quality: h2.quality,
-							guitarKind: h2.guitarKind,
-							chordNotes: h2.chordNotes,
-							circleDegree: h2.circleDegree,
-							circleSlotIndex: h2.circleSlotIndex,
-						},
+					primaryHarmony = h1;
+					harmonyMarks = [
+						{ offsetTicks: 0, harmony: h1 },
+						{ offsetTicks: halfOffset, harmony: h2 },
 					];
 				}
 			}
 		}
 
-		const events: SongNoteEvent[] = meta.onsetBatches.map((batch) => {
-			const stops = solvedStops[globalBatchCursor++] ?? [];
+		guideInput.push({
+			barNumber: idx + 1,
+			sectionMarker: bar.sectionMarker,
+			harmony: primaryHarmony,
+		});
+
+		return {
+			barStartTick: meta.barStartTick,
+			barDurationTicks: meta.barDurationTicks,
+			ts: meta.ts,
+			onsetBatches: meta.onsetBatches,
+			stopsPerBatch,
+			primaryHarmony,
+			harmonyMarks,
+		};
+	});
+
+	const title = options.title ?? track.title;
+	const id = options.id ?? track.id;
+	const idPrefix =
+		options.idPrefix ??
+		(id
+			.replace(/[^a-zA-Z0-9]/g, "")
+			.slice(0, 6)
+			.toLowerCase() ||
+			"song");
+
+	return {
+		tpq,
+		firstTs,
+		title,
+		id,
+		idPrefix,
+		composerOrSource: options.composerOrSource ?? track.composerOrSource,
+		subtitle:
+			options.subtitle ??
+			track.subtitle ??
+			`${keyInfo.keyLabel} (${firstTs}) · Imported ${track.instrument} score`,
+		keyInfo,
+		initialBpm,
+		tempoMap,
+		tickToMs,
+		linearBars,
+		bars,
+		guideInput,
+	};
+}
+
+export function compileScoreTrackToSongSpec(
+	track: ScoreTrackIR,
+	options: CompileScoreOptions = {},
+): CompactSongSpec {
+	const plan = prepareScoreCompilationPlan(track, options);
+	const compactBars: CompactSongBar[] = plan.linearBars.map((bar, idx) => {
+		const meta = plan.bars[idx];
+		const harmony = meta.primaryHarmony;
+		const barStartMs = plan.tickToMs(meta.barStartTick);
+		const barEndMs = plan.tickToMs(meta.barStartTick + meta.barDurationTicks);
+		const barDurationMs = Math.max(1, Math.round(barEndMs - barStartMs));
+
+		const subBarChords: SongSubBarChord[] | undefined =
+			meta.harmonyMarks.length > 1
+				? meta.harmonyMarks.map((mark) => ({
+						offsetMs: Math.max(
+							0,
+							Math.round(
+								plan.tickToMs(meta.barStartTick + mark.offsetTicks) -
+									barStartMs,
+							),
+						),
+						chordSymbol: mark.harmony.chordSymbol,
+						roman: mark.harmony.roman,
+						quality: mark.harmony.quality,
+						guitarKind: mark.harmony.guitarKind,
+						chordNotes: mark.harmony.chordNotes,
+						circleDegree: mark.harmony.circleDegree,
+						circleSlotIndex: mark.harmony.circleSlotIndex,
+					}))
+				: undefined;
+
+		const events: SongNoteEvent[] = meta.onsetBatches.map((batch, bIdx) => {
+			const stops = meta.stopsPerBatch[bIdx] ?? [];
 			const absStartTick = meta.barStartTick + batch.offsetTicks;
 			const onsetMs = Math.max(
 				0,
-				Math.round(tickToMs(absStartTick) - barStartMs),
+				Math.round(plan.tickToMs(absStartTick) - barStartMs),
 			);
 			const perfNotes: SongPerformanceNote[] = batch.notes.map((n) => {
-				const noteStartMs = tickToMs(meta.barStartTick + n.offsetTicks);
-				const noteEndMs = tickToMs(
+				const noteStartMs = plan.tickToMs(meta.barStartTick + n.offsetTicks);
+				const noteEndMs = plan.tickToMs(
 					meta.barStartTick + n.offsetTicks + Math.max(1, n.durationTicks),
 				);
 				const durationSec = Number(
@@ -488,6 +583,7 @@ export function compileScoreTrackToSongSpec(
 						? { slideFromMidi: n.slideFromMidi }
 						: {}),
 					...(n.slurToNext ? { slurToNext: true } : {}),
+					...(n.hand ? { hand: n.hand } : {}),
 				};
 			});
 
@@ -495,7 +591,9 @@ export function compileScoreTrackToSongSpec(
 			const maxTicks = Math.max(...batch.notes.map((n) => n.durationTicks));
 			const stepDurationMs = Math.max(
 				40,
-				Math.round(tickToMs(absStartTick + maxTicks) - tickToMs(absStartTick)),
+				Math.round(
+					plan.tickToMs(absStartTick + maxTicks) - plan.tickToMs(absStartTick),
+				),
 			);
 			const topMidi = Math.max(...batch.notes.map((n) => n.midi));
 			const noteLabel =
@@ -582,7 +680,7 @@ export function compileScoreTrackToSongSpec(
 			bar.cue ||
 			`${bar.sectionMarker ? `[${bar.sectionMarker}] ` : ""}${harmony.chordSymbol} (${harmony.roman})`;
 
-		compactBars.push([
+		return [
 			barNumber,
 			harmony.chordSymbol,
 			harmony.roman,
@@ -598,52 +696,230 @@ export function compileScoreTrackToSongSpec(
 				barDurationMs,
 				...(subBarChords ? { subBarChords } : {}),
 			},
-		]);
-		guideInput.push({
-			barNumber,
-			sectionMarker: bar.sectionMarker,
-			harmony,
-		});
+		];
 	});
 
-	const title = options.title ?? track.title;
-	const id = options.id ?? track.id;
-	const idPrefix =
-		options.idPrefix ??
-		(id
-			.replace(/[^a-zA-Z0-9]/g, "")
-			.slice(0, 6)
-			.toLowerCase() ||
-			"song");
-
 	return {
-		id,
-		idPrefix,
-		title,
-		composerOrSource: options.composerOrSource ?? track.composerOrSource,
-		subtitle:
-			options.subtitle ??
-			track.subtitle ??
-			`${keyInfo.keyLabel} (${firstTs}) · Imported ${track.instrument} score`,
+		id: plan.id,
+		idPrefix: plan.idPrefix,
+		title: plan.title,
+		composerOrSource: plan.composerOrSource,
+		subtitle: plan.subtitle,
 		instruments: [track.instrument],
-		keySlot: keyInfo.keySlot,
-		keyMode: keyInfo.keyMode,
-		keyLabel: keyInfo.keyLabel,
-		timeSignature: firstTs,
-		bpm: initialBpm,
+		keySlot: plan.keyInfo.keySlot,
+		keyMode: plan.keyInfo.keyMode,
+		keyLabel: plan.keyInfo.keyLabel,
+		timeSignature: plan.firstTs,
+		bpm: plan.initialBpm,
 		...(track.tuningMidi ? { tuning: track.tuningMidi } : {}),
 		...(track.capo ? { capo: track.capo } : {}),
-		theorySummary: `Compiled from canonical score data in ${keyInfo.keyLabel} (${firstTs}, ${initialBpm} BPM) with polyphonic timing, dynamics, and ergonomic ${track.instrument} fingerings.`,
+		theorySummary: `Compiled from canonical score data in ${plan.keyInfo.keyLabel} (${plan.firstTs}, ${plan.initialBpm} BPM) with polyphonic timing, dynamics, and ergonomic ${track.instrument} fingerings.`,
 		studyGuide:
 			options.studyGuide ??
-			inferSectionGuide(guideInput, title, keyInfo.keyLabel, track.instrument),
+			inferSectionGuide(
+				plan.guideInput,
+				plan.title,
+				plan.keyInfo.keyLabel,
+				track.instrument,
+			),
 		bars: compactBars,
 	};
 }
 
+function registerChordInPalette(
+	palette: Record<string, SongChordPaletteEntry>,
+	harmony: InferredHarmony,
+): string {
+	const base = harmony.chordSymbol;
+	const existing = palette[base];
+	if (
+		existing &&
+		existing.roman === harmony.roman &&
+		existing.quality === harmony.quality &&
+		existing.notes.join(",") === harmony.chordNotes.join(",")
+	) {
+		return base;
+	}
+	let key = base;
+	if (existing) {
+		key = `${base} (${harmony.roman})`;
+	}
+	if (!palette[key]) {
+		palette[key] = {
+			roman: harmony.roman,
+			quality: harmony.quality,
+			notes: harmony.chordNotes,
+			degree: harmony.circleDegree,
+			...(harmony.circleSlotIndex !== undefined
+				? { slot: harmony.circleSlotIndex }
+				: {}),
+			...(harmony.guitarKind !== harmony.quality
+				? { guitarKind: harmony.guitarKind }
+				: {}),
+		};
+	}
+	return key;
+}
+
+function encodeNoteTupleV2(
+	note: ScoreNoteIR,
+	instrument: InstrumentTab,
+	stop: ReturnType<typeof solveInstrumentStops>[number][number] | undefined,
+): SongNoteTupleV2 {
+	const velPct = Math.max(5, Math.min(100, Math.round(note.velocity * 100)));
+	let tupleStop: SongStopTupleV2 | undefined;
+	if (stop) {
+		tupleStop =
+			instrument === "guitar"
+				? [stop.stringIndex, stop.fret]
+				: [stop.stringIndex, stop.fret, stop.finger ?? 1];
+	} else if (instrument === "piano" && note.hand) {
+		tupleStop = note.hand;
+	}
+
+	const tech =
+		note.technique && note.technique !== "normal" ? note.technique : undefined;
+
+	if (note.slideFromMidi !== undefined) {
+		return [
+			note.offsetTicks,
+			Math.max(1, note.durationTicks),
+			note.midi,
+			velPct,
+			tech ?? null,
+			tupleStop ?? null,
+			note.slideFromMidi,
+		];
+	}
+	if (tupleStop !== undefined) {
+		return [
+			note.offsetTicks,
+			Math.max(1, note.durationTicks),
+			note.midi,
+			velPct,
+			tech ?? null,
+			tupleStop,
+		];
+	}
+	if (tech !== undefined) {
+		return [
+			note.offsetTicks,
+			Math.max(1, note.durationTicks),
+			note.midi,
+			velPct,
+			tech,
+		];
+	}
+	return [note.offsetTicks, Math.max(1, note.durationTicks), note.midi, velPct];
+}
+
+function dedupeBarsToForm(bars: readonly SongBarV2[]): {
+	uniqueBars: SongBarV2[];
+	form?: number[];
+} {
+	const uniqueBars: SongBarV2[] = [];
+	const indexBySignature = new Map<string, number>();
+	const form: number[] = [];
+
+	for (const bar of bars) {
+		const sig = JSON.stringify(bar);
+		let idx = indexBySignature.get(sig);
+		if (idx === undefined) {
+			idx = uniqueBars.length;
+			indexBySignature.set(sig, idx);
+			uniqueBars.push(bar);
+		}
+		form.push(idx);
+	}
+
+	return uniqueBars.length < bars.length
+		? { uniqueBars, form }
+		: { uniqueBars };
+}
+
+/**
+ * Compiles canonical `ScoreTrackIR` into a normalized tick-based `SongDocumentV2`.
+ */
+export function compileScoreTrackToSongDocumentV2(
+	track: ScoreTrackIR,
+	options: CompileScoreOptions = {},
+): SongDocumentV2 {
+	const plan = prepareScoreCompilationPlan(track, options);
+	const chords: Record<string, SongChordPaletteEntry> = {};
+
+	const rawBarsV2: SongBarV2[] = plan.linearBars.map((bar, idx) => {
+		const meta = plan.bars[idx];
+		const harmony: Array<[number, string]> = meta.harmonyMarks.map((mark) => [
+			mark.offsetTicks,
+			registerChordInPalette(chords, mark.harmony),
+		]);
+		const notes: SongNoteTupleV2[] = [];
+		meta.onsetBatches.forEach((batch, bIdx) => {
+			const stops = meta.stopsPerBatch[bIdx] ?? [];
+			batch.notes.forEach((n, nIdx) => {
+				notes.push(encodeNoteTupleV2(n, track.instrument, stops[nIdx]));
+			});
+		});
+
+		const barTs = `${meta.ts.numerator}/${meta.ts.denominator}`;
+		const expectedTicks = defaultBarTicks(plan.tpq, meta.ts);
+		const customCue =
+			bar.cue ||
+			(bar.sectionMarker
+				? `[${bar.sectionMarker}] ${harmony[0][1]}`
+				: undefined);
+
+		return {
+			...(barTs !== plan.firstTs ? { ts: barTs } : {}),
+			...(meta.barDurationTicks !== expectedTicks
+				? { barTicks: meta.barDurationTicks }
+				: {}),
+			harmony,
+			...(customCue ? { cue: customCue } : {}),
+			notes,
+		};
+	});
+
+	const { uniqueBars, form } = dedupeBarsToForm(rawBarsV2);
+
+	return {
+		version: 2,
+		id: plan.id,
+		idPrefix: plan.idPrefix,
+		title: plan.title,
+		composerOrSource: plan.composerOrSource,
+		subtitle: plan.subtitle,
+		instruments: [track.instrument],
+		tpq: plan.tpq,
+		keySlot: plan.keyInfo.keySlot,
+		keyMode: plan.keyInfo.keyMode,
+		keyLabel: plan.keyInfo.keyLabel,
+		timeSignature: plan.firstTs,
+		tempoMap: plan.tempoMap,
+		...(track.tuningMidi ? { tuning: track.tuningMidi } : {}),
+		...(track.capo ? { capo: track.capo } : {}),
+		theorySummary: `Compiled from canonical score data in ${plan.keyInfo.keyLabel} (${plan.firstTs}, ${plan.initialBpm} BPM) with polyphonic timing, dynamics, and ergonomic ${track.instrument} fingerings.`,
+		studyGuide:
+			options.studyGuide ??
+			inferSectionGuide(
+				plan.guideInput,
+				plan.title,
+				plan.keyInfo.keyLabel,
+				track.instrument,
+			),
+		chords,
+		...(form ? { form } : {}),
+		bars: uniqueBars,
+	};
+}
+
 export function formatSongSpecModule(
-	spec: CompactSongSpec,
+	spec: CompactSongSpec | SongDocumentV2,
 	exportName: string,
 ): string {
-	return `import type { CompactSongSpec } from "./songExamples";\n\nexport const ${exportName}: CompactSongSpec = ${JSON.stringify(spec, null, "\t")};\n`;
+	const typeName =
+		(spec as SongDocumentV2).version === 2
+			? "SongDocumentV2"
+			: "CompactSongSpec";
+	return `import type { ${typeName} } from "./songExamples";\n\nexport const ${exportName}: ${typeName} = ${JSON.stringify(spec, null, "\t")};\n`;
 }
