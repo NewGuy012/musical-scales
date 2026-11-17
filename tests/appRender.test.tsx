@@ -80,8 +80,10 @@ describe("Musical Scales UI rendering", () => {
 		expect(workspaceIdx).toBeGreaterThan(instrumentsSectionIdx);
 		expect(realSongsIdx).toBeGreaterThan(workspaceIdx);
 		expect(html).toContain('id="tab-harmony-songs"');
-		expect(html).not.toContain("songs-instrument-bar");
-		expect(html).not.toContain('id="songs-tab-piano"');
+		expect(html).toContain("songs-instrument-bar");
+		expect(html).toContain('id="songs-tab-piano"');
+		expect(html).toContain("Piano Repertoire");
+		expect(html).toContain("Synced with Piano above");
 		expect(html).toContain("song-select");
 		expect(html).toContain("1 of 2 pieces");
 		expect(html).toContain("1. Moment Musicaux No. 3");

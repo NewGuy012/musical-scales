@@ -110,12 +110,24 @@ type WorkspaceTab = "chords" | "color" | "songs";
 
 const INSTRUMENT_META: Record<
 	InstrumentTab,
-	{ label: string; tuning: string }
+	{ label: string; repertoire: string; tuning: string }
 > = {
-	piano: { label: "Piano", tuning: "C4–B5" },
-	guitar: { label: "Guitar", tuning: "E A D G B e" },
-	violin: { label: "Violin", tuning: "G3–D4–A4–E5" },
-	cello: { label: "Cello", tuning: "C2–G2–D3–A3" },
+	piano: { label: "Piano", repertoire: "Piano Repertoire", tuning: "C4–B5" },
+	guitar: {
+		label: "Guitar",
+		repertoire: "Guitar Repertoire",
+		tuning: "E A D G B e",
+	},
+	violin: {
+		label: "Violin",
+		repertoire: "Violin Repertoire",
+		tuning: "G3–D4–A4–E5",
+	},
+	cello: {
+		label: "Cello",
+		repertoire: "Cello Repertoire",
+		tuning: "C2–G2–D3–A3",
+	},
 };
 
 function InstrumentTabList({
@@ -2328,26 +2340,46 @@ export function App() {
 								aria-labelledby="tab-harmony-songs"
 								hidden={harmonyTab !== "songs"}
 							>
-								<SongExamplesPanel
-									songs={songsForInstrument}
-									selectedSongId={selectedSongId}
-									playingSongId={playingSongId}
-									cuedSongId={cuedSongId}
-									songPositionMs={songPositionMs}
-									playbackSpeed={songPlaybackSpeed}
-									activeChordStepIndex={activeSongStepIndex}
-									activeNoteLabel={activeSongNoteLabel}
-									selectedPreviewStepId={selectedSongPreviewId}
-									onSelectSong={handleSelectSong}
-									onChangePlaybackSpeed={handleChangePlaybackSpeed}
-									onTogglePlaySong={handleTogglePlaySong}
-									onStopSong={handleStopSong}
-									onSeekSong={handleSeekSong}
-									onBeginScrubSong={handleBeginScrubSong}
-									onSkipSongBar={handleSkipSongBar}
-									onPlayFromSongBar={handlePlayFromSongBar}
-									onSelectSongChordStep={handleSelectSongChordStep}
-								/>
+								<div className="instrument-tabs-bar songs-instrument-bar">
+									<InstrumentTabList
+										activeTab={instrumentView}
+										onSelect={handleSelectInstrumentTab}
+										idPrefix="songs-tab"
+										ariaLabel="Real Songs instrument"
+										controlsId="panel-real-songs"
+									/>
+									<span className="instrument-tab-meta">
+										{INSTRUMENT_META[instrumentView].repertoire} · Synced with{" "}
+										{INSTRUMENT_META[instrumentView].label} above
+									</span>
+								</div>
+
+								<div
+									id="panel-real-songs"
+									role="tabpanel"
+									aria-labelledby={`songs-tab-${instrumentView}`}
+								>
+									<SongExamplesPanel
+										songs={songsForInstrument}
+										selectedSongId={selectedSongId}
+										playingSongId={playingSongId}
+										cuedSongId={cuedSongId}
+										songPositionMs={songPositionMs}
+										playbackSpeed={songPlaybackSpeed}
+										activeChordStepIndex={activeSongStepIndex}
+										activeNoteLabel={activeSongNoteLabel}
+										selectedPreviewStepId={selectedSongPreviewId}
+										onSelectSong={handleSelectSong}
+										onChangePlaybackSpeed={handleChangePlaybackSpeed}
+										onTogglePlaySong={handleTogglePlaySong}
+										onStopSong={handleStopSong}
+										onSeekSong={handleSeekSong}
+										onBeginScrubSong={handleBeginScrubSong}
+										onSkipSongBar={handleSkipSongBar}
+										onPlayFromSongBar={handlePlayFromSongBar}
+										onSelectSongChordStep={handleSelectSongChordStep}
+									/>
+								</div>
 							</div>
 						</div>
 					</section>
