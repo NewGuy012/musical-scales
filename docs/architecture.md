@@ -20,13 +20,21 @@ musical-scales/
 ├── dist/
 ├── docs/
 │   ├── architecture.md               # Architecture documentation
+│   ├── transcription-pipeline.md     # Offline score/MIDI/YouTube ingestion pipeline
 │   └── images/                       # README showcase screenshots
 ├── public/
 │   ├── _headers                      # Static asset security headers (CSP, COOP/CORP, etc.)
 │   ├── favicon.svg
 │   └── logo.png                      # App brand icon
 ├── scripts/
-│   └── bun-undici-preload.cjs        # Vite/Wrangler preload helper under Bun
+│   ├── bun-undici-preload.cjs        # Vite/Wrangler preload helper under Bun
+│   ├── import-song.ts                # CLI importer -> CompactSongSpec TS/JSON + preview WAV
+│   ├── youtube-to-midi.sh            # YouTube -> Demucs -> Basic Pitch -> import-song pipeline
+│   └── transcription/                # Offline IR, Viterbi fingering, harmony & format parsers
+│       ├── scoreIr.ts                # Repeat linearizer, tempo map & CompactSongSpec compiler
+│       ├── ergonomicSolver.ts        # Viterbi DP hand-position solver for guitar & bowed strings
+│       ├── harmonicAnalyzer.ts       # Krumhansl-Schmuckler key detector & Roman numeral analysis
+│       └── importers.ts              # @coderline/alphatab & @tonejs/midi format adapters
 ├── src/
 │   ├── react-app/
 │   │   ├── App.tsx                   # Root state container, harmony/instrument tabs, audio sequencer
@@ -124,7 +132,7 @@ flowchart TD
   - Generates playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
 - **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)** (+ repertoire leaf modules):
-  - Hydrates pure data specs (`CompactSongSpec` via `hydrateSong()`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`schubertMomentMusicaux3.ts`](../src/react-app/theory/schubertMomentMusicaux3.ts) (_Moment Musicaux No. 3_ by Franz Schubert for Piano, 78 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`cannonballRag.ts`](../src/react-app/theory/cannonballRag.ts) (_Cannonball Rag_ by Merle Travis for Guitar, 75 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 71 bars), [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars), and [`haydnCelloConcerto2.ts`](../src/react-app/theory/haydnCelloConcerto2.ts) (_Cello Concerto No. 2 in D Major, III. Rondo: Allegro_ by Joseph Haydn for Cello, 50 bars).
+  - Hydrates polyphonic pure data specs (`CompactSongSpec` via `hydrateSong()`, supporting `offsetMs`, `barDurationMs`, per-note `durationSec`/`velocity`/`technique`/`slideFromMidi`/`slurToNext`, `subBarChords`, custom `tuning`/`capo`, `MAX_SONG_GUITAR_FRET = 22`, and `MAX_SONG_BOWED_SEMITONE = 24`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`schubertMomentMusicaux3.ts`](../src/react-app/theory/schubertMomentMusicaux3.ts) (_Moment Musicaux No. 3_ by Franz Schubert for Piano, 78 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 34 bars), [`cannonballRag.ts`](../src/react-app/theory/cannonballRag.ts) (_Cannonball Rag_ by Merle Travis for Guitar, 75 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 71 bars), [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars), and [`haydnCelloConcerto2.ts`](../src/react-app/theory/haydnCelloConcerto2.ts) (_Cello Concerto No. 2 in D Major, III. Rondo: Allegro_ by Joseph Haydn for Cello, 50 bars).
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 
 ---
@@ -133,9 +141,10 @@ flowchart TD
 
 - Procedural synthesis with no external audio dependencies:
   - **Piano (`piano`)**: Filtered hammer noise burst + fundamental triangle, warm sub-octave sine, and detuned harmonic sines.
-  - **Acoustic Guitar (`guitar`)**: Extended Karplus-Strong physical string model (`synthesizeGuitarPluckSamples`) with pick-position comb filtering, one-pole + all-pass fractional delay tuning, and spruce/air-cavity body resonance filters.
-  - **Solo Violin (`violin`) & Solo Cello (`cello`)**: Bowed sawtooth + triangle oscillators via `scheduleBowedVoice()` with vibrato LFO, bow-rosin attack transient, and instrument-specific body formant filters (`278/490/980/2450 Hz` for Violin, `78/195/490/1150 Hz` for Cello).
+  - **Acoustic Guitar (`guitar`)**: Extended Karplus-Strong physical string model (`synthesizeGuitarPluckSamples`) with pick-position comb filtering, one-pole + all-pass fractional delay tuning, spruce/air-cavity body resonance filters, and expressive performance articulations (`palmMute`, `harmonic`, `hammer`, `pull`, `slide`, `letRing`, `staccato`).
+  - **Solo Violin (`violin`) & Solo Cello (`cello`)**: Bowed sawtooth + triangle oscillators via `scheduleBowedVoice()` with vibrato LFO, bow-rosin attack transient, instrument-specific body formant filters (`278/490/980/2450 Hz` for Violin, `78/195/490/1150 Hz` for Cello), and articulations (`pizzicato`, `portamento`, `harmonic`, `staccato`, `slur`).
   - **Warm Pad (`pad`)**: Detuned dual-oscillator low-pass sustain voice.
+- **Offline Audio Verification**: Pure TypeScript sample renderer (`renderTimedSequenceOfflineSamples()`, `encodeWavPcm16()`) mirrors the live guitar/bowed/piano synthesis offline so imported tracks can be audited directly as WAV files.
 - **Lifecycle & Safety**:
   - Validates all MIDI inputs (`0..127`) via `isValidMidi()` and guards `AudioContext` initialization in `getAudioEngine()`.
   - Tracks primary and auxiliary sources (`registerVoiceCleanup`, `registerAuxSource`), disconnecting nodes on `onended`, and drives `playTimedSequence()` via a lookahead Web Audio scheduler (`LOOKAHEAD_SEC = 0.13`, `requestAnimationFrame` + `setInterval`) with immediate cancellation via `stopAllAudio()`.
@@ -160,7 +169,15 @@ flowchart TD
 
 ---
 
-### 5. Verification & Testing (`tests/`)
+### 5. Offline Transcription Pipeline (`scripts/`, [`transcription-pipeline.md`](./transcription-pipeline.md))
+
+- Keeps parser packages (`@coderline/alphatab`, `@tonejs/midi`) strictly in offline dev scripts so the client Vite bundle and Cloudflare Worker remain zero-dependency.
+- **[`scripts/transcription/`](../scripts/transcription/)**: Parses Guitar Pro / MusicXML tab & notation, Standard MIDI, unrolls repeats/endings, solves ergonomic guitar/cello left-hand stops via Viterbi DP, analyzes key & chord Roman numerals, and compiles `CompactSongSpec`.
+- **[`scripts/import-song.ts`](../scripts/import-song.ts)** (`bun run import-song`) and **[`scripts/youtube-to-midi.sh`](../scripts/youtube-to-midi.sh)**: CLI ingestion workflow for `.gp`/`.gpx`/`.musicxml`/`.mxl`/`.mid` files and YouTube audio (`yt-dlp` → `demucs` → `basic-pitch` → `import-song`), with `--wav` offline rendering for verification.
+
+---
+
+### 6. Verification & Testing (`tests/`)
 
 Run via `bun test`:
 
@@ -169,3 +186,4 @@ Run via `bun test`:
 - **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits (guitar, cello, and violin), plus guitar pentatonic/passing guides.
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, and safe handling of invalid MIDI inputs.
 - **[`songExamples.test.ts`](../tests/songExamples.test.ts)**, **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify curated repertoire bar timelines, guitar/cello physical stops, transport scrubber controls, lookahead playback timing, and SSR component rendering.
+- **[`transcriptionPipeline.test.ts`](../tests/transcriptionPipeline.test.ts)**: Tests key detection, chord/Roman-numeral inference, Viterbi guitar/cello fingering selection, repeat unrolling, tempo ramps, `@coderline/alphatab` MusicXML ingestion, `@tonejs/midi` parsing, and offline WAV synthesis.

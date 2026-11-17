@@ -9,6 +9,8 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.69.1",
+		"@coderline/alphatab": "^1.9.0",
+		"@tonejs/midi": "^2.0.28",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@vitejs/plugin-react": "^6.3.0",
@@ -29,6 +31,7 @@
 		"cf-typegen": "wrangler types",
 		"deploy": "wrangler deploy",
 		"dev": "vite",
+		"import-song": "bun scripts/import-song.ts",
 		"lint": "bun check -b && bun fmt --check",
 		"preview": "bun run build && vite preview",
 		"test": "bun test && bun fmt --check"
