@@ -276,7 +276,7 @@ function registerChordInPalette(
 	harmony: InferredHarmony,
 ): string {
 	const base = harmony.chordSymbol;
-	const existing = palette[base];
+	const existing = Object.hasOwn(palette, base) ? palette[base] : undefined;
 	if (
 		existing &&
 		existing.roman === harmony.roman &&
@@ -289,19 +289,24 @@ function registerChordInPalette(
 	if (existing) {
 		key = `${base} (${harmony.roman})`;
 	}
-	if (!palette[key]) {
-		palette[key] = {
-			roman: harmony.roman,
-			quality: harmony.quality,
-			notes: harmony.chordNotes,
-			degree: harmony.circleDegree,
-			...(harmony.circleSlotIndex !== undefined
-				? { slot: harmony.circleSlotIndex }
-				: {}),
-			...(harmony.guitarKind !== harmony.quality
-				? { guitarKind: harmony.guitarKind }
-				: {}),
-		};
+	if (!Object.hasOwn(palette, key)) {
+		Object.defineProperty(palette, key, {
+			value: {
+				roman: harmony.roman,
+				quality: harmony.quality,
+				notes: harmony.chordNotes,
+				degree: harmony.circleDegree,
+				...(harmony.circleSlotIndex !== undefined
+					? { slot: harmony.circleSlotIndex }
+					: {}),
+				...(harmony.guitarKind !== harmony.quality
+					? { guitarKind: harmony.guitarKind }
+					: {}),
+			},
+			enumerable: true,
+			configurable: true,
+			writable: true,
+		});
 	}
 	return key;
 }
@@ -676,5 +681,8 @@ export function formatSongDocumentModule(
 	exportName = "SONG_DOC",
 	runtimeImportPath = "../songRuntime",
 ): string {
-	return `import type { SongDocument } from "${runtimeImportPath}";\n\nexport const ${exportName}: SongDocument = ${JSON.stringify(doc, null, "\t")};\n`;
+	if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(exportName)) {
+		throw new Error(`Invalid TypeScript export identifier "${exportName}".`);
+	}
+	return `import type { SongDocument } from ${JSON.stringify(runtimeImportPath)};\n\nexport const ${exportName}: SongDocument = ${JSON.stringify(doc, null, "\t")};\n`;
 }

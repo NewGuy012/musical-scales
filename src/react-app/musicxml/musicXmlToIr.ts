@@ -551,8 +551,8 @@ function parseHarmonyNode(harmonyNode: XmlNode): string | null {
 		const kindName = kindNode.text.trim().toLowerCase();
 		if (textAttr && kindName !== "none") {
 			suffix = textAttr;
-		} else {
-			suffix = MUSICXML_KIND_SUFFIX[kindName] ?? "";
+		} else if (Object.hasOwn(MUSICXML_KIND_SUFFIX, kindName)) {
+			suffix = MUSICXML_KIND_SUFFIX[kindName];
 		}
 	}
 
@@ -583,7 +583,9 @@ function parseMetronomeQuarterBpm(metronomeNode: XmlNode): number | null {
 	const beatUnit = (
 		getChildText(metronomeNode, "beat-unit") ?? "quarter"
 	).toLowerCase();
-	const baseQuarters = BEAT_UNIT_QUARTERS[beatUnit] ?? 1;
+	const baseQuarters = Object.hasOwn(BEAT_UNIT_QUARTERS, beatUnit)
+		? BEAT_UNIT_QUARTERS[beatUnit]
+		: 1;
 	const dotCount = findChildren(metronomeNode, "beat-unit-dot").length;
 	let dotMult = 1;
 	for (let d = 1; d <= dotCount; d++) {
@@ -880,9 +882,12 @@ function buildTrackIrFromPart(
 					const dynNode = findChild(dt, "dynamics");
 					if (dynNode) {
 						for (const dChild of dynNode.children) {
-							const vel = DYNAMIC_VELOCITY_BY_TAG[dChild.tag.toLowerCase()];
-							if (vel !== undefined) {
-								activeVelocityByStaff.set(staffNum, vel);
+							const dKey = dChild.tag.toLowerCase();
+							if (Object.hasOwn(DYNAMIC_VELOCITY_BY_TAG, dKey)) {
+								activeVelocityByStaff.set(
+									staffNum,
+									DYNAMIC_VELOCITY_BY_TAG[dKey],
+								);
 							}
 						}
 					}
@@ -1265,7 +1270,9 @@ function buildTrackIrFromPart(
 		options.composerOrSource || scoreComposer || "MusicXML Score";
 
 	return {
-		id: options.id || slugifyId(`${title}-${instrument}`),
+		id: options.id
+			? slugifyId(options.id)
+			: slugifyId(`${title}-${instrument}`),
 		title,
 		composerOrSource,
 		...(options.subtitle || scoreSubtitle

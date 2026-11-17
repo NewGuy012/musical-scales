@@ -5,6 +5,9 @@ export interface XmlNode {
 	text: string;
 }
 
+const MAX_XML_DEPTH = 64;
+const MAX_XML_CHARS = 16 * 1024 * 1024;
+
 const NAMED_ENTITIES: Record<string, string> = {
 	amp: "&",
 	lt: "<",
@@ -14,18 +17,33 @@ const NAMED_ENTITIES: Record<string, string> = {
 	nbsp: " ",
 };
 
-export function decodeXmlEntities(raw: string): string {
+function isValidXmlCodePoint(code: number): boolean {
+	return (
+		code === 0x9 ||
+		code === 0xa ||
+		code === 0xd ||
+		(code >= 0x20 && code <= 0xd7ff) ||
+		(code >= 0xe000 && code <= 0xfffd) ||
+		(code >= 0x10000 && code <= 0x10ffff)
+	);
+}
+
+function decodeXmlEntities(raw: string): string {
 	if (!raw.includes("&")) return raw;
 	return raw.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z0-9]+);/g, (m, ent) => {
 		if (ent.startsWith("#x") || ent.startsWith("#X")) {
 			const code = Number.parseInt(ent.slice(2), 16);
-			return Number.isFinite(code) ? String.fromCodePoint(code) : m;
+			return Number.isFinite(code) && isValidXmlCodePoint(code)
+				? String.fromCodePoint(code)
+				: m;
 		}
 		if (ent.startsWith("#")) {
 			const code = Number.parseInt(ent.slice(1), 10);
-			return Number.isFinite(code) ? String.fromCodePoint(code) : m;
+			return Number.isFinite(code) && isValidXmlCodePoint(code)
+				? String.fromCodePoint(code)
+				: m;
 		}
-		return NAMED_ENTITIES[ent] ?? m;
+		return Object.hasOwn(NAMED_ENTITIES, ent) ? NAMED_ENTITIES[ent] : m;
 	});
 }
 
@@ -93,7 +111,7 @@ function parseAttributes(
 	str: string,
 	start: number,
 ): { attrs: Record<string, string>; nextPos: number; selfClosing: boolean } {
-	const attrs: Record<string, string> = {};
+	const attrs = Object.create(null) as Record<string, string>;
 	let pos = start;
 	const len = str.length;
 
@@ -157,6 +175,9 @@ function parseAttributes(
  * Parses an XML string into a lightweight AST suitable for MusicXML documents.
  */
 export function parseXml(xmlText: string): XmlNode {
+	if (xmlText.length > MAX_XML_CHARS) {
+		throw new Error(`XML document exceeds ${MAX_XML_CHARS} character limit.`);
+	}
 	const stack: XmlNode[] = [];
 	let root: XmlNode | null = null;
 	let pos = 0;
@@ -260,6 +281,11 @@ export function parseXml(xmlText: string): XmlNode {
 		}
 
 		if (!selfClosing) {
+			if (stack.length >= MAX_XML_DEPTH) {
+				throw new Error(
+					`XML nesting depth exceeds ${MAX_XML_DEPTH} levels at <${tag}>.`,
+				);
+			}
 			stack.push(node);
 		}
 		pos = nextPos;

@@ -591,11 +591,11 @@ export function noteOffset(note: string): number {
 }
 
 export function noteToPitchClass(note: string): number {
-	const base = NATURAL_PC[note[0]];
-	if (base === undefined) {
+	const key = note[0];
+	if (!key || !Object.hasOwn(NATURAL_PC, key)) {
 		throw new Error(`Invalid note name: ${note}`);
 	}
-	return mod12(base + noteOffset(note));
+	return mod12(NATURAL_PC[key] + noteOffset(note));
 }
 
 export function parsePitchToMidi(token: string): {

@@ -109,6 +109,8 @@ const INSTRUMENT_TABS: readonly InstrumentTab[] = [
 	"cello",
 ] as const;
 
+const MAX_MUSICXML_FILE_BYTES = 10 * 1024 * 1024;
+
 type MainSectionId =
 	| "section-circle"
 	| "section-neighbors"
@@ -1492,6 +1494,12 @@ export function App() {
 			) {
 				setMusicXmlImportError(
 					`Unsupported file "${file.name}". Please select a .musicxml, .xml, or .mxl file.`,
+				);
+				return;
+			}
+			if (file.size > MAX_MUSICXML_FILE_BYTES) {
+				setMusicXmlImportError(
+					`File "${file.name}" exceeds the 10 MB browser preview limit.`,
 				);
 				return;
 			}

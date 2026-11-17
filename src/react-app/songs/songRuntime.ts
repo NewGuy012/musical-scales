@@ -279,7 +279,7 @@ function resolvePaletteEntry(
 	chords: Record<string, SongChordPaletteEntry>,
 	key: string | undefined,
 ): SongChordPaletteEntry {
-	if (key && chords[key]) return chords[key];
+	if (key && Object.hasOwn(chords, key)) return chords[key];
 	const firstKey = Object.keys(chords)[0];
 	if (firstKey) return chords[firstKey];
 	return {

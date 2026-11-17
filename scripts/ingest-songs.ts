@@ -7,7 +7,7 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { basename, extname, join, relative, resolve } from "node:path";
+import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import {
 	encodeWavPcm16,
@@ -78,6 +78,26 @@ Options:
       --wav <path>          Render offline 22.05 kHz WAV preview for listening verification
   -h, --help                Show this help
 `);
+}
+
+function sanitizeSlugId(raw: string): string {
+	return raw
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
+function assertContainedPath(rootDir: string, candidatePath: string): string {
+	const resolvedRoot = resolve(rootDir);
+	const resolvedTarget = resolve(candidatePath);
+	if (!resolvedTarget.startsWith(resolvedRoot + sep)) {
+		throw new Error(
+			`Refusing to write outside "${resolvedRoot}": "${resolvedTarget}".`,
+		);
+	}
+	return resolvedTarget;
 }
 
 function toCamelCaseBase(slug: string): string {
@@ -261,18 +281,13 @@ async function syncFromMusicXmlFolder(): Promise<{
 		const meta = await readSidecarMeta(filePath);
 		const fileBase = basename(filePath, extname(filePath));
 
-		const { songDoc } = await compileMusicXml(bytes, {
-			...meta,
-			...(meta.title ? {} : {}),
-		});
+		const { songDoc } = await compileMusicXml(bytes, meta);
 
-		let uniqueId = meta.id ?? songDoc.id;
+		let uniqueId = meta.id ? sanitizeSlugId(meta.id) : songDoc.id;
 		if (!uniqueId || uniqueId === "imported-musicxml-piano") {
-			uniqueId = `${fileBase}-${songDoc.instruments[0]}`
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, "-")
-				.replace(/^-+|-+$/g, "");
+			uniqueId = sanitizeSlugId(`${fileBase}-${songDoc.instruments[0]}`);
 		}
+		if (!uniqueId) uniqueId = "ingested-song";
 		if (usedIds.has(uniqueId)) {
 			let suffix = 2;
 			while (usedIds.has(`${uniqueId}-${suffix}`)) suffix++;
@@ -293,7 +308,10 @@ async function syncFromMusicXmlFolder(): Promise<{
 			"../songRuntime",
 		);
 		await writeFile(
-			join(GENERATED_SONGS_DIR, moduleFile),
+			assertContainedPath(
+				GENERATED_SONGS_DIR,
+				join(GENERATED_SONGS_DIR, moduleFile),
+			),
 			moduleContent,
 			"utf8",
 		);
@@ -450,9 +468,16 @@ async function main(): Promise<void> {
 	const primaryInstrument = song.instruments[0] ?? "piano";
 
 	if (values.copy) {
-		const destDir = join(MUSICXML_DIR, primaryInstrument);
+		const destDir = assertContainedPath(
+			MUSICXML_DIR,
+			join(MUSICXML_DIR, primaryInstrument),
+		);
 		await mkdir(destDir, { recursive: true });
-		const destPath = join(destDir, `${songDoc.id}${ext}`);
+		const safeId = sanitizeSlugId(songDoc.id) || "ingested-song";
+		const destPath = assertContainedPath(
+			destDir,
+			join(destDir, `${safeId}${ext}`),
+		);
 		await copyFile(inputPath, destPath);
 		const hasOverrides =
 			values.id ||
@@ -464,10 +489,13 @@ async function main(): Promise<void> {
 			values.quantize ||
 			values["split-chords"];
 		if (hasOverrides) {
-			const metaPath = join(destDir, `${songDoc.id}.meta.json`);
+			const metaPath = assertContainedPath(
+				destDir,
+				join(destDir, `${safeId}.meta.json`),
+			);
 			await writeFile(
 				metaPath,
-				`${JSON.stringify(importOptions, null, "\t")}\n`,
+				`${JSON.stringify({ ...importOptions, id: safeId }, null, "\t")}\n`,
 				"utf8",
 			);
 		}
