@@ -1,666 +1,677 @@
-import { parseGuitarStops } from "./guitarFretboard";
-import type { CompactSongSpec, SongNoteEvent } from "./songExamples";
+import { STANDARD_TUNING, parseGuitarStops } from "./guitarFretboard";
+import type {
+	CompactSongSpec,
+	NotationBarSpec,
+	SongNoteEvent,
+} from "./songExamples";
 
-function g(
-	stopTokens: string,
-	durationSec: number,
-	stepDurationMs: number,
-	noteLabel: string,
-	spreadSec?: number,
-): SongNoteEvent {
-	const { guitarStops, midi } = parseGuitarStops(stopTokens);
-	return {
-		midi,
-		durationSec,
-		stepDurationMs,
-		noteLabel,
-		...(spreadSec !== undefined ? { spreadSec } : {}),
-		guitarStops,
-	};
+const EIGHTH_MS = 330; // 9/8 compound triple at dotted-quarter = 61 BPM (990ms per beat)
+const SIXTEENTH_MS = EIGHTH_MS / 2;
+const TRIPLET_16_MS = EIGHTH_MS / 3;
+
+function durToMs(dur: string): number {
+	switch (dur) {
+		case "1":
+			return EIGHTH_MS * 9;
+		case "2.":
+			return EIGHTH_MS * 6;
+		case "2":
+			return EIGHTH_MS * 4;
+		case "4.":
+			return EIGHTH_MS * 3;
+		case "4":
+			return EIGHTH_MS * 2;
+		case "8.":
+			return Math.round(EIGHTH_MS * 1.5);
+		case "8":
+			return EIGHTH_MS;
+		case "16":
+			return SIXTEENTH_MS;
+		case "3":
+			return TRIPLET_16_MS;
+		default:
+			throw new Error(`Unsupported Amazing Grace duration token: "${dur}"`);
+	}
 }
+
+const CHROMATIC = [
+	"C",
+	"C♯",
+	"D",
+	"D♯",
+	"E",
+	"F",
+	"F♯",
+	"G",
+	"G♯",
+	"A",
+	"A♯",
+	"B",
+];
+
+function midiToSharpName(midi: number): string {
+	return `${CHROMATIC[midi % 12]}${Math.floor(midi / 12) - 1}`;
+}
+
+/**
+ * Parses compact notation strings like "0:0+2:2+3:1/4.~1.4 4:12h+5:12h/4~1.5"
+ * into SongNoteEvents with generous sustain (~s suffix) and tight pinches.
+ */
+function parseAmazingGraceBar(
+	notation: string,
+	chordSymbol: string,
+): SongNoteEvent[] {
+	return notation
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((raw) => {
+			const slashIdx = raw.indexOf("/");
+			if (slashIdx === -1) {
+				throw new Error(`Missing duration in Amazing Grace token "${raw}"`);
+			}
+			const stopPart = raw.slice(0, slashIdx);
+			const durAndRing = raw.slice(slashIdx + 1);
+			const tildeIdx = durAndRing.indexOf("~");
+			const dur = tildeIdx === -1 ? durAndRing : durAndRing.slice(0, tildeIdx);
+			const ringSec =
+				tildeIdx === -1 ? undefined : Number(durAndRing.slice(tildeIdx + 1));
+			const stepDurationMs = durToMs(dur);
+			const { guitarStops, midi } = parseGuitarStops(stopPart);
+			const topMidi = Math.max(...midi);
+			const hasHarmonic = guitarStops.some((s) => s.technique === "harmonic");
+			const noteName = midiToSharpName(topMidi);
+			const label =
+				midi.length >= 3
+					? `${chordSymbol} (${noteName})`
+					: hasHarmonic
+						? `<${guitarStops.find((s) => s.technique === "harmonic")?.fret}> ${noteName}`
+						: midi.length === 2
+							? `${midiToSharpName(midi[0])}+${noteName}`
+							: noteName;
+			// Let bass & ringing melody sustain naturally without abrupt staccato cutoffs
+			const defaultSustainMs = Math.min(
+				Math.max(stepDurationMs * 1.45, stepDurationMs <= 180 ? 360 : 620),
+				2200,
+			);
+			const durationSec = Number(
+				(ringSec ?? defaultSustainMs / 1000).toFixed(3),
+			);
+			const event: SongNoteEvent = {
+				midi,
+				durationSec,
+				stepDurationMs,
+				noteLabel: label,
+				guitarStops,
+			};
+			// Only gently roll 3+ note chords; 1-2 note pinches speak together tightly
+			if (midi.length >= 3) {
+				event.spreadSec = 0.022;
+			}
+			return event;
+		});
+}
+
+const AMAZING_GRACE_BARS: Array<NotationBarSpec & { circleSlotIndex: number }> =
+	[
+		{
+			barNumber: 1,
+			chordSymbol: "E (Pickup)",
+			roman: "I (anacrusis)",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "Verse 1 pickup (PDF m.0): unison B3 slide up C♯4–E4",
+			notation: "3:4s+4:0/8~0.95 3:6s/8~0.7 3:9/8~0.8",
+		},
+		{
+			barNumber: 2,
+			chordSymbol: "E",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.1 ('-maz-ing'): open E4 over E2 bass + G♯4–A4–G♯4 triplet",
+			notation:
+				"5:0/8~1.6 0:0/4~1.5 4:7s/16 4:9/8 3:9/16 4:7/16 3:9/16 0:0+4:9/4~1.3 4:9/3 4:10s/3 4:9/3",
+		},
+		{
+			barNumber: 3,
+			chordSymbol: "Eaug/G♯ → Aadd9 → A♯°7",
+			roman: "I+6 → IVadd9 → ♯iv°7",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "C", "A"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.2 ('grace'): Eaug/G♯ walking through Aadd9 & A♯dim7",
+			notation:
+				"2:6+3:5+4:7/8~0.85 4:7/3 4:8s/3 4:7/3 0:4+3:6/8~0.9 0:5+3:6+4:0+5:0/4.~1.4 1:1+2:2+3:0+4:2/4~0.95 5:0/8~0.65",
+		},
+		{
+			barNumber: 4,
+			chordSymbol: "E → B7/F♯",
+			roman: "I → V7/5",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["B", "D♯", "F♯", "A"],
+			circleDegree: 5,
+			circleSlotIndex: 1,
+			cue: "PDF m.3 ('how sweet'): E chord sliding over F♯2 bass into B7/F♯",
+			notation:
+				"0:0+2:2+3:1+4:0/4~1.2 4:0/8~0.6 0:2/8~1.2 2:2s/16 2:1/16 3:2/8 4:0/4~0.9 5:0/8~0.65",
+		},
+		{
+			barNumber: 5,
+			chordSymbol: "E",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.4 ('the sound'): ringing E into G-string blues slide pickup",
+			notation:
+				"0:0+3:1+4:0+5:0/4.~1.7 0:0/8~1.2 3:2s/8 3:4/8 3:5s/16 3:4/16 3:2/8 3:0/8",
+		},
+		{
+			barNumber: 6,
+			chordSymbol: "C♯m7",
+			roman: "vi7",
+			quality: "minor",
+			guitarKind: "minor",
+			chordNotes: ["C♯", "E", "G♯", "B"],
+			circleDegree: 6,
+			circleSlotIndex: 0,
+			cue: "PDF m.5 ('that saved'): C♯m7 C♯4–D♯4 turnaround & B4 reach",
+			notation:
+				"1:4+3:4+4:2/4~1.4 4:4/8 1:4+3:4+4:2/8~1.1 4:4/16 4:2/16 4:0/16 4:2/16 4:4/8 5:2/8 5:7/8~0.8",
+		},
+		{
+			barNumber: 7,
+			chordSymbol: "F♯m7 → C9♭5 → B7♯5",
+			roman: "ii7 → subV9 → V7+5",
+			quality: "minor",
+			guitarKind: "7",
+			chordNotes: ["F♯", "A", "C♯", "E"],
+			circleDegree: 2,
+			circleSlotIndex: 2,
+			cue: "PDF m.6 ('a wretch'): F♯m7 arpeggio into tritone C9♭5 → B7♯5",
+			notation:
+				"1:9+3:9/8~1.1 4:10/3 5:7/3 4:10/3 4:9/8 3:9/8 0:9/16 0:8/16 0:8+2:8+3:7+4:7/8~0.9 0:7+2:7+3:8+4:8+5:7/4~1.2 0:7/8~0.9",
+		},
+		{
+			barNumber: 8,
+			chordSymbol: "B7♯5 → E/G♯",
+			roman: "V7+5 → I6",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["B", "D♯", "G", "A"],
+			circleDegree: 5,
+			circleSlotIndex: 1,
+			cue: "PDF m.7 ('like me'): holding B7♯5 before high double-stop answer",
+			notation:
+				"0:7+2:7+3:8+4:8+5:7/2~1.5 5:0/8~0.6 2:7+3:9/8~0.75 5:7/8 3:9+4:9/8~0.85 3:9+4:9+5:7/8~1.1",
+		},
+		{
+			barNumber: 9,
+			chordSymbol: "E → Eaug → E7",
+			roman: "I → I+ → I7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "B", "D"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.8 ('I once'): open E2 under chromatic triad walk into E7",
+			notation:
+				"0:0/4.~1.4 2:3+3:2+4:3/8 2:2+3:1+4:2/8 5:0/8 0:0/8~1.1 2:3+3:2+4:3/8 2:4+3:3+4:4/8",
+		},
+		{
+			barNumber: 10,
+			chordSymbol: "E7",
+			roman: "I7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "B", "D"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.9 ('was lost'): E7 chord hits over G♯2 bass & A4–B4 pickup",
+			notation:
+				"0:0+2:3+3:2+4:3/8~1.0 2:4+3:3+4:4/4~0.9 2:3+3:2+4:3/8 2:4+3:3+4:4/8 0:4/8~1.0 3:7s/16 3:9/16 5:5/8 5:7/8",
+		},
+		{
+			barNumber: 11,
+			chordSymbol: "A → A♯°7",
+			roman: "IV → ♯iv°7",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["A", "C♯", "E"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.10 ('but now I'): G4→F♯4 on A2 bass moving into A♯dim7",
+			notation:
+				"1:0+4:8/8~1.2 4:7/4~0.9 5:0/8 2:2+5:0/8~0.9 4:2/16 4:3/16 1:1+4:0/8~0.95 2:2/8 4:2/8",
+		},
+		{
+			barNumber: 12,
+			chordSymbol: "E/B → C°7",
+			roman: "I64 → ♯v°7",
+			quality: "major",
+			guitarKind: "dim7",
+			chordNotes: ["C", "D♯", "F♯", "A"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.11 ('am found'): flowing E/B open-string harp into Cdim7",
+			notation:
+				"1:2+5:0/8~1.3 2:2/8~0.9 3:1/8 4:0/8 5:0/8 4:0/8 1:2/16 1:3/16 2:4/16 3:2/16 4:4/16 5:0/16",
+		},
+		{
+			barNumber: 13,
+			chordSymbol: "C♯m9/G♯",
+			roman: "vi9/5",
+			quality: "minor",
+			guitarKind: "minor",
+			chordNotes: ["C♯", "E", "G♯", "B", "D♯"],
+			circleDegree: 6,
+			circleSlotIndex: 0,
+			cue: "PDF m.12 ('was blind'): full C♯m9 cascade & descending A4–G♯4–F♯4–E4",
+			notation:
+				"0:4/8~1.5 1:4/8~1.2 2:2/8~0.9 3:4/8 4:4/8 5:0/8 3:4+4:2p/16 4:4/16 5:5/16 5:4/16 5:2/16 5:0/16",
+		},
+		{
+			barNumber: 14,
+			chordSymbol: "F♯9 → B7",
+			roman: "V9/V → V7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["F♯", "A♯", "C♯", "E", "G♯"],
+			circleDegree: 5,
+			circleSlotIndex: 2,
+			cue: "PDF m.13 ('but now'): F♯9 with A–A♯–B chromatic bass into B7",
+			notation:
+				"0:2+3:3+5:2p/8~1.3 5:4/4~0.95 1:0/8 1:1/8 1:2/8 3:2+4:3s/16 4:2/16 4:0/8 4:0/8",
+		},
+		{
+			barNumber: 15,
+			chordSymbol: "Asus2 → E/G♯ → F♯m11",
+			roman: "IVsus2 → I6 → ii11",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["A", "B", "E"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.14 ('I see'): descending scalar bass Asus2 → E/G♯ → F♯m11",
+			notation:
+				"1:0+3:2+4:0+5:0/4.~1.4 0:4+3:4+4:0+5:0/4.~1.4 0:2+3:2+4:0+5:0/4.~1.4",
+		},
+		{
+			barNumber: 16,
+			chordSymbol: "E → B7",
+			roman: "I → V7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.15: E major G→G♯ hammer turnaround & B7 Verse 2 pickup",
+			notation:
+				"0:0+2:2+3:0+4:0+5:0/8~1.3 3:1+4:0+5:0/4.~1.4 0:0/4~1.1 1:2+3:2+4:0/8~0.9 4:2/8 5:0/8",
+		},
+		{
+			barNumber: 17,
+			chordSymbol: "E (Verse 2)",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "Verse 2 PDF m.16: steady low-E thumb under B-string 2–4–5–4–2–0",
+			notation:
+				"0:0+5:0/4.~1.5 0:0+2:2+3:1+4:0/4~1.1 0:0/8~1.0 3:4+4:2/16 4:4s/16 4:5s/16 4:4/16 4:2/16 4:0/16",
+		},
+		{
+			barNumber: 18,
+			chordSymbol: "E/G♯ → Eaug",
+			roman: "I6 → I+6",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B", "C"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.17: E/G♯ melody lift into ringing Eaug dyad",
+			notation:
+				"0:4+5:2/8~1.1 5:4/4~1.0 0:4+2:4+3:4+4:4/4~1.2 0:4/8~0.9 0:4+3:5+4:5/8~0.95 3:7+4:7/4~1.0",
+		},
+		{
+			barNumber: 19,
+			chordSymbol: "Aadd9 → A♯°7",
+			roman: "IVadd9 → ♯iv°7",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["A", "C♯", "E", "B"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.18: open Aadd9 shimmer walking into A♯dim7",
+			notation:
+				"0:5+5:0/4~1.3 2:7/8~0.85 3:6/8 5:0/8 5:0/8 1:1+2:2+3:0+4:2/4~0.95 5:0/8",
+		},
+		{
+			barNumber: 20,
+			chordSymbol: "E6 → B7/F♯",
+			roman: "I6 → V7/5",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "C♯"],
+			circleDegree: 5,
+			circleSlotIndex: 1,
+			cue: "PDF m.19: warm E6 color over F♯2 bass into B7/F♯",
+			notation:
+				"0:0+2:2+3:1+4:2/4~1.2 5:0/8~0.6 0:2/8~1.2 2:2s/16 2:1/16 3:2/8 4:0/4~0.9 5:0/8",
+		},
+		{
+			barNumber: 21,
+			chordSymbol: "E",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.20: full E chord pulsing into B-string slide lick",
+			notation:
+				"0:0+2:2+3:1+4:0/4.~1.6 0:0/4~1.2 3:4/8 4:2/16 4:4s/16 4:5s/16 4:4/16 4:2/16 4:0/16",
+		},
+		{
+			barNumber: 22,
+			chordSymbol: "C♯m7",
+			roman: "vi7",
+			quality: "minor",
+			guitarKind: "minor",
+			chordNotes: ["C♯", "E", "G♯", "B"],
+			circleDegree: 6,
+			circleSlotIndex: 0,
+			cue: "PDF m.21: C♯m7 groove soaring up to 10→12 E5 slide",
+			notation:
+				"1:4+3:4+4:2/4~1.3 4:4/8 1:4+3:4+4:2/8~1.1 4:4/16 4:2/16 4:0/16 5:2/16 5:7/8 5:10s/16 5:12/8.~1.2",
+		},
+		{
+			barNumber: 23,
+			chordSymbol: "F♯m7 → C9♭5 → B7♯5",
+			roman: "ii7 → subV9 → V7+5",
+			quality: "minor",
+			guitarKind: "7",
+			chordNotes: ["F♯", "A", "C♯", "E"],
+			circleDegree: 2,
+			circleSlotIndex: 2,
+			cue: "PDF m.22–23: F♯m7 descending to C9♭5 & high B4–C♯5 pickup",
+			notation:
+				"1:9+3:9+5:7/8~1.2 4:10/8 3:9/8 4:9/8 0:9/16 0:8/16 0:8+2:8+3:7+4:7/8~0.9 0:7+2:7+3:8+4:8+5:7/8~1.1 3:7+4:9/16 5:7/16 5:7s/16 5:9/16",
+		},
+		{
+			barNumber: 24,
+			chordSymbol: "E7",
+			roman: "I7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "B", "D"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.24: E7 high chime voicing (7/7/9) over chromatic 6th triads",
+			notation:
+				"0:0+3:7+4:7/4~1.2 3:9+4:7+5:9/8 2:3+3:2+4:3/16 5:0/16 2:2+3:1+4:2/16 5:0/16 4:2/16 5:0/16 2:3+3:2+4:3/8 2:4+3:3+4:4/4",
+		},
+		{
+			barNumber: 25,
+			chordSymbol: "E7",
+			roman: "I7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["E", "G♯", "B", "D"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.25: E7 chord stabs over E2–G♯2 walking to high A4–B4",
+			notation:
+				"0:0+2:3+3:2+4:3/8~1.0 2:4+3:3+4:4/4~0.95 2:3+3:2+4:3/8 2:4+3:3+4:4/8 0:4/8~1.0 3:7s/16 3:9/16 5:5/8 5:7/8",
+		},
+		{
+			barNumber: 26,
+			chordSymbol: "A7 → A♯°7",
+			roman: "IV7 → ♯iv°7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["A", "C♯", "E", "G"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.26: gospel A7 blue slide into A♯dim7",
+			notation:
+				"1:0+5:8s/8~1.2 5:7/4~0.9 5:0/8 2:2+3:1/16 5:0/16 4:3/16 4:2/16 1:1+4:0/8~1.0 2:2/8 4:2/8",
+		},
+		{
+			barNumber: 27,
+			chordSymbol: "B7 → G♯7♯5",
+			roman: "V7 → III7+5",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["B", "D♯", "F♯", "A"],
+			circleDegree: 5,
+			circleSlotIndex: 1,
+			cue: "PDF m.27: B7 bass line A2–B2–C3–C♯3 ascending into G♯7♯5",
+			notation:
+				"1:2+4:0/4~1.2 3:1+4:0/8 1:0/8 1:2/8 1:3/8 1:4/8 0:4+2:4+3:5+4:5/8~1.0 3:4+4:5/8",
+		},
+		{
+			barNumber: 28,
+			chordSymbol: "C♯m7 → C°7",
+			roman: "vi7 → ♯v°7",
+			quality: "minor",
+			guitarKind: "minor",
+			chordNotes: ["C♯", "E", "G♯", "B"],
+			circleDegree: 6,
+			circleSlotIndex: 0,
+			cue: "PDF m.28: C♯m7 climbing cleanly across Cdim7 passing chord",
+			notation:
+				"1:4/8~1.1 3:4/8 4:5/8~0.9 1:3/8~1.1 4:4/8 5:7/8 5:5/8 1:3/8 4:4/8",
+		},
+		{
+			barNumber: 29,
+			chordSymbol: "B6 → C♯°7 → B9/D♯",
+			roman: "V6 → vi°7 → V9/3",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["B", "D♯", "F♯", "G♯"],
+			circleDegree: 5,
+			circleSlotIndex: 1,
+			cue: "PDF m.29: parallel chord climb B6 → C♯dim7 → B9/D♯",
+			notation:
+				"1:2+2:4+3:4+4:4/4.~1.3 1:4+3:3+4:2/4~0.95 4:3/8 2:1+3:2+4:2+5:2/4.~1.3",
+		},
+		{
+			barNumber: 30,
+			chordSymbol: "Asus2 → E/G♯ → F♯m11",
+			roman: "IVsus2 → I6 → ii11",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["A", "B", "E"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.30: open-string Asus2 → E/G♯ → F♯m11 sigh",
+			notation:
+				"1:0+3:2+4:0+5:0/4.~1.4 0:4+3:4+4:0+5:0/4.~1.4 0:2+3:2+4:0+5:0/4.~1.4",
+		},
+		{
+			barNumber: 31,
+			chordSymbol: "E",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.31: open E hammer + D-string slide into Verse 3 harmonics",
+			notation:
+				"0:0+2:2+3:0+4:0+5:0/8~1.3 3:1+4:0+5:0/4.~1.4 0:0/4~1.1 2:2/8 2:4s/8 2:7/8",
+		},
+		{
+			barNumber: 32,
+			chordSymbol: "E (Bell Harmonics)",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "Verse 3 PDF m.32: low thumb groove + 12th-fret <12> B4+E5 harmonics",
+			notation:
+				"0:0+2:7/4.~1.4 4:12h+5:12h/4.~1.5 3:4/16 3:5p/16 3:4/16 3:2/16 0:0/8~0.9",
+		},
+		{
+			barNumber: 33,
+			chordSymbol: "E",
+			roman: "I",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.33: rolling thumb-and-chime 12th-fret harmonic echoes",
+			notation:
+				"0:0/8~1.2 3:4/16 3:6/16 4:4/8 4:12h+5:12h/4.~1.5 0:0/8~1.0 3:4/16 3:6/16 4:4/16 4:6/16",
+		},
+		{
+			barNumber: 34,
+			chordSymbol: "A7",
+			roman: "IV7",
+			quality: "major",
+			guitarKind: "7",
+			chordNotes: ["A", "C♯", "E", "G"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.34: A7 thumb groove with shimmering <12> bell harmonics",
+			notation:
+				"1:0+3:4/8~1.1 3:5/16 3:4/16 3:2/8 4:12h+5:12h/4.~1.5 0:0/8~0.9 2:2p/16 2:4/16 1:3/8",
+		},
+		{
+			barNumber: 35,
+			chordSymbol: "Asus2 → E/G♯ → F♯m11",
+			roman: "IVsus2 → I6 → ii11",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["A", "B", "E"],
+			circleDegree: 4,
+			circleSlotIndex: 11,
+			cue: "PDF m.66 final cadence setup: Asus2 → E/G♯ → F♯m11",
+			notation:
+				"1:0+3:2+4:0+5:0/4.~1.4 0:4+3:4+4:0+5:0/4.~1.4 0:2+3:2+4:0+5:0/4.~1.4",
+		},
+		{
+			barNumber: 36,
+			chordSymbol: "Emaj9",
+			roman: "Imaj9",
+			quality: "major",
+			guitarKind: "major",
+			chordNotes: ["E", "G♯", "B", "D♯", "F♯"],
+			circleDegree: 1,
+			circleSlotIndex: 0,
+			cue: "PDF m.74 finale: resonant Emaj9 chord & 12th-fret harmonic crown",
+			notation: "0:0+1:2+2:4+3:1+4:0+5:0/2.~2.6 4:12h+5:12h/4.~2.2",
+		},
+	];
+
+function buildSteps(): Array<{
+	midiNotes: number[];
+	noteEvents: SongNoteEvent[];
+}> {
+	return AMAZING_GRACE_BARS.map((bar) => {
+		const noteEvents = parseAmazingGraceBar(bar.notation, bar.chordSymbol);
+		const firstStop = noteEvents[0]?.guitarStops?.[0];
+		const midiNotes = firstStop
+			? [STANDARD_TUNING[firstStop.stringIndex].openMidi + firstStop.fret]
+			: (noteEvents[0]?.midi.slice(0, 1) ?? [64]);
+		return {
+			midiNotes,
+			noteEvents,
+		};
+	});
+}
+
+const AMAZING_GRACE_STEPS = buildSteps();
 
 export const TOMMY_AMAZING_GRACE_SPEC: CompactSongSpec = {
 	id: "amazing-grace-guitar",
 	title: "Amazing Grace",
 	composerOrSource: "Traditional · arr. Tommy Emmanuel",
-	subtitle: "Fingerstyle E major with Travis bass & harp harmonics",
+	subtitle: "Fingerstyle E major (9/8) · Verse 1, Verse 2 & Bell Harmonics",
 	instruments: ["guitar"],
 	keySlot: 4,
 	keyMode: "major",
 	keyLabel: "E Major",
-	timeSignature: "3/4",
-	bpm: 76,
+	timeSignature: "9/8",
+	bpm: 63,
 	theorySummary:
-		"Standard tuning E Major fingerstyle arrangement: opens with 12th/7th-fret bell harmonics, moves through rubato chord-melody with secondary dominants (E7/G♯, A♯°7, G♯7, F♯7), drops into a steady alternating Travis-pick groove with Am6 minor plagal color, and closes on a +12 harp harmonic cascade.",
+		"Transcribed directly from the Tim Van Roy 9/8 E Major guitar score: opens with Verse 1's rubato chord-melody over E – Eaug/G♯ – Aadd9 – A♯°7 – B7/F♯ and C♯m7 – F♯m7 – C9♭5 – B7♯5, expands into Verse 2's richer bass fills and chromatic E6/E7 voicings, and closes cleanly with Verse 3's 12th-fret bell harmonics and Emaj9 cadence.",
 	studyGuide: {
 		vibeAndSound:
-			"Intimate fingerstyle E major: ringing open strings and bell harmonics at the start bloom into a warm, gospel-tinged alternating-thumb groove.",
+			"Slow, singing 9/8 fingerstyle E major: open treble strings ring continuously while gospel bass inversions and 12th-fret harmonics add orchestral warmth.",
 		harmonyHook:
-			"Built on the core Circle trio (E – A – B7), dressed up with walking bass inversions (E7/G♯, A♯°7) and a soulful borrowed minor IV (Am) right before the ending.",
+			"Built on E – A – B7 dressed up with chromatic bass lines (Eaug/G♯, Aadd9, A♯°7), a tritone substitution (C9♭5 → B7♯5), and the signature Asus2 → E/G♯ → F♯m11 turnaround.",
 		practiceTips: [
-			"Keep your picking thumb steady on low E2–B2–E3 in Verse 2 (Bars 19+) while letting the open high E4 and B3 strings ring out.",
-			"For the Bar 1 & Bar 34 bell harmonics, rest a fretting/right-hand finger lightly right above the fret wire—don't press down to the wood.",
-			"Notice Bar 29 (A → Am): lowering C♯ to C♮ is the classic bittersweet gospel 'Amen' color you can use in any Major song.",
+			"Think 3 broad beats per 9/8 bar (1-2-3), letting each low bass note sustain cleanly under the upper-string melody.",
+			"Notice how C♯m7 → F♯m7 → C9♭5 → B7♯5 walks down chromatically from C♯2/F♯2 through C2 into B2.",
+			"Touch the B and e strings lightly right above the 12th fret wire for the Bar 32–36 bell harmonics, then resolve gently on the ringing Emaj9 chord.",
 		],
 		sections: [
 			{
 				id: "ag-sec-1",
-				title: "1. Bell Harmonics Intro",
-				barRange: "Bars 1–2",
+				title: "1. Verse 1 (PDF Bars 0–15)",
+				barRange: "Bars 1–16",
 				startStepIndex: 0,
-				endStepIndex: 1,
-				progressionTag: "I(add9) – V9sus4",
+				endStepIndex: 15,
+				progressionTag: "I – I+ – IVadd9 – V7 – vi7 – ii7 – subV9 – V7",
 				insight:
-					"Sets E Major with sparkling 12th- and 7th-fret chime harmonics over a low E2 drone, pausing on a suspended B9sus4 chord.",
+					"States the hymn in compound 9/8 E major from the unison B3 pickup through the iconic C9♭5 → B7♯5 turnaround and Asus2 → E/G♯ → F♯m11 cadence.",
 			},
 			{
 				id: "ag-sec-2",
-				title: "2. Rubato Chord-Melody",
-				barRange: "Bars 3–18",
-				startStepIndex: 2,
-				endStepIndex: 17,
-				progressionTag: "I – I7/3 – IV → ♯iv°7 – V7/vi – V7",
+				title: "2. Verse 2 (PDF Bars 16–31)",
+				barRange: "Bars 17–31",
+				startStepIndex: 16,
+				endStepIndex: 30,
+				progressionTag: "I – I+6 – IVadd9 – E7 – B7/G♯7♯5 – IVsus2 – I",
 				insight:
-					"Sings the hymn freely over walking bass notes (E → G♯ → A → A♯°7 → B), borrowing G♯7 and F♯7 for rich gospel pull.",
+					"Deepens the accompaniment with steady alternating bass, a high D5→E5 slide on C♯m7, dense E7 upper-structure triads, and parallel B6 → C♯°7 → B9/D♯ motion.",
 			},
 			{
 				id: "ag-sec-3",
-				title: "3. Travis Groove & Amen",
-				barRange: "Bars 19–33",
-				startStepIndex: 18,
-				endStepIndex: 32,
-				progressionTag: "I – IVmaj7 – iv (Am) – V7 – I",
+				title: "3. Bell Harmonics & Emaj9 Finale",
+				barRange: "Bars 32–36",
+				startStepIndex: 31,
+				endStepIndex: 35,
+				progressionTag: "I – IV7 – IVsus2 – Emaj9",
 				insight:
-					"Locks into an alternating-thumb rhythm, adds bluesy hammer-ons, and drops into minor Am (iv) for the tender gospel Amen tag.",
-			},
-			{
-				id: "ag-sec-4",
-				title: "4. Harp Harmonic Outro",
-				barRange: "Bar 34",
-				startStepIndex: 33,
-				endStepIndex: 33,
-				progressionTag: "I(add9)",
-				insight:
-					"Sweeps across an Eadd9 grip using artificial +12 harp harmonics—fretting low notes while chiming each string 12 frets up.",
+					"Pivots cleanly into Verse 3's 12th-fret harmonic bell chimes over E and A7 thumb patterns before resting on the score's closing Emaj9 voicing.",
 			},
 		],
 	},
 	idPrefix: "ag",
-	bars: [
-		[
-			1,
-			"Eadd9",
-			"I(add9)",
-			"major",
-			"major",
-			["E", "G♯", "B", "F♯"],
-			[40, 52, 56, 59, 66, 76],
-			0,
-			"Intro harmonics: low E2 open thumb under 12th & 7th-fret bell chimes",
-			[
-				g("0:0 5:12h", 1.3, 840, "E2 + <12> E5", 0.04),
-				g("4:12h", 0.9, 440, "<12> B4"),
-				g("4:7h", 0.9, 440, "<7> F♯5"),
-				g("5:7h", 1, 440, "<7> B5"),
-				g("5:0", 0.9, 440, "E4"),
-			],
-		],
-		[
-			2,
-			"B9sus4",
-			"V9sus4",
-			"major",
-			"7",
-			["B", "E", "F♯", "A", "C♯"],
-			[47, 52, 57, 61, 64],
-			4,
-			"Shimmering B9sus4 chord into open-B3 rubato melody pickup",
-			[
-				g("1:2 2:2 3:2 4:2 5:2", 1.4, 920, "B9sus4", 0.05),
-				g("4:12h", 0.8, 420, "<12> B4"),
-				g("2:4", 0.7, 410, "F♯3"),
-				g("4:0", 0.95, 520, "B3 (pickup)"),
-			],
-		],
-		[
-			3,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 52, 56, 59, 64],
-			0,
-			'Verse 1 (rubato): "A-ma-zing..." with slurred G♯4→E4 grace ornament',
-			[
-				g("0:0 2:2 3:1 5:0", 1.5, 840, "E (E4)", 0.04),
-				g("1:2 4:0", 0.9, 780, "B2 + B3", 0.03),
-				g("3:1 5:4p", 0.65, 420, "G♯4"),
-				g("5:0", 0.7, 420, "E4"),
-			],
-		],
-		[
-			4,
-			"E7/G♯",
-			"I7/3",
-			"major",
-			"7",
-			["E", "G♯", "B", "D"],
-			[44, 50, 56, 59, 68],
-			0,
-			'G♯2 bass under open D3 seventh leading "...grace, how..."',
-			[
-				g("0:4 2:0 3:1 5:4", 1.4, 820, "E7/G♯ (G♯4)", 0.04),
-				g("2:0 4:0", 0.8, 760, "D3 + B3"),
-				g("1:2 5:2", 0.9, 800, "F♯4"),
-			],
-		],
-		[
-			5,
-			"A → A♯°7",
-			"IV → ♯iv°7",
-			"major",
-			"major",
-			["A", "C♯", "E", "G"],
-			[45, 52, 57, 61, 64],
-			3,
-			'Open A triad stepping through chromatic A♯°7 ("...sweet the...")',
-			[
-				g("1:0 2:2 3:2 5:0", 1.3, 800, "A (E4)", 0.04),
-				g("3:2 4:2", 0.85, 780, "A3 + C♯4"),
-				g("1:1 2:2 3:0 4:2", 1, 840, "A♯°7 (C♯4)", 0.03),
-			],
-		],
-		[
-			6,
-			"E/B → B7",
-			"I6/4 → V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[47, 52, 56, 59],
-			4,
-			'Cadential E/B resolving to B7 ("...sound, that...")',
-			[
-				g("1:2 2:2 3:1 4:0", 1.3, 800, "E/B (B3)", 0.03),
-				g("2:2 3:1", 0.8, 760, "E3 + G♯3"),
-				g("1:2 2:1 3:2 4:0", 0.95, 800, "B7 (B3)", 0.03),
-			],
-		],
-		[
-			7,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 47, 56, 59, 64],
-			0,
-			'"That saved..." with singing slide F♯4→G♯4→E4',
-			[
-				g("0:0 1:2 3:1 5:0", 1.4, 800, "E (E4)", 0.04),
-				g("4:0 3:1", 0.8, 760, "B3 + G♯3"),
-				g("5:2", 0.45, 380, "F♯4"),
-				g("5:4s", 0.45, 380, "G♯4"),
-				g("5:0", 0.5, 400, "E4"),
-			],
-		],
-		[
-			8,
-			"G♯7 → C♯m7",
-			"V7/vi → vi7",
-			"major",
-			"7",
-			["G♯", "C", "D♯", "F♯"],
-			[44, 54, 60, 63, 68],
-			0,
-			'Secondary dominant G♯7 ("...wretch...") turning toward C♯m7',
-			[
-				g("0:4 2:4 3:5 4:4 5:4", 1.3, 800, "G♯7 (G♯4)", 0.04),
-				g("3:5 4:4", 0.8, 760, "C4 + D♯4"),
-				g("1:4 3:4 4:7", 0.6, 420, "C♯m7 (F♯4)"),
-				g("5:4", 0.65, 420, "G♯4"),
-			],
-			8,
-		],
-		[
-			9,
-			"F♯7",
-			"V7/V",
-			"major",
-			"7",
-			["F♯", "A♯", "C♯", "E"],
-			[54, 58, 64, 66, 71],
-			0,
-			'7th-position F♯11 voicing ("...me—") rising to high B4',
-			[
-				g("1:9 2:8 3:9 5:7", 1.4, 820, "F♯11 (B4)", 0.04),
-				g("2:8 3:9 4:7", 0.9, 780, "A♯3 · E4 · F♯4", 0.03),
-				g("4:9", 0.9, 780, "G♯4"),
-			],
-			6,
-		],
-		[
-			10,
-			"B9sus4 → B7",
-			"V9sus4 → V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[47, 57, 61, 63, 71],
-			4,
-			"Upper-neck B9sus4→B7 suspension preparing the soaring chorus",
-			[
-				g("0:7 2:7 3:6 5:7", 1.3, 820, "B9sus4 (B4)", 0.04),
-				g("2:7 3:8 4:7", 0.9, 780, "B7 (A3·D♯4·F♯4)", 0.03),
-				g("4:9", 0.9, 800, "G♯4 (pickup)"),
-			],
-		],
-		[
-			11,
-			"E → E7/D",
-			"I → I7/♭7",
-			"major",
-			"7",
-			["E", "G♯", "B", "D"],
-			[40, 50, 64, 68, 71],
-			0,
-			'"I once was..." upper-position E dropping onto open D3 bass',
-			[
-				g("0:0 3:9 4:9 5:7", 1.4, 820, "E (B4)", 0.04),
-				g("2:0 4:9 5:7", 0.9, 780, "E7/D (B4)", 0.03),
-				g("4:9", 0.55, 410, "G♯4"),
-				g("3:9", 0.6, 410, "E4"),
-			],
-		],
-		[
-			12,
-			"Amaj7/C♯",
-			"IVmaj7/3",
-			"major",
-			"maj7",
-			["A", "C♯", "E", "G♯"],
-			[49, 52, 57, 61, 68],
-			3,
-			'Lush C♯3 bass pedal under maj7 melody ("...lost, but...")',
-			[
-				g("1:4 2:2 3:2 5:4", 1.3, 800, "Amaj7/C♯ (G♯4)", 0.04),
-				g("3:2 4:2", 0.8, 760, "A3 + C♯4"),
-				g("1:3 2:2 3:2 5:2", 0.95, 800, "Am6/C (F♯4)", 0.03),
-			],
-		],
-		[
-			13,
-			"A",
-			"IV",
-			"major",
-			"major",
-			["A", "C♯", "E"],
-			[45, 52, 57, 61, 64],
-			3,
-			'Open A chord settling gently ("...now am...")',
-			[
-				g("1:0 2:2 3:2 5:0", 1.3, 800, "A (E4)", 0.04),
-				g("2:2 3:2", 0.8, 760, "E3 + A3"),
-				g("1:0 4:2", 0.95, 780, "C♯4"),
-			],
-		],
-		[
-			14,
-			"E/B",
-			"I6/4",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[47, 52, 56, 59],
-			0,
-			'Calm second-inversion E/B breathing before "...was blind..."',
-			[
-				g("1:2 2:2 3:1 4:0", 1.4, 800, "E/B (B3)", 0.03),
-				g("2:2 3:1", 0.8, 760, "E3 + G♯3"),
-				g("1:2 4:0", 0.9, 780, "B2 + B3"),
-			],
-		],
-		[
-			15,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 47, 52, 56, 64],
-			0,
-			'"Was blind..." with open-string ring and G♯4→E4 pull',
-			[
-				g("0:0 2:2 3:1 5:0", 1.3, 800, "E (E4)", 0.04),
-				g("1:2 4:0", 0.8, 760, "B2 + B3"),
-				g("5:4", 0.55, 400, "G♯4"),
-				g("5:0", 0.6, 400, "E4"),
-			],
-		],
-		[
-			16,
-			"E7/G♯ → B7/F♯",
-			"I7/3 → V7/5",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[42, 44, 50, 57, 66, 68],
-			4,
-			"Descending gospel bass G♯2→F♯2→E2 under final cadence",
-			[
-				g("0:4 2:0 4:0 5:4", 1.3, 820, "E7/G♯ (G♯4)", 0.04),
-				g("2:0 3:1", 0.75, 740, "D3 + G♯3"),
-				g("0:2 1:2 2:1 3:2 5:2", 1, 820, "B7/F♯ (F♯4)", 0.03),
-			],
-		],
-		[
-			17,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 47, 52, 56, 64],
-			0,
-			'Verse 1 resolution "...see" with E-major pentatonic hammer fill',
-			[
-				g("0:0 1:2 2:2 3:1 5:0", 1.4, 820, "E (E4)", 0.04),
-				g("3:1", 0.5, 380, "G♯3"),
-				g("4:0", 0.5, 380, "B3"),
-				g("4:2p", 0.5, 390, "C♯4"),
-				g("5:0", 0.6, 390, "E4"),
-			],
-		],
-		[
-			18,
-			"B7",
-			"V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[42, 47, 51, 57, 59],
-			4,
-			"Turnaround V7 setting the alternating thumb groove for Verse 2",
-			[
-				g("1:2 2:1 3:2 4:0", 1.1, 740, "B7", 0.03),
-				g("0:2 3:2", 0.8, 700, "F♯2 + A3"),
-				g("1:2 4:0", 0.8, 700, "B2 + B3"),
-			],
-		],
-		[
-			19,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 47, 52, 56, 64],
-			0,
-			"Verse 2 groove: steady thumb E2–B2–E3 under syncopated blues hammer",
-			[
-				g("0:0 3:1 5:0", 0.9, 720, "E2 + E4", 0.02),
-				g("1:2 4:0", 0.8, 680, "B2 + B3"),
-				g("2:2 5:2", 0.45, 340, "E3 + F♯4"),
-				g("5:4p", 0.45, 340, "G♯4"),
-			],
-		],
-		[
-			20,
-			"E7/G♯",
-			"I7/3",
-			"major",
-			"7",
-			["E", "G♯", "B", "D"],
-			[44, 50, 56, 59, 68],
-			0,
-			"Travis-picked E7/G♯ with thumb bouncing G♯2 ↔ D3",
-			[
-				g("0:4 3:1 5:4", 0.9, 720, "G♯2 + G♯4", 0.02),
-				g("2:0 4:0", 0.8, 680, "D3 + B3"),
-				g("0:4 5:2", 0.9, 700, "G♯2 + F♯4"),
-			],
-		],
-		[
-			21,
-			"A → A♯°7",
-			"IV → ♯iv°7",
-			"major",
-			"major",
-			["A", "C♯", "E", "G"],
-			[45, 46, 52, 57, 61, 64],
-			3,
-			"Driving A→A♯°7 bass walk with bright high open E4",
-			[
-				g("1:0 3:2 5:0", 0.9, 700, "A2 + E4", 0.02),
-				g("2:2 4:2", 0.8, 680, "E3 + C♯4"),
-				g("1:1 2:2 3:0 4:2", 0.9, 720, "A♯°7 (C♯4)", 0.02),
-			],
-		],
-		[
-			22,
-			"E/B → B7",
-			"I6/4 → V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[40, 47, 52, 56, 59],
-			4,
-			"Alternating E/B thumb onto open E2 and crisp B7 turnaround",
-			[
-				g("1:2 3:1 4:0", 0.9, 700, "B2 + B3", 0.02),
-				g("0:0 2:2 3:1", 0.8, 680, "E2 + G♯3"),
-				g("1:2 2:1 3:2 4:0", 0.9, 720, "B7 (B3)", 0.02),
-			],
-		],
-		[
-			23,
-			"E",
-			"I",
-			"major",
-			"major",
-			["E", "G♯", "B"],
-			[40, 47, 52, 56, 64],
-			0,
-			"Slide F♯4→G♯4→E4 over rocking E2–B2–E3 Travis thumb",
-			[
-				g("0:0 3:1 5:0", 0.9, 700, "E2 + E4", 0.02),
-				g("1:2 2:2", 0.75, 680, "B2 + E3"),
-				g("5:2", 0.4, 340, "F♯4"),
-				g("5:4s", 0.4, 340, "G♯4"),
-				g("5:0", 0.45, 340, "E4"),
-			],
-		],
-		[
-			24,
-			"G♯7 → C♯m7",
-			"V7/vi → vi7",
-			"major",
-			"7",
-			["G♯", "C", "D♯", "F♯"],
-			[44, 49, 54, 60, 68],
-			0,
-			"Gospel G♯7 barre chord punching cleanly into C♯m7",
-			[
-				g("0:4 2:4 3:5 5:4", 0.9, 720, "G♯7 (G♯4)", 0.03),
-				g("2:4 4:4", 0.75, 680, "F♯3 + D♯4"),
-				g("1:4 3:4 4:7", 0.5, 350, "C♯m7 (F♯4)"),
-				g("5:4", 0.55, 350, "G♯4"),
-			],
-			8,
-		],
-		[
-			25,
-			"F♯7",
-			"V7/V",
-			"major",
-			"7",
-			["F♯", "A♯", "C♯", "E"],
-			[54, 58, 64, 71, 73],
-			0,
-			"Upper-neck F♯7 with soulful C♯5→B4 gospel ornament",
-			[
-				g("1:9 2:8 3:9 5:7", 1, 720, "F♯11 (B4)", 0.03),
-				g("2:8 5:9", 0.5, 350, "A♯3 + C♯5"),
-				g("5:7", 0.5, 350, "B4"),
-				g("4:9", 0.7, 680, "G♯4"),
-			],
-			6,
-		],
-		[
-			26,
-			"B7",
-			"V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[47, 54, 57, 63, 71],
-			4,
-			"7th-position B7 ringing bright before the final E climb",
-			[
-				g("0:7 2:7 3:8 5:7", 1, 720, "B7 (B4)", 0.03),
-				g("1:9 4:7", 0.75, 680, "F♯3 + F♯4"),
-				g("4:9", 0.5, 360, "G♯4"),
-				g("5:7", 0.55, 360, "B4"),
-			],
-		],
-		[
-			27,
-			"E → E7/D",
-			"I → I7/♭7",
-			"major",
-			"7",
-			["E", "G♯", "B", "D"],
-			[40, 50, 64, 68, 71],
-			0,
-			"Climax high E dropping immediately onto open D3 pedal",
-			[
-				g("0:0 3:9 4:9 5:7", 1, 720, "E (B4)", 0.03),
-				g("2:0 3:9 5:7", 0.8, 680, "E7/D (B4)", 0.02),
-				g("4:9", 0.5, 350, "G♯4"),
-				g("3:9", 0.55, 350, "E4"),
-			],
-		],
-		[
-			28,
-			"Amaj7/C♯",
-			"IVmaj7/3",
-			"major",
-			"maj7",
-			["A", "C♯", "E", "G♯"],
-			[48, 49, 52, 57, 66, 68],
-			3,
-			"Chromatic C♯3→C3 bass line through Amaj7/C♯ and Am6/C",
-			[
-				g("1:4 2:2 3:2 5:4", 1, 720, "Amaj7/C♯ (G♯4)", 0.03),
-				g("3:2 4:2", 0.75, 680, "A3 + C♯4"),
-				g("1:3 2:2 3:2 5:2", 0.9, 720, "Am6/C (F♯4)", 0.02),
-			],
-		],
-		[
-			29,
-			"A → Am",
-			"IV → iv",
-			"major",
-			"minor",
-			["A", "C", "E"],
-			[45, 52, 57, 60, 64],
-			5,
-			"Bittersweet major→minor plagal inflection (C♯4→C4 sigh)",
-			[
-				g("1:0 2:2 3:2 5:0", 0.9, 700, "A (E4)", 0.03),
-				g("2:2 4:2", 0.75, 680, "E3 + C♯4"),
-				g("1:0 2:2 3:2 4:1", 0.95, 740, "Am (C4 sigh)", 0.03),
-			],
-			0,
-		],
-		[
-			30,
-			"E/B → B7",
-			"I6/4 → V7",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[40, 47, 52, 56, 59],
-			4,
-			"Steady E/B → B7 setup before the final gospel amen",
-			[
-				g("1:2 2:2 3:1 4:0", 0.95, 720, "E/B (B3)", 0.02),
-				g("0:0 3:1", 0.75, 680, "E2 + G♯3"),
-				g("1:2 2:1 3:2 4:0", 0.9, 720, "B7 (B3)", 0.02),
-			],
-		],
-		[
-			31,
-			"E → E7/G♯",
-			"I → I7/3",
-			"major",
-			"7",
-			["E", "G♯", "B", "D"],
-			[40, 44, 50, 56, 64, 68],
-			0,
-			"Final phrase push: open E rising into E7/G♯ blues slide",
-			[
-				g("0:0 2:2 3:1 5:0", 0.9, 700, "E (E4)", 0.02),
-				g("0:4 2:0 4:0", 0.75, 680, "G♯2 + D3 + B3"),
-				g("5:4", 0.45, 360, "G♯4"),
-				g("5:0s", 0.5, 380, "E4"),
-			],
-		],
-		[
-			32,
-			"Amaj7 → B7/F♯",
-			"IVmaj7 → V7/5",
-			"major",
-			"7",
-			["B", "D♯", "F♯", "A"],
-			[42, 45, 51, 56, 66, 68],
-			4,
-			'Lush Amaj7 ("...now I...") resolving over F♯2 bass into B7/F♯',
-			[
-				g("1:0 2:2 3:1 5:4", 1, 740, "Amaj7 (G♯4)", 0.03),
-				g("4:2", 0.75, 700, "C♯4"),
-				g("0:2 1:2 2:1 3:2 5:2", 1.1, 800, "B7/F♯ (F♯4)", 0.03),
-			],
-		],
-		[
-			33,
-			"E → Am/E",
-			"I → iv/1",
-			"major",
-			"minor",
-			["A", "C", "E"],
-			[40, 47, 52, 57, 60, 64],
-			5,
-			"Soulful slow gospel Amen tag (E → Am/E → E) before harmonics",
-			[
-				g("0:0 1:2 2:2 3:1 5:0", 1.4, 880, "E (E4)", 0.04),
-				g("0:0 2:2 3:2 4:1 5:0", 1.3, 880, "Am/E (C4)", 0.04),
-				g("0:0 1:2 2:2 3:1 4:0 5:0", 1.5, 920, "E", 0.05),
-			],
-			0,
-		],
-		[
-			34,
-			"Eadd9",
-			"I(add9)",
-			"major",
-			"major",
-			["E", "G♯", "B", "F♯"],
-			[40, 52, 59, 64, 68, 76, 78, 83],
-			0,
-			"Tommy Emmanuel harp harmonic waterfall (+12 on E major) & 7th-fret bell crown",
-			[
-				g("0:0", 2.2, 260, "E2 pedal"),
-				g("0:12h", 1.8, 250, "<12> E3"),
-				g("1:14h", 1.8, 250, "<+12> B3"),
-				g("2:14h", 1.8, 250, "<+12> E4"),
-				g("3:13h", 1.8, 250, "<+12> G♯4"),
-				g("4:12h", 1.8, 250, "<12> B4"),
-				g("5:12h", 1.8, 260, "<12> E5"),
-				g("4:7h", 1.8, 300, "<7> F♯5"),
-				g("0:0 3:13h 4:7h 5:7h", 2.8, 1200, "Eadd9 <7> B5", 0.04),
-			],
-		],
-	],
+	bars: AMAZING_GRACE_BARS.map((bar, idx) => {
+		const step = AMAZING_GRACE_STEPS[idx];
+		return [
+			bar.barNumber,
+			bar.chordSymbol,
+			bar.roman,
+			bar.quality,
+			bar.guitarKind,
+			bar.chordNotes,
+			step.midiNotes,
+			bar.circleSlotIndex,
+			bar.cue,
+			step.noteEvents,
+			bar.circleDegree,
+		];
+	}),
 };

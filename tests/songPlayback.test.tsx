@@ -165,7 +165,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(guitarHtml).toContain("Cannonball Rag");
 		expect(guitarHtml).toContain("Merle Travis");
-		expect(guitarHtml).toContain("75 Bars");
+		expect(guitarHtml).toContain("58 Bars");
 		expect(guitarHtml).toContain("song-select");
 		expect(guitarHtml).toContain("1 of 2 pieces");
 		expect(guitarHtml).toContain("Amazing Grace");

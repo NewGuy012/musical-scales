@@ -1,166 +1,141 @@
+import { CELLO_TUNING } from "./celloFingerboard";
 import {
-	BOWED_HARMONIC_TOUCH_SEMITONES,
-	BOWED_STRING_ROMAN,
-	CELLO_TUNING,
-	MAX_BOWED_SEMITONE,
-	resolveBowedStringIndex,
-} from "./celloFingerboard";
-import { parsePitchToMidi } from "./circleOfFifths";
-import {
-	type BowedSongStop,
 	type CompactSongSpec,
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
 } from "./songExamples";
 
-const EIGHTH_MS = 250; // 6/8 Allegro at dotted-quarter = 80 BPM (250ms per eighth note)
-const SIXTEENTH_MS = EIGHTH_MS / 2;
-const QUARTER_MS = EIGHTH_MS * 2;
-const DOTTED_QUARTER_MS = EIGHTH_MS * 3;
-const DOTTED_HALF_MS = EIGHTH_MS * 6;
+const QUARTER_MS = 660; // 4/4 Allegro moderato at quarter = 91 BPM (2640ms per bar)
+const EIGHTH_MS = QUARTER_MS / 2; // 330ms
+const SIXTEENTH_MS = QUARTER_MS / 4; // 165ms
+const DOTTED_EIGHTH_MS = EIGHTH_MS + SIXTEENTH_MS; // 495ms
+const DOTTED_QUARTER_MS = QUARTER_MS + EIGHTH_MS; // 990ms
+const HALF_MS = QUARTER_MS * 2; // 1320ms
+const DOTTED_HALF_MS = QUARTER_MS * 3; // 1980ms
+const WHOLE_MS = QUARTER_MS * 4; // 2640ms
 
-function inferCelloFinger(semitone: number): number {
-	if (semitone === 0) return 0;
-	if (semitone <= 2) return 1;
-	if (semitone <= 4) return 2;
-	if (semitone <= 5) return 3;
-	if (semitone <= 7) return 4;
-	if (semitone === 8) return 1;
-	if (semitone === 9) return 2;
-	if (semitone <= 12) return 3;
-	return 4;
-}
+const NOTE_OFFSET: Record<string, number> = {
+	C: 0,
+	"C♯": 1,
+	D: 2,
+	"D♯": 3,
+	"E♭": 3,
+	E: 4,
+	F: 5,
+	"F♯": 6,
+	G: 7,
+	"G♯": 8,
+	"A♭": 8,
+	A: 9,
+	"A♯": 10,
+	"B♭": 10,
+	B: 11,
+};
 
-interface ParsedStop {
+function parsePitchToMidi(token: string): {
 	midi: number;
-	pitchName: string;
 	label: string;
-	stop?: BowedSongStop;
-}
-
-function parseCelloNoteToken(raw: string): ParsedStop {
-	const match = /^([A-G](?:[#♯b♭])?\d)(\*)?(?:@(C|G|D|A)(?::F(\d))?)?$/.exec(
-		raw.trim(),
-	);
-	if (!match) {
-		throw new Error(`Invalid Haydn cello token: "${raw}"`);
+} {
+	const m = /^([A-G][♯♭]?)(\d)$/.exec(token.trim());
+	if (!m) {
+		throw new Error(`Invalid Haydn cello pitch token: "${token}"`);
 	}
-	const [, pitchRaw, harmMark, strKey, fingerStr] = match;
-	const { midi, pitchName: baseLabel } = parsePitchToMidi(pitchRaw);
-	const isHarmonic = Boolean(harmMark);
-
-	const stringIndex =
-		!strKey && isHarmonic && (midi === 69 || midi === 76 || midi === 81)
-			? 3
-			: !strKey && isHarmonic && (midi === 62 || midi === 74)
-				? 2
-				: !strKey && isHarmonic && midi === 55
-					? 1
-					: resolveBowedStringIndex(CELLO_TUNING, strKey, midi);
-	const stringRoman = BOWED_STRING_ROMAN[stringIndex];
-	const openMidi = CELLO_TUNING[stringIndex].openMidi;
-	const interval = midi - openMidi;
-
-	if (isHarmonic) {
-		const touchSemitone = BOWED_HARMONIC_TOUCH_SEMITONES[interval];
-		if (touchSemitone === undefined) {
-			throw new Error(
-				`Token "${raw}" (MIDI ${midi}) is not a natural harmonic on ${CELLO_TUNING[stringIndex].label}`,
-			);
-		}
-		const finger = fingerStr !== undefined ? Number(fingerStr) : 3;
-		return {
-			midi,
-			pitchName: baseLabel,
-			label: `${baseLabel} Harm. (${stringRoman})`,
-			stop: {
-				stringIndex,
-				semitone: touchSemitone,
-				finger,
-			},
-		};
+	const [, pitch, octaveStr] = m;
+	const offset = NOTE_OFFSET[pitch];
+	if (offset === undefined) {
+		throw new Error(`Unknown pitch name "${pitch}" in "${token}"`);
 	}
-
-	if (interval < 0) {
-		throw new Error(
-			`Token "${raw}" (MIDI ${midi}) is below ${CELLO_TUNING[stringIndex].label} string`,
-		);
-	}
-
-	// Thumb-position notes above B4 (MAX_BOWED_SEMITONE = 14) still sound their true pitch
-	// while omitting out-of-range neck dots so rendered fingerboard stops stay within 0..14.
-	if (interval > MAX_BOWED_SEMITONE) {
-		return {
-			midi,
-			pitchName: baseLabel,
-			label: `${baseLabel} (${stringRoman} Thumb Pos)`,
-		};
-	}
-
-	const finger =
-		fingerStr !== undefined ? Number(fingerStr) : inferCelloFinger(interval);
-	return {
-		midi,
-		pitchName: baseLabel,
-		label: `${baseLabel} (${stringRoman} F${finger})`,
-		stop: {
-			stringIndex,
-			semitone: interval,
-			finger,
-		},
-	};
+	const midi = (Number(octaveStr) + 1) * 12 + offset;
+	return { midi, label: `${pitch}${octaveStr}` };
 }
 
 function durToMs(dur: string): number {
 	switch (dur) {
-		case "16":
-			return SIXTEENTH_MS;
-		case "8":
-			return EIGHTH_MS;
-		case "4":
-			return QUARTER_MS;
-		case "4.":
-			return DOTTED_QUARTER_MS;
-		case "4+8r":
-			return DOTTED_QUARTER_MS;
+		case "1":
+			return WHOLE_MS;
 		case "2.":
 			return DOTTED_HALF_MS;
+		case "2":
+			return HALF_MS;
+		case "4.":
+			return DOTTED_QUARTER_MS;
+		case "4":
+			return QUARTER_MS;
+		case "8.":
+			return DOTTED_EIGHTH_MS;
+		case "8":
+			return EIGHTH_MS;
+		case "16":
+			return SIXTEENTH_MS;
 		default:
-			throw new Error(`Unsupported Haydn duration "${dur}"`);
+			throw new Error(`Unsupported Haydn duration: "${dur}"`);
 	}
+}
+
+/**
+ * Maps a sounding cello pitch (C2..B4 = 36..71) onto its first-to-fourth-position
+ * fingerboard stop; upper thumb-position notes (> B4) return null so stops stay within 0..14.
+ */
+function pickCelloStop(midi: number) {
+	if (midi < 36 || midi > 71) return null;
+	// Prefer open strings (C2, G2, D3, A3) for immediate resonant response
+	for (let s = 3; s >= 0; s--) {
+		const open = CELLO_TUNING[s].openMidi;
+		if (midi === open) {
+			return { stringIndex: s, semitone: 0, finger: 0 };
+		}
+	}
+	for (let s = 3; s >= 0; s--) {
+		const semitone = midi - CELLO_TUNING[s].openMidi;
+		if (semitone >= 0 && semitone <= 7) {
+			const finger =
+				semitone <= 2 ? 1 : semitone <= 4 ? 2 : semitone === 5 ? 3 : 4;
+			return { stringIndex: s, semitone, finger };
+		}
+	}
+	const topSemitone = midi - CELLO_TUNING[3].openMidi;
+	if (topSemitone >= 0 && topSemitone <= 14) {
+		return {
+			stringIndex: 3,
+			semitone: topSemitone,
+			finger: topSemitone <= 9 ? 2 : 3,
+		};
+	}
+	return null;
 }
 
 function parseHaydnBarNotation(notation: string): SongNoteEvent[] {
 	return notation
 		.trim()
 		.split(/\s+/)
-		.map((token) => {
-			const slashIdx = token.lastIndexOf("/");
+		.filter(Boolean)
+		.map((raw) => {
+			const slashIdx = raw.indexOf("/");
 			if (slashIdx === -1) {
-				throw new Error(`Missing duration on token "${token}"`);
+				throw new Error(`Missing duration in Haydn token "${raw}"`);
 			}
-			const pitchSpec = token.slice(0, slashIdx);
-			const dur = token.slice(slashIdx + 1);
+			const pitchPart = raw.slice(0, slashIdx);
+			const dur = raw.slice(slashIdx + 1);
 			const stepDurationMs = durToMs(dur);
-			const soundingMs = dur === "4+8r" ? QUARTER_MS : stepDurationMs;
-			const parts = pitchSpec.split("+").map(parseCelloNoteToken);
-			const stops = parts.flatMap((p) => (p.stop ? [p.stop] : []));
-			const isChord = parts.length > 1;
+			const pitches = pitchPart.split("+").map(parsePitchToMidi);
+			const stops = pitches
+				.map((p) => pickCelloStop(p.midi))
+				.filter((st): st is NonNullable<typeof st> => st !== null);
+			const soundingMs = Math.max(stepDurationMs * 0.94, 150);
 			return {
-				midi: parts.map((p) => p.midi),
+				midi: pitches.map((p) => p.midi),
 				durationSec: Number((soundingMs / 1000).toFixed(3)),
 				stepDurationMs,
-				noteLabel: isChord
-					? `${parts.map((p) => p.pitchName).join("–")} Bow Roll`
-					: parts[0].label,
-				...(isChord ? { spreadSec: 0.05 } : {}),
+				noteLabel: pitches.map((p) => p.label).join(" + "),
+				...(pitches.length > 1 ? { spreadSec: 0.03 } : {}),
 				...(stops.length > 0 ? { celloStops: stops } : {}),
 			};
 		});
 }
 
-const HAYDN_RONDO_BARS: NotationBarSpec[] = [
+const HAYDN_ALLEGRO_BARS: NotationBarSpec[] = [
+	// 1. Orchestral Tutti Opening Theme (Urtext Full Score mm. 1–6)
 	{
 		barNumber: 1,
 		chordSymbol: "D",
@@ -170,227 +145,224 @@ const HAYDN_RONDO_BARS: NotationBarSpec[] = [
 		chordNotes: ["D", "F♯", "A"],
 		circleDegree: 1,
 		circleSlotIndex: 2,
-		cue: "Solo refrain: F♯4–E4–F♯4 · G4–F♯4–G4 (6/8)",
-		notation: "F#4/8 E4/8 F#4/8 G4/8 F#4/8 G4/8",
+		cue: "Tutti Theme m.1: stately D Major opening F♯4 turn & tonic leap",
+		notation: "F♯4/4 F♯4/16 G4/16 G♯4/16 A4/16 A4/8. F♯4/16 D4/8 A4/8",
 	},
 	{
 		barNumber: 2,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "G → D",
+		roman: "IV → I",
 		quality: "major",
 		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Octave harmonics: A4 (I F3) – F♯4 – D4 (II F3)",
-		notation: "A4*@A:F3/4 F#4/8 D4*@D:F3/4+8r",
+		chordNotes: ["G", "B", "D"],
+		circleDegree: 4,
+		circleSlotIndex: 1,
+		cue: "Tutti m.2: subdominant B4 lift easing down through A4–F♯4–G4–B4",
+		notation: "B4/4 B4/16 A4/16 G4/16 F♯4/16 A4/8. F♯4/16 G4/8 A4/16 B4/16",
 	},
 	{
 		barNumber: 3,
-		chordSymbol: "A7/G",
-		roman: "V7",
+		chordSymbol: "D → A7 → D",
+		roman: "I → V7 → I",
 		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Dominant answer: E4–D4–E4 · F♯4–E4–F♯4",
-		notation: "E4/8 D4/8 E4/8 F#4/8 E4/8 F#4/8",
+		guitarKind: "major",
+		chordNotes: ["D", "F♯", "A"],
+		circleDegree: 1,
+		circleSlotIndex: 2,
+		cue: "Tutti m.3: Classical answering turn A4–G4–F♯4–E4 over D–A7",
+		notation: "A4/8 G4/16 F♯4/16 E4/8. G4/16 F♯4/8 E4/16 D4/16 E4/8 A3/8",
 	},
 	{
 		barNumber: 4,
-		chordSymbol: "A7",
-		roman: "V7",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
 		quality: "major",
 		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
+		chordNotes: ["E", "G♯", "B", "D"],
 		circleDegree: 5,
 		circleSlotIndex: 3,
-		cue: "Descending A7 triad: G4 – E4 – C♯4",
-		notation: "G4@A:F4/4 E4/8 C#4/4+8r",
+		cue: "Tutti m.4: leading-tone G♯3 rise into the dominant pedal D♯4–E4–A4",
+		notation:
+			"G♯3/16 A3/16 B3/16 E4/16 C♯4/8 D4/8 D4/8 D♯4/16 E4/16 D4/16 E4/16 F♯4/16 G♯4/16",
 	},
 	{
 		barNumber: 5,
-		chordSymbol: "G/B",
-		roman: "IV",
+		chordSymbol: "D → G → A7",
+		roman: "I → IV → V7",
 		quality: "major",
 		guitarKind: "major",
-		chordNotes: ["G", "B", "D"],
-		circleDegree: 4,
-		circleSlotIndex: 1,
-		cue: "Rising step D4–E4–F♯4 · double D4 anchor",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D4@A:F1/8",
+		chordNotes: ["D", "F♯", "A"],
+		circleDegree: 1,
+		circleSlotIndex: 2,
+		cue: "Tutti m.5: dotted-eighth fanfare dialogue before A Major half cadence",
+		notation: "A4/8. F♯4/16 G4/8. A4/16 G4/8 F♯4/16 E4/16 D4/8 C♯4/16 E4/16",
 	},
 	{
 		barNumber: 6,
-		chordSymbol: "B7/D♯",
-		roman: "V7/ii",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
 		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["B", "D♯", "F♯", "A"],
+		guitarKind: "major",
+		chordNotes: ["A", "C♯", "E"],
 		circleDegree: 5,
-		circleSlotIndex: 5,
-		cue: "Chromatic D♯4 pivot toward E minor",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D#4@A:F1/8",
+		circleSlotIndex: 3,
+		cue: "Tutti m.6: A Major cadence welcoming the Solo Cello entrance",
+		notation:
+			"G♯3/16 A3/16 B3/16 D4/16 C♯4/8 E4/8 A4/8 G♯4/16 F♯4/16 E4/8 A3/8",
 	},
+	// 2. Solo Cello Primary Theme (mf cantabile — Edition Peters p.1)
 	{
 		barNumber: 7,
-		chordSymbol: "Em7",
-		roman: "ii7",
-		quality: "minor",
-		guitarKind: "m7",
-		chordNotes: ["E", "G", "B", "D"],
-		circleDegree: 2,
-		circleSlotIndex: 1,
-		cue: "F♯4–G4–A4 arch · mordent descent to E4",
-		notation: "F#4/8 G4/8 A4/8 G4/8 F#4/8 E4/8",
+		chordSymbol: "D (Solo Entrance)",
+		roman: "I",
+		quality: "major",
+		guitarKind: "major",
+		chordNotes: ["D", "F♯", "A"],
+		circleDegree: 1,
+		circleSlotIndex: 2,
+		cue: "Solo mf cantabile: warm singing statement of the F♯4 primary theme",
+		notation: "F♯4/4 F♯4/16 G4/16 G4/16 A4/16 A4/8. F♯4/16 A4/4",
 	},
 	{
 		barNumber: 8,
-		chordSymbol: "A7",
-		roman: "V7",
+		chordSymbol: "G → D",
+		roman: "IV → I",
 		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Fermata V hold on A4 · G4–F♯4 lead-in",
-		notation: "A4/4. G4/4 F#4/8",
+		guitarKind: "major",
+		chordNotes: ["G", "B", "D"],
+		circleDegree: 4,
+		circleSlotIndex: 1,
+		cue: "Solo m.2: soaring B4–D5 turn & open-D octave drop A4→D4",
+		notation: "B4/4 D5/16 C5/16 B4/16 A4/16 A4/8. D4/16 G4/8 A4/16 B4/16",
 	},
 	{
 		barNumber: 9,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "A7 → D",
+		roman: "V7 → I",
 		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Tutti echo: D3+F♯4 · E4–F♯4 · G4–F♯4–G4",
-		notation: "D3+F#4/8 E4/8 F#4/8 G4/8 F#4/8 G4/8",
+		guitarKind: "7",
+		chordNotes: ["A", "C♯", "E", "G"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Solo m.3: fluent 16th-note Classical filigree landing on open A3",
+		notation:
+			"A4/16 G4/16 F♯4/16 E4/16 D4/16 E4/16 G4/16 A4/16 G4/16 F♯4/16 E4/16 D4/16 C♯4/16 E4/16 A4/16 A3/16",
 	},
 	{
 		barNumber: 10,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
 		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Tutti D3+A4 – F♯4 – D4 cadence",
-		notation: "D3+A4*@A:F3/4 F#4/8 D4*@D:F3/4+8r",
+		guitarKind: "7",
+		chordNotes: ["E", "G♯", "B", "D"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Solo m.4: rising G♯3 arpeggio & chromatic D4→D♯4→E4 modulation",
+		notation:
+			"G♯3/16 A3/16 B3/16 E4/16 C♯4/8 D4/8 D4/8 D♯4/16 E4/16 D4/16 E4/16 F♯4/16 G♯4/16",
 	},
 	{
 		barNumber: 11,
-		chordSymbol: "A7/G",
-		roman: "V7",
+		chordSymbol: "A",
+		roman: "V",
 		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
+		guitarKind: "major",
+		chordNotes: ["A", "C♯", "E"],
 		circleDegree: 5,
 		circleSlotIndex: 3,
-		cue: "Tutti V4/2 answer: E4–D4–E4 · F♯4–E4–F♯4",
-		notation: "E4/8 D4/8 E4/8 F#4/8 E4/8 F#4/8",
+		cue: "Solo m.5: sunlit A4–D5–B4 apex settling gracefully to A3",
+		notation:
+			"A4/16 G♯4/16 F♯4/16 E4/16 F♯4/16 D5/16 B4/16 G♯4/16 A4/16 G♯4/16 F♯4/16 E4/16 C♯4/16 E4/16 A4/16 A3/16",
 	},
 	{
 		barNumber: 12,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Tutti A7: G4 – E4 – C♯4 arpeggio",
-		notation: "G4@A:F4/4 E4/8 C#4/4+8r",
+		chordSymbol: "Bm → E7 → A",
+		roman: "ii/V → V7/V → V",
+		quality: "minor",
+		guitarKind: "minor",
+		chordNotes: ["B", "D", "F♯"],
+		circleDegree: 6,
+		circleSlotIndex: 4,
+		cue: "Solo m.6: lyrical cadence resolving cleanly into A Major",
+		notation:
+			"B4/8 C♯5/16 D5/16 D5/16 C♯5/16 B4/16 A4/16 G♯4/16 F♯4/16 E4/16 D4/16 C♯4/8 A3/8",
 	},
 	{
 		barNumber: 13,
-		chordSymbol: "G/B",
-		roman: "IV",
+		chordSymbol: "A",
+		roman: "V",
 		quality: "major",
 		guitarKind: "major",
-		chordNotes: ["G", "B", "D"],
-		circleDegree: 4,
-		circleSlotIndex: 1,
-		cue: "Tutti IV6–I6/4: D4–E4–F♯4 · D4",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D4@A:F1/8",
+		chordNotes: ["A", "C♯", "E"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Bridge scale: A Major pulse rising through E4–F♯4–G♯4–A4",
+		notation: "A3/4 E4/4 A3/4 E4/16 F♯4/16 G♯4/16 A4/16",
 	},
+	// 3. Secondary Lyrical Theme (espressivo in A Major & Bariolage)
 	{
 		barNumber: 14,
-		chordSymbol: "B7/D♯",
-		roman: "V7/ii",
+		chordSymbol: "A (espress.)",
+		roman: "V",
 		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["B", "D♯", "F♯", "A"],
+		guitarKind: "major",
+		chordNotes: ["A", "C♯", "E"],
 		circleDegree: 5,
-		circleSlotIndex: 5,
-		cue: "Tutti turn toward V/V with D♯4",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D#4@A:F1/8",
+		circleSlotIndex: 3,
+		cue: "Second Theme m.1 (espress.): tender C♯5–B4 sigh in A Major",
+		notation: "C♯5/4 B4/8 B4/8 D5/8. C♯5/16 A4/8 G♯4/16 A4/16",
 	},
 	{
 		barNumber: 15,
-		chordSymbol: "E7",
-		roman: "V7/V",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
 		quality: "major",
 		guitarKind: "7",
 		chordNotes: ["E", "G♯", "B", "D"],
 		circleDegree: 5,
-		circleSlotIndex: 4,
-		cue: "Tutti dominant drive: E4–G♯4–A4 · B4–A4–G4",
-		notation: "E4/8 G#4/8 A4/8 B4/8 A4/8 G4/8",
+		circleSlotIndex: 3,
+		cue: "Second Theme m.2: flowing scalar turn & climbing C♯5 upbeat",
+		notation: "B4/8 C♯5/16 D5/16 C♯5/16 B4/16 A4/16 G♯4/16 A4/4 B4/8 C♯5/8",
 	},
 	{
 		barNumber: 16,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "A/E → E7",
+		roman: "V64 → V7/V",
 		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Cadential 16ths A4–G4–F♯4–E4 into D3+D4",
-		notation: "A4/16 G4/16 F#4/16 E4/16 D3+D4@A:F1/4+8r D4/8",
+		guitarKind: "7",
+		chordNotes: ["A", "C♯", "E", "G♯"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Bariolage m.1: open-A3 pedal alternating beneath singing A4–B4–C♯5",
+		notation: "A4/8 A3/8 A4/8 A3/8 G♯4/8 A4/16 B4/16 C♯5/8 B4/16 G♯4/16",
 	},
 	{
 		barNumber: 17,
-		chordSymbol: "D/F♯",
-		roman: "I",
+		chordSymbol: "A/E → E7",
+		roman: "V64 → V7/V",
 		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Solo dol.: A4–G4–F♯4–E4 · rising F♯4–A4–B4",
-		notation: "A4/8 G4/16 F#4/16 E4/8 F#4/8 A4/8 B4/8",
+		guitarKind: "7",
+		chordNotes: ["A", "C♯", "E", "G♯"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Bariolage m.2: answering A3–A4 echo climbing toward D5 peak",
+		notation: "A4/8 A3/8 A4/8 A3/8 G♯4/8 A4/16 B4/16 C♯5/8 B4/16 G♯4/16",
 	},
 	{
 		barNumber: 18,
-		chordSymbol: "Em7",
-		roman: "ii7",
-		quality: "minor",
-		guitarKind: "m7",
-		chordNotes: ["E", "G", "B", "D"],
-		circleDegree: 2,
-		circleSlotIndex: 1,
-		cue: "Sustained B4 – A4 sigh over E minor",
-		notation: "B4/4. A4/4+8r",
+		chordSymbol: "D → Bm7 → E7 → A",
+		roman: "IV/V → ii/V → V7/V → V",
+		quality: "major",
+		guitarKind: "major",
+		chordNotes: ["D", "F♯", "A"],
+		circleDegree: 4,
+		circleSlotIndex: 2,
+		cue: "Climax of Second Theme: D5 drop to G♯4 & descending A-major scale",
+		notation:
+			"A4/8 D5/16 B4/16 G♯4/8 B4/16 G♯4/16 A4/16 G♯4/16 F♯4/16 E4/16 D4/8 C♯4/8",
 	},
 	{
 		barNumber: 19,
-		chordSymbol: "E7/G♯",
-		roman: "V7/V",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["E", "G♯", "B", "D"],
-		circleDegree: 5,
-		circleSlotIndex: 4,
-		cue: "Repeated E4 pulses · G♯4–A4 turn",
-		notation: "E4/8 E4/8 E4/8 F#4/16 G#4/16 A4/16 G#4/16 E4/8",
-	},
-	{
-		barNumber: 20,
 		chordSymbol: "A",
 		roman: "V",
 		quality: "major",
@@ -398,161 +370,114 @@ const HAYDN_RONDO_BARS: NotationBarSpec[] = [
 		chordNotes: ["A", "C♯", "E"],
 		circleDegree: 5,
 		circleSlotIndex: 3,
-		cue: "V tonicization: C♯4 dotted cadence – B3",
-		notation: "C#4/4. B3/4+8r",
+		cue: "Pause on A Major before Rehearsal [A] virtuoso passagework",
+		notation: "E4/4 C♯4/4 A3/2",
+	},
+	// 4. Rehearsal [A] Virtuoso Arpeggios & Exposition Close (Edition Peters p.1 [A])
+	{
+		barNumber: 20,
+		chordSymbol: "A ([A] Allegro)",
+		roman: "V",
+		quality: "major",
+		guitarKind: "major",
+		chordNotes: ["A", "C♯", "E"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Rehearsal [A] mf: crisp scalar drop A2–A3–B2 & open-A string crossing",
+		notation:
+			"A2/16 A3/16 G♯3/16 F♯3/16 E3/16 D3/16 C♯3/16 B2/16 A2/16 E3/16 C♯3/16 E3/16 A2/16 E3/16 C♯3/16 E3/16",
 	},
 	{
 		barNumber: 21,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "D/A → E7",
+		roman: "I64 → V7/V",
 		quality: "major",
-		guitarKind: "major",
+		guitarKind: "7",
 		chordNotes: ["D", "F♯", "A"],
 		circleDegree: 1,
 		circleSlotIndex: 2,
-		cue: "16th cascade A4–G4–F♯4–E4 · A4–G♯4–A4",
-		notation: "A4/16 G4/16 F#4/16 E4/16 D4/8 A4/8 G#4/8 A4/8",
+		cue: "Rehearsal [A] m.2: rising low-register scale climbing out of A2",
+		notation:
+			"D3/16 A2/16 B2/16 C♯3/16 D3/16 E3/16 F♯3/16 G♯3/16 A3/8 B3/8 C♯4/8 D♯4/8",
 	},
 	{
 		barNumber: 22,
-		chordSymbol: "Bm7",
-		roman: "vi7",
-		quality: "minor",
-		guitarKind: "m7",
-		chordNotes: ["B", "D", "F♯", "A"],
-		circleDegree: 6,
-		circleSlotIndex: 2,
-		cue: "Crescendo sequence: A4–G4–G4 · A4–G4–G4",
-		notation: "A4/8 G4/8 G4/8 A4/8 G4/8 G4/8",
+		chordSymbol: "A (Piano Echo)",
+		roman: "V",
+		quality: "major",
+		guitarKind: "major",
+		chordNotes: ["A", "C♯", "E"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Rehearsal [A] piano echo: delicate A3→B2 cascade & Bm string turn",
+		notation:
+			"A2/16 A3/16 G♯3/16 F♯3/16 E3/16 D3/16 C♯3/16 B2/16 A2/16 E3/16 C♯3/16 E3/16 A2/16 D3/16 B2/16 D3/16",
 	},
 	{
 		barNumber: 23,
-		chordSymbol: "Em7",
-		roman: "ii7",
-		quality: "minor",
-		guitarKind: "m7",
-		chordNotes: ["E", "G", "B", "D"],
-		circleDegree: 2,
-		circleSlotIndex: 1,
-		cue: "Sequential step down: G4–F♯4–F♯4",
-		notation: "G4/8 F#4/8 F#4/8 G4/8 F#4/8 F#4/8",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
+		quality: "major",
+		guitarKind: "7",
+		chordNotes: ["E", "G♯", "B", "D"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Crescendo run: G♯2–D3 pedal launching ascending A-major 16ths",
+		notation:
+			"G♯2/16 D3/16 B2/16 D3/16 G♯2/16 E3/16 D3/16 B2/16 A2/16 B2/16 C♯3/16 D3/16 E3/16 F♯3/16 G♯3/16 A3/16",
 	},
 	{
 		barNumber: 24,
-		chordSymbol: "A7",
-		roman: "V7",
+		chordSymbol: "E7",
+		roman: "V7/V",
 		quality: "major",
 		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
+		chordNotes: ["E", "G♯", "B", "D"],
 		circleDegree: 5,
 		circleSlotIndex: 3,
-		cue: "V7 sigh: F♯4–E4–E4 · F♯4–E4–D4",
-		notation: "F#4/8 E4/8 E4/8 F#4/8 E4/8 D4/8",
+		cue: "Pre-cadential surge up through E4 & soaring G♯4–B4–D5 arpeggio",
+		notation:
+			"B3/16 C♯4/16 D4/16 E4/16 F♯4/16 E4/16 D4/16 C♯4/16 B3/16 G♯4/16 E4/16 B4/16 G♯4/16 E5/16 B4/16 D5/16",
 	},
 	{
 		barNumber: 25,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "E7 → A",
+		roman: "V7/V → V",
 		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "2a string arpeggios: D4 harmonic to A4",
-		notation:
-			"D4*@D:F3/16 E4/16 F#4/16 E4/16 A4*@A:F3/16 F#4/16 D4*@D:F3/16 E4/16 F#4/16 E4/16 A4*@A:F3/16 F#4/16",
+		guitarKind: "7",
+		chordNotes: ["A", "C♯", "E"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Exposition trill prep: G♯2–A2 bass drop into descending A4–D4 line",
+		notation: "G♯2/8 A2/8 A4/4 G4/16 F♯4/16 E4/16 D4/16 C♯4/8 B3/8",
 	},
 	{
 		barNumber: 26,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "E7 → A (Tutti Cadence)",
+		roman: "V7/V → V",
 		quality: "major",
 		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Climbing 16th turn: E4–F♯4–G4–A4–G4–E4",
-		notation:
-			"E4/16 F#4/16 G4/16 F#4/16 A4/16 G4/16 F#4/16 G4/16 A4/16 G4/16 F#4/16 E4/16",
+		chordNotes: ["A", "C♯", "E"],
+		circleDegree: 5,
+		circleSlotIndex: 3,
+		cue: "Tutti close of Exposition in A Major: E4–B3 cadence resolving to A3",
+		notation: "B3/4 C♯4/8 B3/8 A3/2",
 	},
+	// 5. Tonic Home Return (Recapitulation Theme Recall in D Major)
 	{
 		barNumber: 27,
-		chordSymbol: "D",
-		roman: "I",
+		chordSymbol: "A7 → D",
+		roman: "V7 → I",
 		quality: "major",
-		guitarKind: "major",
+		guitarKind: "7",
 		chordNotes: ["D", "F♯", "A"],
 		circleDegree: 1,
 		circleSlotIndex: 2,
-		cue: "Piano echo of 16th D4–A4 arpeggios",
-		notation:
-			"D4*@D:F3/16 E4/16 F#4/16 E4/16 A4*@A:F3/16 F#4/16 D4*@D:F3/16 E4/16 F#4/16 E4/16 A4*@A:F3/16 F#4/16",
+		cue: "Tonic recall: gentle D Major theme echo F♯4–G4–A4 over A7→D",
+		notation: "F♯4/4 F♯4/16 G4/16 A4/16 F♯4/16 G4/8 E4/8 D4/8 A3/8",
 	},
 	{
 		barNumber: 28,
-		chordSymbol: "G",
-		roman: "IV",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["G", "B", "D"],
-		circleDegree: 4,
-		circleSlotIndex: 1,
-		cue: "Upper B4 peak inside 16th ripple",
-		notation:
-			"E4/16 F#4/16 G4/16 F#4/16 B4/16 G4/16 F#4/16 G4/16 A4/16 G4/16 F#4/16 E4/16",
-	},
-	{
-		barNumber: 29,
-		chordSymbol: "Em",
-		roman: "ii",
-		quality: "minor",
-		guitarKind: "minor",
-		chordNotes: ["E", "G", "B"],
-		circleDegree: 2,
-		circleSlotIndex: 1,
-		cue: "Crescendo run from B3 through A4–B4",
-		notation:
-			"D4/16 B3/16 C#4/16 D4/16 E4/16 F#4/16 D4/16 E4/16 F#4/16 G4/16 A4/16 B4/16",
-	},
-	{
-		barNumber: 30,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Scale surge toward high C♯5",
-		notation:
-			"A4/16 F#4/16 G4/16 A4/16 B4/16 A4/16 G#4/16 A4/16 B4/16 A4/16 B4/16 C#5/16",
-	},
-	{
-		barNumber: 31,
-		chordSymbol: "D/A",
-		roman: "I",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Forte thumb-position D5*–C♯5–B4 apex",
-		notation: "D5*@D:F3/4 C#5/16 B4/16 A4/4 B4/16 A4/16",
-	},
-	{
-		barNumber: 32,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Glissez fermata: D5* – C♯5 – B4 – C♮5 on V7",
-		notation: "D5*@D:F3/4. C#5/8 B4/8 C5/8",
-	},
-	{
-		barNumber: 33,
 		chordSymbol: "D",
 		roman: "I",
 		quality: "major",
@@ -560,292 +485,86 @@ const HAYDN_RONDO_BARS: NotationBarSpec[] = [
 		chordNotes: ["D", "F♯", "A"],
 		circleDegree: 1,
 		circleSlotIndex: 2,
-		cue: "Solo refrain return (p): F♯4–E4–F♯4–G4",
-		notation: "F#4/8 E4/8 F#4/8 G4/8 F#4/8 G4/8",
-	},
-	{
-		barNumber: 34,
-		chordSymbol: "D",
-		roman: "I",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Octave harmonics return: A4 – F♯4 – D4",
-		notation: "A4*@A:F3/4 F#4/8 D4*@D:F3/4+8r",
-	},
-	{
-		barNumber: 35,
-		chordSymbol: "A7/G",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Refrain V7 answer: E4–D4–E4 · F♯4–E4–F♯4",
-		notation: "E4/8 D4/8 E4/8 F#4/8 E4/8 F#4/8",
-	},
-	{
-		barNumber: 36,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Descending A7 triad: G4 – E4 – C♯4",
-		notation: "G4@A:F4/4 E4/8 C#4/4+8r",
-	},
-	{
-		barNumber: 37,
-		chordSymbol: "G/B",
-		roman: "IV",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["G", "B", "D"],
-		circleDegree: 4,
-		circleSlotIndex: 1,
-		cue: "Gentle D4–E4–F♯4 climb · D4 pedal",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D4@A:F1/8",
-	},
-	{
-		barNumber: 38,
-		chordSymbol: "B7/D♯",
-		roman: "V7/ii",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["B", "D♯", "F♯", "A"],
-		circleDegree: 5,
-		circleSlotIndex: 5,
-		cue: "D♯4 inflection leaning into E minor",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D#4@A:F1/8",
-	},
-	{
-		barNumber: 39,
-		chordSymbol: "Em7",
-		roman: "ii7",
-		quality: "minor",
-		guitarKind: "m7",
-		chordNotes: ["E", "G", "B", "D"],
-		circleDegree: 2,
-		circleSlotIndex: 1,
-		cue: "F♯4–G4–A4 arch · mordent to E4",
-		notation: "F#4/8 G4/8 A4/8 G4/8 F#4/8 E4/8",
-	},
-	{
-		barNumber: 40,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "V fermata hold on A4 before Tutti",
-		notation: "A4/4. G4/4 F#4/8",
-	},
-	{
-		barNumber: 41,
-		chordSymbol: "D",
-		roman: "I",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Tutti transition (f): D3+F♯4 theme return",
-		notation: "D3+F#4/8 E4/8 F#4/8 G4/8 F#4/8 G4/8",
-	},
-	{
-		barNumber: 42,
-		chordSymbol: "D",
-		roman: "I",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["D", "F♯", "A"],
-		circleDegree: 1,
-		circleSlotIndex: 2,
-		cue: "Tutti D3+A4 – F♯4 – D4",
-		notation: "D3+A4*@A:F3/4 F#4/8 D4*@D:F3/4+8r",
-	},
-	{
-		barNumber: 43,
-		chordSymbol: "A7/G",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Tutti V4/2 sequence: E4–D4–E4 · F♯4–E4–F♯4",
-		notation: "E4/8 D4/8 E4/8 F#4/8 E4/8 F#4/8",
-	},
-	{
-		barNumber: 44,
-		chordSymbol: "A7",
-		roman: "V7",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["A", "C♯", "E", "G"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Tutti A7 drop: G4 – E4 – C♯4",
-		notation: "G4@A:F4/4 E4/8 C#4/4+8r",
-	},
-	{
-		barNumber: 45,
-		chordSymbol: "G/B",
-		roman: "IV",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["G", "B", "D"],
-		circleDegree: 4,
-		circleSlotIndex: 1,
-		cue: "Tutti rising fourth: D4–E4–F♯4 · D4",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D4@A:F1/8",
-	},
-	{
-		barNumber: 46,
-		chordSymbol: "B7/D♯",
-		roman: "V7/ii",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["B", "D♯", "F♯", "A"],
-		circleDegree: 5,
-		circleSlotIndex: 5,
-		cue: "Tutti pivots cleanly toward A Major",
-		notation: "D4@A:F1/8 E4/8 F#4/8 D4@A:F1/4 D#4@A:F1/8",
-	},
-	{
-		barNumber: 47,
-		chordSymbol: "E7",
-		roman: "V7/V",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["E", "G♯", "B", "D"],
-		circleDegree: 5,
-		circleSlotIndex: 4,
-		cue: "Dominant push in A: E4–G♯4–B4–G♯4–E4",
-		notation: "E4/8 G#4/8 B4/8 G#4/8 E4/8 D4/8",
-	},
-	{
-		barNumber: 48,
-		chordSymbol: "E7",
-		roman: "V7/V",
-		quality: "major",
-		guitarKind: "7",
-		chordNotes: ["E", "G♯", "B", "D"],
-		circleDegree: 5,
-		circleSlotIndex: 4,
-		cue: "Scalar cadence into A Major (Bar 49)",
-		notation: "E4/8 D4/8 C#4/8 B3/8 A3/8 G#3/8",
-	},
-	{
-		barNumber: 49,
-		chordSymbol: "A",
-		roman: "V",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["A", "C♯", "E"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Episode B in A Major: sweeping A3–A4 arpeggio",
-		notation:
-			"A3/16 C#4/16 E4/16 A4*@A:F3/16 E4/16 C#4/16 A3/16 E4/16 D4/16 C#4/16 B3/16 A3/16",
-	},
-	{
-		barNumber: 50,
-		chordSymbol: "A",
-		roman: "V",
-		quality: "major",
-		guitarKind: "major",
-		chordNotes: ["A", "C♯", "E"],
-		circleDegree: 5,
-		circleSlotIndex: 3,
-		cue: "Episode B arrival: ringing A3+E4 fifth cadence",
-		notation: "C#4/16 A3/16 E4/16 A3/16 C#4/8 A3+E4/4.",
+		cue: "Final D Major resolution: open D3–A3 fifth & tonic D3 ringing out",
+		notation: "F♯4/4 A3/4 D3+A3+F♯4/2",
 	},
 ];
 
 export const HAYDN_CELLO_CONCERTO_2_SPEC: CompactSongSpec = {
 	id: "haydn-cello-concerto-2",
-	title: "Cello Concerto No. 2 in D Major (III. Rondo: Allegro)",
-	composerOrSource: "Joseph Haydn · Hob. VIIb:2 (Op. 101)",
-	subtitle:
-		"6/8 Classical rondo refrain, natural harmonics & A Major episode (Bars 1–50)",
+	title: "Cello Concerto No. 2 (I. Allegro moderato)",
+	composerOrSource: "Joseph Haydn (Hob. VIIb:2)",
+	subtitle: "I. Allegro moderato in D Major (4/4) · Exposition Highlights",
 	instruments: ["cello"],
 	keySlot: 2,
 	keyMode: "major",
 	keyLabel: "D Major",
-	timeSignature: "6/8",
-	bpm: 80,
+	timeSignature: "4/4",
+	bpm: 91,
 	theorySummary:
-		"Opening 50 bars of Movement III (Rondo: Allegro) in D Major: the solo cello opens with its lilting I–V7 refrain and octave harmonics, trades phrases with the Tutti orchestra (Bars 9–16), climbs through 16th-note arpeggios to a glissez V7 fermata (Bar 32), reprises the refrain, and modulates into A Major (V) at Bars 49–50.",
+		"Transcribed cleanly from the First Movement (Allegro moderato, 4/4, D Major) Urtext & Klengel scores: opens with the stately orchestral main theme, introduces the singing Solo Cello (mf cantabile), modulates via E7 to the lyrical second theme and bariolage in A Major, sweeps through Rehearsal [A]'s virtuoso arpeggios, and resolves cleanly back to D Major.",
 	studyGuide: {
 		vibeAndSound:
-			"Joyful 6/8 Classical dance: two buoyant three-eighth pulses per bar carry Haydn's solo refrain from ringing octave harmonics into brisk 16th-note arpeggios.",
+			"Poised Classical elegance (Allegro moderato in 4/4): warm singing cantabile lines in D Major alternate with playful Classical 16th turns, open-A bariolage, and sweeping arpeggios.",
 		harmonyHook:
-			"Anchors tightly on D Major (I) and A7 (V7), spices Bars 6, 14, 38, and 46 with B7/D♯ (V7/ii), and executes a classic sonata-rondo modulation to the dominant key of A Major by Bar 49.",
+			"Follows textbook Sonata-Form key architecture: establishes D Major (I), pivots via secondary dominant E7 (V7/V) into the dominant key of A Major (V) for the second theme, then resolves home to D.",
 		practiceTips: [
-			"Touch the 12th-fret octave harmonics (A4 and D4) lightly in Bar 2 and Bar 34 without pressing down to let them ring cleanly over D.",
-			"Shape Bars 25–32 as one continuous crescendo from light 2a-string 16ths up to Bar 32's expressive glissez fermata on V7.",
-			"Notice how Bars 47–48 use E7 (V7/V) to pivot cleanly into the bright open-A sweeping arpeggio of Bar 49.",
+			"Shape Bar 7's Solo entrance (F♯4 – G4 – A4 – F♯4) with a steady, unhurried bow so the Classical cantabile sings without rushing the 16th-note turns.",
+			"Listen in Bar 10 how raising D4 → D♯4 → E4 (on E7) pulls your ear smoothly out of D Major into the bright A Major second theme (Bars 14–18).",
+			"In [A] (Bars 20–23), let the open D3 and A3 strings ring clearly against each stopped finger during the string crossings.",
 		],
 		sections: [
 			{
 				id: "haydn-sec-1",
-				title: "1. Solo Rondo Refrain",
-				barRange: "Bars 1–8",
+				title: "1. Tutti Theme (Orchestral Opening)",
+				barRange: "Bars 1–6",
 				startStepIndex: 0,
-				endStepIndex: 7,
-				progressionTag: "I – V7 – IV – V7/ii – ii7 – V7",
+				endStepIndex: 5,
+				progressionTag: "I – IV – V7 – V7/V – V",
 				insight:
-					"The solo cello states the playful 8-bar D Major theme right away, answering F♯4–E4–F♯4–G4 with octave harmonics and a fermata V hold.",
+					"Introduces the noble 4/4 D Major main melody before driving through E7 into a crisp A Major half cadence.",
 			},
 			{
 				id: "haydn-sec-2",
-				title: "2. Tutti Echo",
-				barRange: "Bars 9–16",
-				startStepIndex: 8,
-				endStepIndex: 15,
-				progressionTag: "I – V7 – IV – V7/V – I",
+				title: "2. Solo Entrance (mf cantabile)",
+				barRange: "Bars 7–13",
+				startStepIndex: 6,
+				endStepIndex: 12,
+				progressionTag: "I – IV – V7 – V7/V – V",
 				insight:
-					"Full orchestra echoes the refrain forte, driving through E7 (V7/V) into crisp cadential 16ths onto tonic D.",
+					"The solo cello enters warmly on F♯4, rises to D5, and uses G♯3 and D♯4 to modulate smoothly into A Major.",
 			},
 			{
 				id: "haydn-sec-3",
-				title: "3. Dolce Episode & Glissez Apex",
-				barRange: "Bars 17–32",
-				startStepIndex: 16,
-				endStepIndex: 31,
-				progressionTag: "I – ii7 – V7/V – vi7 – V7",
+				title: "3. Second Theme (espress.) & Bariolage",
+				barRange: "Bars 14–19",
+				startStepIndex: 13,
+				endStepIndex: 18,
+				progressionTag: "V (A) – V7/V – V64 – V",
 				insight:
-					"A lyrical dolce variation yields to cascading sequences (Bars 22–24) and brisk 2a-string 16ths climbing up to Bar 32's glissez fermata.",
+					"A tender A Major lyrical theme (C♯5→B4) leads into Haydn's shimmering open-A string bariolage pedal.",
 			},
 			{
 				id: "haydn-sec-4",
-				title: "4. Refrain Return & A Major Modulation",
-				barRange: "Bars 33–50",
-				startStepIndex: 32,
-				endStepIndex: 49,
-				progressionTag: "I – V7 – V7/V – V",
+				title: "4. [A] Allegro Passagework & Tonic Close",
+				barRange: "Bars 20–28",
+				startStepIndex: 19,
+				endStepIndex: 27,
+				progressionTag: "V – V7/V – V – V7 – I",
 				insight:
-					"Solo and Tutti reprise the D Major refrain before E7 pivots cleanly into the dominant key of A Major (Bars 49–50).",
+					"Sweeps through Rehearsal [A]'s bass arpeggios and piano echo before cadencing in A Major and echoing D Major home.",
 			},
 		],
 	},
 	idPrefix: "hc",
 	bars: mapNotationBars(
-		HAYDN_RONDO_BARS,
+		HAYDN_ALLEGRO_BARS,
 		parseHaydnBarNotation,
 		(_, events) => {
 			const firstStop = events[0]?.celloStops?.[0];
 			return firstStop
 				? [CELLO_TUNING[firstStop.stringIndex].openMidi + firstStop.semitone]
-				: (events[0]?.midi.slice(0, 1) ?? [62]);
+				: (events[0]?.midi.slice(0, 1) ?? [66]);
 		},
 	),
 };

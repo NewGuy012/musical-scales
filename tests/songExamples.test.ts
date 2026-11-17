@@ -134,15 +134,15 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 		).toBe(true);
 	});
 
-	test("Tommy Emmanuel Amazing Grace spans Intro, Verse 1 & 2, and Harp Harmonic Outro in E Major", () => {
+	test("Tommy Emmanuel Amazing Grace spans Verse 1, Verse 2, and Bell Harmonics Finale in E Major (9/8)", () => {
 		const [, grace] = getSongsForInstrument("guitar");
 		expect(grace).toBeDefined();
 		expect(grace.id).toBe("amazing-grace-guitar");
 		expect(grace.composerOrSource).toContain("Tommy Emmanuel");
 		expect(grace.keyLabel).toBe("E Major");
 		expect(grace.keySlot).toBe(4);
-		expect(grace.timeSignature).toBe("3/4");
-		expect(grace.steps).toHaveLength(34);
+		expect(grace.timeSignature).toBe("9/8");
+		expect(grace.steps).toHaveLength(36);
 
 		const allStops = grace.steps.flatMap((s) =>
 			s.events.flatMap((e) => e.guitarStops ?? []),
@@ -280,31 +280,33 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 		expect(lastEvent?.violinStops?.[0]?.technique).toBe("harmonic");
 	});
 
-	test("Cannonball Rag (75 bars, G Major) and Haydn Cello Concerto No. 2 (50 bars, D Major) preserve exact bars & stops", () => {
+	test("Cannonball Rag (58 bars, 2/2, G Major) and Haydn Cello Concerto No. 2 Mvt. I (28 bars, 4/4, D Major) preserve exact bars & stops", () => {
 		const [cannonball] = getSongsForInstrument("guitar");
 		expect(cannonball.keySlot).toBe(1);
 		expect(cannonball.keyMode).toBe("major");
-		expect(cannonball.timeSignature).toBe("4/4");
-		expect(cannonball.bpm).toBe(188);
-		expect(cannonball.steps).toHaveLength(75);
+		expect(cannonball.timeSignature).toBe("2/2");
+		expect(cannonball.bpm).toBe(120);
+		expect(cannonball.steps).toHaveLength(58);
 		expect(cannonball.steps[0].events.map((e) => e.midi[0])).toEqual([
-			55, 54, 55,
+			50, 49, 50,
 		]);
 		expect(cannonball.steps[0].events[2].guitarStops?.[0]).toEqual({
-			stringIndex: 2,
+			stringIndex: 1,
 			fret: 5,
 			technique: "slide",
 		});
-		const cbLast = cannonball.steps[74].events[0];
-		expect(cbLast.midi).toEqual([67, 71, 76]);
+		const cbLast = cannonball.steps[57].events[0];
+		expect(cbLast.midi).toEqual([43, 50, 55, 62, 67]);
 		expect(cbLast.guitarStops).toEqual([
-			{ stringIndex: 3, fret: 12, technique: "harmonic" },
-			{ stringIndex: 4, fret: 12, technique: "harmonic" },
-			{ stringIndex: 5, fret: 12, technique: "harmonic" },
+			{ stringIndex: 0, fret: 3 },
+			{ stringIndex: 2, fret: 0 },
+			{ stringIndex: 3, fret: 0 },
+			{ stringIndex: 4, fret: 3 },
+			{ stringIndex: 5, fret: 3 },
 		]);
 		for (const step of cannonball.steps) {
 			expect(step.events.reduce((sum, ev) => sum + ev.stepDurationMs, 0)).toBe(
-				1280,
+				1000,
 			);
 			for (const ev of step.events) {
 				expect(ev.guitarStops?.length).toBeGreaterThan(0);
@@ -312,28 +314,26 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 		}
 
 		const [, haydn] = getSongsForInstrument("cello");
+		expect(haydn.title).toContain("Allegro moderato");
 		expect(haydn.keySlot).toBe(2);
 		expect(haydn.keyMode).toBe("major");
-		expect(haydn.timeSignature).toBe("6/8");
-		expect(haydn.bpm).toBe(80);
-		expect(haydn.steps).toHaveLength(50);
+		expect(haydn.timeSignature).toBe("4/4");
+		expect(haydn.bpm).toBe(91);
+		expect(haydn.steps).toHaveLength(28);
 		expect(haydn.steps[0].events.map((e) => e.midi[0])).toEqual([
-			66, 64, 66, 67, 66, 67,
+			66, 66, 67, 68, 69, 69, 66, 62, 69,
 		]);
-		expect(haydn.steps[1].events.map((e) => e.midi[0])).toEqual([69, 66, 62]);
-		expect(haydn.steps[1].events[0].celloStops?.[0]).toEqual({
+		expect(haydn.steps[6].events.map((e) => e.midi[0])).toEqual([
+			66, 66, 67, 67, 69, 69, 66, 69,
+		]);
+		expect(haydn.steps[6].events[0].celloStops?.[0]).toEqual({
 			stringIndex: 3,
-			semitone: 12,
-			finger: 3,
-		});
-		expect(haydn.steps[1].events[2].celloStops?.[0]).toEqual({
-			stringIndex: 2,
-			semitone: 12,
-			finger: 3,
+			semitone: 9,
+			finger: 2,
 		});
 		for (const step of haydn.steps) {
 			expect(step.events.reduce((sum, ev) => sum + ev.stepDurationMs, 0)).toBe(
-				1500,
+				2640,
 			);
 		}
 	});
