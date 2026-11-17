@@ -124,22 +124,30 @@ export function FifthsFourthsPanel({
 						const dir = info.direction;
 						return (
 							<div key={dir} className={`rel-card rel-card-${dir}`}>
-								<div className="rel-card-top">
-									<span className={`rel-badge rel-badge-${dir}`}>{badge}</span>
-									<span className="rel-sig-delta">
-										{info.signatureDeltaLabel}
-									</span>
-								</div>
+								<div className="rel-card-info">
+									<div className="rel-meta-row">
+										<span className={`rel-badge rel-badge-${dir}`}>
+											{badge}
+										</span>
+										<span className="rel-pitch-shift">
+											<span className="rel-shift-note">{info.removedNote}</span>
+											<span aria-hidden="true">→</span>
+											<strong className={`shift-${dir}`}>
+												{info.addedNote}
+											</strong>
+										</span>
+										<span className="rel-meta-sep" aria-hidden="true">
+											·
+										</span>
+										<span className="rel-sig-delta">
+											{info.signatureDeltaLabel}
+										</span>
+									</div>
 
-								<div className="rel-key-row">
-									<span className="rel-key-name">{info.name}</span>
-									<span className="rel-roman-chip">{info.chordRoman}</span>
-								</div>
-
-								<div className="rel-pitch-shift">
-									<span className="rel-shift-note">{info.removedNote}</span>
-									<span aria-hidden="true">→</span>
-									<strong className={`shift-${dir}`}>{info.addedNote}</strong>
+									<div className="rel-key-row">
+										<span className="rel-key-name">{info.name}</span>
+										<span className="rel-roman-chip">{info.chordRoman}</span>
+									</div>
 								</div>
 
 								<div className="rel-actions">
@@ -158,6 +166,7 @@ export function FifthsFourthsPanel({
 										type="button"
 										className={`mini-btn mini-btn-accent-${dir}`}
 										onClick={() => onSelectKey(info.slotIndex, info.mode)}
+										title={`Switch key to ${info.name}`}
 									>
 										{moveLabel}
 									</button>

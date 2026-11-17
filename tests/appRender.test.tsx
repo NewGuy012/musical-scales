@@ -223,6 +223,37 @@ describe("Musical Scales UI rendering", () => {
 		expect(collapsedHtml).not.toContain("Walk 4ths");
 	});
 
+	test("renders expanded FifthsFourthsPanel with compact grouped info and action zones", () => {
+		const cMaj = analyzeKey(0, "major");
+		const html = renderToStaticMarkup(
+			<FifthsFourthsPanel
+				analysis={cMaj}
+				walkingDirection="fourth"
+				isCollapsed={false}
+				onSelectKey={noop}
+				onAuditionRelationship={noop}
+				onToggleWalk={noop}
+				onToggleCollapse={noop}
+			/>,
+		);
+		expect(html).toContain("rel-card-fourth");
+		expect(html).toContain("rel-card-fifth");
+		expect(html).toContain("rel-card-info");
+		expect(html).toContain("rel-meta-row");
+		expect(html).toContain("rel-key-row");
+		expect(html).toContain("rel-actions");
+		expect(html).toContain("is-walking-fourth");
+		expect(html).toContain("Walk 5ths");
+		expect(html).toContain("F Major");
+		expect(html).toContain("G Major");
+		expect(html).toContain("I–IV–I");
+		expect(html).toContain("I–V–I");
+		expect(html).toContain("Go to F ↺");
+		expect(html).toContain("Go to G ↻");
+		expect(html).toContain("+1♭");
+		expect(html).toContain("+1♯");
+	});
+
 	test("renders GuitarFretboard with C major CAGED voicings and 15-fret neck markers", () => {
 		const cMaj = analyzeKey(0, "major");
 		const tonic = cMaj.chords[0];

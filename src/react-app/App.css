@@ -964,9 +964,9 @@
 	font-weight: 750;
 }
 
-/* Fifths & Fourths Neighbors Panel (Left Column) */
+/* Fifths & Fourths Neighbors Panel */
 .neighbors-panel {
-	padding: 12px 14px;
+	padding: 12px 16px;
 }
 
 .neighbors-header {
@@ -982,18 +982,20 @@
 .rel-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 9px;
+	gap: 8px;
 }
 
 .rel-card {
 	min-width: 0;
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-hairline);
-	border-radius: 12px;
-	padding: 9px 10px;
+	border-radius: 11px;
+	padding: 9px 12px;
 	display: flex;
-	flex-direction: column;
-	gap: 5px;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
 }
 
 .rel-card-fourth {
@@ -1004,11 +1006,24 @@
 	border-left: 3px solid var(--color-fifth);
 }
 
-.rel-card-top {
+.rel-card-info {
 	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1 1 180px;
+	min-width: 0;
+}
+
+.rel-meta-row {
+	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	justify-content: space-between;
 	gap: 6px;
+}
+
+.rel-meta-sep {
+	font-size: 0.72rem;
+	color: var(--text-muted);
 }
 
 .rel-badge {
@@ -1038,29 +1053,31 @@
 .rel-key-row {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 6px;
+	gap: 7px;
+	min-width: 0;
 }
 
 .rel-key-name {
 	font-size: 0.96rem;
 	font-weight: 750;
+	letter-spacing: -0.01em;
 }
 
 .rel-roman-chip {
-	font-size: 0.71rem;
+	font-size: 0.7rem;
 	font-weight: 700;
 	padding: 1px 6px;
 	border-radius: 5px;
 	background: var(--bg-card);
+	border: 1px solid var(--border-hairline);
 	color: var(--text-secondary);
 }
 
 .rel-pitch-shift {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 5px;
-	font-size: 0.75rem;
+	gap: 4px;
+	font-size: 0.73rem;
 	color: var(--text-secondary);
 }
 
@@ -1071,17 +1088,19 @@
 
 .shift-fourth {
 	color: var(--color-fourth);
+	font-weight: 700;
 }
 
 .shift-fifth {
 	color: var(--color-fifth);
+	font-weight: 700;
 }
 
 .rel-actions {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: 5px;
-	margin-top: 2px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
 }
 
 .mini-btn {
@@ -1092,7 +1111,7 @@
 	gap: 4px;
 	font-size: 0.72rem;
 	font-weight: 600;
-	padding: 5px 8px;
+	padding: 5px 10px;
 	border-radius: 7px;
 	background: var(--bg-card);
 	border: 1px solid var(--border-hairline);
@@ -1102,6 +1121,7 @@
 	text-overflow: ellipsis;
 	transition:
 		border-color 140ms ease,
+		background-color 140ms ease,
 		color 140ms ease;
 }
 
@@ -1117,6 +1137,7 @@
 
 .mini-btn-accent-fourth:hover {
 	border-color: var(--color-fourth);
+	background: var(--color-fourth-soft);
 	color: var(--color-fourth);
 }
 
@@ -1127,6 +1148,7 @@
 
 .mini-btn-accent-fifth:hover {
 	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
 	color: var(--color-fifth);
 }
 
@@ -3808,6 +3830,7 @@
 	}
 	.song-guide-brief,
 	.guitar-scale-guide,
+	.rel-grid,
 	.color-cards-grid,
 	.sec-dom-grid,
 	.tritone-secondary-grid,
@@ -3850,7 +3873,6 @@
 }
 
 @media (max-width: 480px) {
-	.rel-grid,
 	.chromatic-phrases-row {
 		grid-template-columns: 1fr;
 	}
