@@ -9,6 +9,7 @@ import {
 	mod12,
 	noteOffset,
 	noteToPitchClass,
+	pcToCircleIndex,
 } from "./circleOfFifths";
 import {
 	GuitarChordKind,
@@ -86,11 +87,6 @@ export interface ColorHarmonyAnalysis {
 		primary: TritoneSubPair;
 		secondarySubs: TritoneSubPair[];
 	};
-}
-
-function pcToCircleIndex(pc: number, quality: ChordQuality): number {
-	const base = mod12(pc * 7);
-	return quality === "minor" ? mod12(base - 3) : base;
 }
 
 /**

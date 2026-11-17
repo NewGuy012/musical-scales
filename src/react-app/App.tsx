@@ -32,7 +32,7 @@ import {
 	type PendingMusicXmlPartChoice,
 } from "./components/MusicTeacherSection";
 import { PianoKeyboard } from "./components/PianoKeyboard";
-import type { MusicXmlPartSummary } from "./musicxml";
+import type { MusicXmlPartSummary, XmlNode } from "./musicxml";
 import {
 	getCatalogEntriesForInstrument,
 	getCatalogStubSongsForInstrument,
@@ -49,6 +49,7 @@ import {
 	getSongBarStartTimes,
 	hydrateSong,
 	scaleSongExampleSpeed,
+	slugifyId,
 } from "./songs/songRuntime";
 import { BowedVoicing, getBowedVoicings } from "./theory/celloFingerboard";
 import {
@@ -57,7 +58,6 @@ import {
 } from "./theory/chromaticHarmony";
 import {
 	AccidentalPreference,
-	CIRCLE_SLOTS,
 	ChordProgression,
 	ChordQuality,
 	DiatonicChord,
@@ -70,6 +70,7 @@ import {
 	getPianoBadgeClass,
 	mod12,
 	noteToPitchClass,
+	pcToCircleIndex,
 } from "./theory/circleOfFifths";
 import {
 	CHORD_VARIATION_SPECS,
@@ -254,7 +255,7 @@ export function App() {
 	);
 	const [pendingMusicXmlFile, setPendingMusicXmlFile] = useState<{
 		fileName: string;
-		bytes: Uint8Array;
+		xmlRoot: XmlNode;
 		title: string;
 		parts: MusicXmlPartSummary[];
 		selectedPartId: string;
@@ -759,16 +760,9 @@ export function App() {
 			const variation = buildChordVariation(activeRootNote, kind, preferFlats);
 			const rootPc = noteToPitchClass(activeRootNote);
 			const targetSlotMatch =
-				CIRCLE_SLOTS.find(
-					(s) =>
-						noteToPitchClass(
-							variation.quality === "minor"
-								? s.primary.minorRoot
-								: s.primary.majorRoot,
-						) === rootPc,
-				)?.index ??
-				activeVoicing.wheelHighlight?.circleIndex ??
-				selectedSlot;
+				rootPc !== null
+					? pcToCircleIndex(rootPc, variation.quality)
+					: (activeVoicing.wheelHighlight?.circleIndex ?? selectedSlot);
 
 			const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
 			setAuditionOverride({
@@ -1451,13 +1445,13 @@ export function App() {
 
 	const compileAndLoadLocalPreview = useCallback(
 		async (
-			bytes: Uint8Array,
+			source: Uint8Array | XmlNode,
 			localId: string,
 			partId: string,
 			targetInstrument: InstrumentTab,
 		) => {
 			const { compileMusicXml } = await import("./musicxml");
-			const { songDoc } = await compileMusicXml(bytes, {
+			const { songDoc } = await compileMusicXml(source, {
 				id: localId,
 				partId,
 				instrument: targetInstrument,
@@ -1507,8 +1501,10 @@ export function App() {
 			setMusicXmlImportError(null);
 			try {
 				const bytes = new Uint8Array(await file.arrayBuffer());
-				const { inspectMusicXml } = await import("./musicxml");
-				const inspection = await inspectMusicXml(bytes);
+				const { inspectMusicXml, parseMusicXmlDocument } =
+					await import("./musicxml");
+				const xmlRoot = await parseMusicXmlDocument(bytes);
+				const inspection = await inspectMusicXml(xmlRoot);
 				const playableParts = inspection.parts.filter(
 					(p) => !p.isPercussion && p.noteCount > 0,
 				);
@@ -1523,15 +1519,14 @@ export function App() {
 					[...pool].sort((a, b) => b.noteCount - a.noteCount)[0];
 				const targetInstrument =
 					matchingPart.suggestedInstrument ?? instrumentView;
-				const slugBase = file.name
-					.replace(/\.(musicxml|xml|mxl)$/i, "")
-					.toLowerCase()
-					.replace(/[^a-z0-9]+/g, "-")
-					.replace(/^-+|-+$/g, "");
-				const localId = `local-${slugBase || "musicxml"}-${Date.now().toString(36)}`;
+				const slugBase = slugifyId(
+					file.name.replace(/\.(musicxml|xml|mxl)$/i, ""),
+					"musicxml",
+				);
+				const localId = `local-${slugBase}-${Date.now().toString(36)}`;
 
 				await compileAndLoadLocalPreview(
-					bytes,
+					xmlRoot,
 					localId,
 					matchingPart.partId,
 					targetInstrument,
@@ -1540,7 +1535,7 @@ export function App() {
 				if (pool.length > 1) {
 					setPendingMusicXmlFile({
 						fileName: file.name,
-						bytes,
+						xmlRoot,
 						title: inspection.title,
 						parts: pool,
 						selectedPartId: matchingPart.partId,
@@ -1568,7 +1563,7 @@ export function App() {
 			setMusicXmlImportError(null);
 			try {
 				await compileAndLoadLocalPreview(
-					pendingMusicXmlFile.bytes,
+					pendingMusicXmlFile.xmlRoot,
 					pendingMusicXmlFile.localId,
 					partId,
 					targetInstrument,

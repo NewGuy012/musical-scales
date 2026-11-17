@@ -7,9 +7,10 @@ import {
 	analyzeKey,
 	mod12,
 	noteToPitchClass,
+	pcToCircleIndex,
 } from "../theory/circleOfFifths";
 import {
-	CHORD_VARIATION_SPECS,
+	CHORD_INTERVAL_MAP,
 	type GuitarChordKind,
 	buildChordVariation,
 } from "../theory/guitarFretboard";
@@ -43,80 +44,25 @@ const CHORD_TEMPLATES: readonly {
 	intervals: readonly number[];
 	requiredPcs: readonly number[];
 	complexityPenalty: number;
-}[] = [
-	{
-		kind: "major",
-		intervals: [0, 4, 7],
-		requiredPcs: [0, 4],
-		complexityPenalty: 0,
-	},
-	{
-		kind: "minor",
-		intervals: [0, 3, 7],
-		requiredPcs: [0, 3],
-		complexityPenalty: 0,
-	},
-	{
-		kind: "7",
-		intervals: [0, 4, 7, 10],
-		requiredPcs: [0, 4, 10],
-		complexityPenalty: 0.14,
-	},
-	{
-		kind: "maj7",
-		intervals: [0, 4, 7, 11],
-		requiredPcs: [0, 4, 11],
-		complexityPenalty: 0.2,
-	},
-	{
-		kind: "m7",
-		intervals: [0, 3, 7, 10],
-		requiredPcs: [0, 3, 10],
-		complexityPenalty: 0.16,
-	},
-	{
-		kind: "diminished",
-		intervals: [0, 3, 6],
-		requiredPcs: [0, 3, 6],
-		complexityPenalty: 0.15,
-	},
-	{
-		kind: "dim7",
-		intervals: [0, 3, 6, 9],
-		requiredPcs: [0, 3, 6, 9],
-		complexityPenalty: 0.28,
-	},
-	{
-		kind: "m7♭5",
-		intervals: [0, 3, 6, 10],
-		requiredPcs: [0, 3, 6, 10],
-		complexityPenalty: 0.25,
-	},
-	{
-		kind: "add9",
-		intervals: [0, 4, 7, 2],
-		requiredPcs: [0, 4, 2],
-		complexityPenalty: 0.25,
-	},
-	{
-		kind: "sus4",
-		intervals: [0, 5, 7],
-		requiredPcs: [0, 5, 7],
-		complexityPenalty: 0.24,
-	},
-	{
-		kind: "sus2",
-		intervals: [0, 2, 7],
-		requiredPcs: [0, 2, 7],
-		complexityPenalty: 0.26,
-	},
-	{
-		kind: "aug",
-		intervals: [0, 4, 8],
-		requiredPcs: [0, 4, 8],
-		complexityPenalty: 0.3,
-	},
-];
+}[] = (
+	[
+		{ kind: "major", requiredPcs: [0, 4], complexityPenalty: 0 },
+		{ kind: "minor", requiredPcs: [0, 3], complexityPenalty: 0 },
+		{ kind: "7", requiredPcs: [0, 4, 10], complexityPenalty: 0.14 },
+		{ kind: "maj7", requiredPcs: [0, 4, 11], complexityPenalty: 0.2 },
+		{ kind: "m7", requiredPcs: [0, 3, 10], complexityPenalty: 0.16 },
+		{ kind: "diminished", requiredPcs: [0, 3, 6], complexityPenalty: 0.15 },
+		{ kind: "dim7", requiredPcs: [0, 3, 6, 9], complexityPenalty: 0.28 },
+		{ kind: "m7♭5", requiredPcs: [0, 3, 6, 10], complexityPenalty: 0.25 },
+		{ kind: "add9", requiredPcs: [0, 4, 2], complexityPenalty: 0.25 },
+		{ kind: "sus4", requiredPcs: [0, 5, 7], complexityPenalty: 0.24 },
+		{ kind: "sus2", requiredPcs: [0, 2, 7], complexityPenalty: 0.26 },
+		{ kind: "aug", requiredPcs: [0, 4, 8], complexityPenalty: 0.3 },
+	] as const
+).map((spec) => ({
+	...spec,
+	intervals: Object.keys(CHORD_INTERVAL_MAP[spec.kind]).map(Number),
+}));
 
 function pearsonCorrelation(
 	hist: readonly number[],
@@ -223,21 +169,6 @@ export function detectKeyFromEvents(
 	return resolveKeySignatureFromRootPc(bestPc, bestMode, preferFlats);
 }
 
-function findCircleSlotForRootPc(
-	rootPc: number,
-	quality: ChordQuality,
-): number {
-	const norm = mod12(rootPc);
-	for (const slot of CIRCLE_SLOTS) {
-		const root =
-			quality === "minor" ? slot.primary.minorRoot : slot.primary.majorRoot;
-		if (noteToPitchClass(root) === norm) {
-			return slot.index;
-		}
-	}
-	return 0;
-}
-
 const MAJOR_ROMAN_BY_OFFSET: Record<number, string> = {
 	0: "I",
 	1: "♭II",
@@ -319,12 +250,7 @@ function inferRomanNumeral(
 		roman = roman.toLowerCase();
 	}
 
-	const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
-	if (
-		spec &&
-		(kind === "7" || kind === "maj7" || kind === "m7" || kind === "dim7") &&
-		!roman.includes("°")
-	) {
+	if (!roman.includes("°")) {
 		if (kind === "7" && !roman.includes("/")) roman = `${roman}7`;
 		else if (kind === "maj7") roman = `${roman}maj7`;
 		else if (kind === "m7") roman = `${roman}7`;
@@ -431,11 +357,6 @@ export function inferHarmonyForWindow(
 		variation.quality,
 		bestKind,
 	);
-	const circleSlotIndex = findCircleSlotForRootPc(
-		bestRootPc,
-		variation.quality,
-	);
-
 	return {
 		chordSymbol: variation.symbol,
 		roman,
@@ -443,7 +364,7 @@ export function inferHarmonyForWindow(
 		guitarKind: bestKind,
 		chordNotes: variation.notes,
 		circleDegree,
-		circleSlotIndex,
+		circleSlotIndex: pcToCircleIndex(bestRootPc, variation.quality),
 	};
 }
 
@@ -513,6 +434,6 @@ export function resolveExplicitChordSymbol(
 		guitarKind: kind,
 		chordNotes: variation.notes,
 		circleDegree,
-		circleSlotIndex: findCircleSlotForRootPc(rootPc, variation.quality),
+		circleSlotIndex: pcToCircleIndex(rootPc, variation.quality),
 	};
 }

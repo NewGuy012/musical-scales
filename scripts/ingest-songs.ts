@@ -29,6 +29,7 @@ import {
 	type SongDocument,
 	flattenSongPlaybackSteps,
 	hydrateSong,
+	slugifyId,
 } from "../src/react-app/songs/songRuntime";
 
 const MUSICXML_EXTENSIONS = new Set([".musicxml", ".xml", ".mxl"]);
@@ -78,15 +79,6 @@ Options:
       --wav <path>          Render offline 22.05 kHz WAV preview for listening verification
   -h, --help                Show this help
 `);
-}
-
-function sanitizeSlugId(raw: string): string {
-	return raw
-		.normalize("NFKD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
 }
 
 function assertContainedPath(rootDir: string, candidatePath: string): string {
@@ -283,9 +275,9 @@ async function syncFromMusicXmlFolder(): Promise<{
 
 		const { songDoc } = await compileMusicXml(bytes, meta);
 
-		let uniqueId = meta.id ? sanitizeSlugId(meta.id) : songDoc.id;
+		let uniqueId = meta.id ? slugifyId(meta.id, "") : songDoc.id;
 		if (!uniqueId || uniqueId === "imported-musicxml-piano") {
-			uniqueId = sanitizeSlugId(`${fileBase}-${songDoc.instruments[0]}`);
+			uniqueId = slugifyId(`${fileBase}-${songDoc.instruments[0]}`, "");
 		}
 		if (!uniqueId) uniqueId = "ingested-song";
 		if (usedIds.has(uniqueId)) {
@@ -473,7 +465,7 @@ async function main(): Promise<void> {
 			join(MUSICXML_DIR, primaryInstrument),
 		);
 		await mkdir(destDir, { recursive: true });
-		const safeId = sanitizeSlugId(songDoc.id) || "ingested-song";
+		const safeId = slugifyId(songDoc.id, "ingested-song");
 		const destPath = assertContainedPath(
 			destDir,
 			join(destDir, `${safeId}${ext}`),

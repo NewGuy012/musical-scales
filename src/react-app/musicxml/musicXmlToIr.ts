@@ -1,10 +1,11 @@
-import type {
-	InstrumentTab,
-	SongDocument,
-	SongNoteTechnique,
+import {
+	type InstrumentTab,
+	type SongDocument,
+	type SongNoteTechnique,
+	slugifyId,
 } from "../songs/songRuntime";
 import { CELLO_TUNING, VIOLIN_TUNING } from "../theory/celloFingerboard";
-import { NATURAL_PC, mod12 } from "../theory/circleOfFifths";
+import { NATURAL_PC, mod12, spellNoteOffset } from "../theory/circleOfFifths";
 import { DEFAULT_GUITAR_TUNING_MIDI } from "../theory/guitarFretboard";
 import { resolveKeySignatureFromRootPc } from "./harmonicAnalyzer";
 import { readMusicXmlTextFromBytes } from "./mxlUnpack";
@@ -144,16 +145,6 @@ interface PartMetadata {
 	midiChannel: number;
 }
 
-function slugifyId(raw: string, fallback = "musicxml-song"): string {
-	const cleaned = raw
-		.normalize("NFKD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-	return cleaned || fallback;
-}
-
 function arraysEqual(a: readonly number[], b: readonly number[]): boolean {
 	if (a.length !== b.length) return false;
 	for (let i = 0; i < a.length; i++) {
@@ -176,31 +167,26 @@ function defaultTuningForInstrument(
 	}
 }
 
-function stepAlterToString(step: string, alter: number): string {
-	if (alter === 1) return `${step}♯`;
-	if (alter === 2) return `${step}𝄪`;
-	if (alter === -1) return `${step}♭`;
-	if (alter === -2) return `${step}𝄫`;
-	return step;
-}
-
 function pitchToMidi(
 	step: string,
 	alter: number,
 	octave: number,
 ): number | null {
-	const basePc = NATURAL_PC[step.toUpperCase()];
+	const key = step.toUpperCase();
+	const basePc = Object.hasOwn(NATURAL_PC, key) ? NATURAL_PC[key] : undefined;
 	if (basePc === undefined || !Number.isFinite(octave)) return null;
 	return (octave + 1) * 12 + basePc + alter;
 }
 
-function normalizeScorePartwise(root: XmlNode): {
+interface NormalizedScore {
 	partMetaList: PartMetadata[];
 	parts: XmlNode[];
 	title: string;
 	composerOrSource: string;
 	subtitle?: string;
-} {
+}
+
+function normalizeScorePartwise(root: XmlNode): NormalizedScore {
 	if (root.tag !== "score-partwise" && root.tag !== "score-timewise") {
 		throw new Error(
 			`Expected MusicXML <score-partwise> or <score-timewise>, found <${root.tag}>.`,
@@ -539,10 +525,12 @@ function parseHarmonyNode(harmonyNode: XmlNode): string | null {
 	const rootStep = getChildText(root, "root-step");
 	if (!rootStep) return null;
 	const rootAlter = Number.parseFloat(getChildText(root, "root-alter") ?? "0");
-	const rootName = stepAlterToString(
-		rootStep.toUpperCase(),
-		Number.isFinite(rootAlter) ? Math.round(rootAlter) : 0,
-	);
+	const rootLetter = rootStep.toUpperCase();
+	const rootName =
+		spellNoteOffset(
+			rootLetter,
+			Number.isFinite(rootAlter) ? Math.round(rootAlter) : 0,
+		) ?? rootLetter;
 
 	const kindNode = findChild(harmonyNode, "kind");
 	let suffix = "";
@@ -564,10 +552,13 @@ function parseHarmonyNode(harmonyNode: XmlNode): string | null {
 			const bassAlter = Number.parseFloat(
 				getChildText(bass, "bass-alter") ?? "0",
 			);
-			bassSuffix = `/${stepAlterToString(
-				bassStep.toUpperCase(),
-				Number.isFinite(bassAlter) ? Math.round(bassAlter) : 0,
-			)}`;
+			const bassLetter = bassStep.toUpperCase();
+			bassSuffix = `/${
+				spellNoteOffset(
+					bassLetter,
+					Number.isFinite(bassAlter) ? Math.round(bassAlter) : 0,
+				) ?? bassLetter
+			}`;
 		}
 	}
 
@@ -627,7 +618,7 @@ function applyPianoPedalIntervals(
 }
 
 function buildTrackIrFromPart(
-	root: XmlNode,
+	score: NormalizedScore,
 	selectedSummary: MusicXmlPartSummary,
 	options: MusicXmlImportOptions,
 ): ScoreTrackIR {
@@ -636,7 +627,7 @@ function buildTrackIrFromPart(
 		title: scoreTitle,
 		composerOrSource: scoreComposer,
 		subtitle: scoreSubtitle,
-	} = normalizeScorePartwise(root);
+	} = score;
 	const partNode = parts[selectedSummary.index];
 	const instrument: InstrumentTab =
 		options.instrument ?? selectedSummary.suggestedInstrument ?? "piano";
@@ -681,6 +672,15 @@ function buildTrackIrFromPart(
 		let repeatEndCount: number | undefined;
 		let endingNumbers: number[] = [];
 		let sectionMarker: string | undefined;
+
+		const recordTempo = (tick: number, bpm: number | null) => {
+			if (bpm === null) return;
+			tempoChanges.push({ offsetTicks: tick, bpm });
+			if (!hasInitialTempo) {
+				initialBpm = bpm;
+				hasInitialTempo = true;
+			}
+		};
 
 		let cursorTicks = 0;
 		let lastNonChordOnset = 0;
@@ -822,14 +822,7 @@ function buildTrackIrFromPart(
 			}
 
 			if (child.tag === "sound") {
-				const tempo = parseSoundTempo(child);
-				if (tempo !== null) {
-					tempoChanges.push({ offsetTicks: cursorTicks, bpm: tempo });
-					if (!hasInitialTempo) {
-						initialBpm = tempo;
-						hasInitialTempo = true;
-					}
-				}
+				recordTempo(cursorTicks, parseSoundTempo(child));
 				continue;
 			}
 
@@ -849,14 +842,7 @@ function buildTrackIrFromPart(
 
 				const soundNode = findChild(child, "sound");
 				if (soundNode) {
-					const tempo = parseSoundTempo(soundNode);
-					if (tempo !== null) {
-						tempoChanges.push({ offsetTicks: dirTick, bpm: tempo });
-						if (!hasInitialTempo) {
-							initialBpm = tempo;
-							hasInitialTempo = true;
-						}
-					}
+					recordTempo(dirTick, parseSoundTempo(soundNode));
 					const dynAttr = Number.parseFloat(soundNode.attrs.dynamics ?? "");
 					if (Number.isFinite(dynAttr) && dynAttr > 0) {
 						activeVelocityByStaff.set(
@@ -869,14 +855,7 @@ function buildTrackIrFromPart(
 				for (const dt of findChildren(child, "direction-type")) {
 					const metro = findChild(dt, "metronome");
 					if (metro) {
-						const qBpm = parseMetronomeQuarterBpm(metro);
-						if (qBpm !== null) {
-							tempoChanges.push({ offsetTicks: dirTick, bpm: qBpm });
-							if (!hasInitialTempo) {
-								initialBpm = qBpm;
-								hasInitialTempo = true;
-							}
-						}
+						recordTempo(dirTick, parseMetronomeQuarterBpm(metro));
 					}
 
 					const dynNode = findChild(dt, "dynamics");
@@ -1126,8 +1105,9 @@ function buildTrackIrFromPart(
 					}
 				}
 
+				let slurs: XmlNode[] = [];
 				if (notations) {
-					const slurs = findChildren(notations, "slur");
+					slurs = findChildren(notations, "slur");
 
 					const slides = [
 						...findChildren(notations, "slide"),
@@ -1155,22 +1135,8 @@ function buildTrackIrFromPart(
 							technique = "staccato";
 						}
 					}
-
-					if (!technique) {
-						if (instrument === "guitar" && (isDead || palmMuteActive)) {
-							technique = "palmMute";
-						} else if (
-							(instrument === "violin" || instrument === "cello") &&
-							pizzActive
-						) {
-							technique = "pizzicato";
-						} else if (instrument === "guitar" && letRingActive) {
-							technique = "letRing";
-						} else if (slurs.some((sl) => sl.attrs.type === "stop")) {
-							technique = instrument === "guitar" ? "hammer" : "slur";
-						}
-					}
-				} else if (!technique) {
+				}
+				if (!technique) {
 					if (instrument === "guitar" && (isDead || palmMuteActive)) {
 						technique = "palmMute";
 					} else if (
@@ -1178,6 +1144,10 @@ function buildTrackIrFromPart(
 						pizzActive
 					) {
 						technique = "pizzicato";
+					} else if (instrument === "guitar" && letRingActive) {
+						technique = "letRing";
+					} else if (slurs.some((sl) => sl.attrs.type === "stop")) {
+						technique = instrument === "guitar" ? "hammer" : "slur";
 					}
 				}
 
@@ -1262,9 +1232,7 @@ function buildTrackIrFromPart(
 		options.composerOrSource || scoreComposer || "MusicXML Score";
 
 	return {
-		id: options.id
-			? slugifyId(options.id)
-			: slugifyId(`${title}-${instrument}`),
+		id: slugifyId(options.id || `${title}-${instrument}`, "musicxml-song"),
 		title,
 		composerOrSource,
 		...(options.subtitle || scoreSubtitle
@@ -1282,9 +1250,8 @@ function buildTrackIrFromPart(
 	};
 }
 
-function inspectParsedMusicXml(root: XmlNode): MusicXmlInspection {
-	const { partMetaList, parts, title, composerOrSource, subtitle } =
-		normalizeScorePartwise(root);
+function inspectParsedMusicXml(score: NormalizedScore): MusicXmlInspection {
+	const { partMetaList, parts, title, composerOrSource, subtitle } = score;
 
 	let initialTempo = 120;
 	outer: for (const p of parts) {
@@ -1328,30 +1295,43 @@ function inspectParsedMusicXml(root: XmlNode): MusicXmlInspection {
 	};
 }
 
-/**
- * Inspects parts and header metadata of a `.musicxml`, `.xml`, or `.mxl` buffer.
- */
-export async function inspectMusicXml(
+/** Parses a `.musicxml`, `.xml`, or `.mxl` buffer once into a MusicXML AST. */
+export async function parseMusicXmlDocument(
 	bytes: Uint8Array,
-): Promise<MusicXmlInspection> {
+): Promise<XmlNode> {
 	const xmlText = await readMusicXmlTextFromBytes(bytes);
-	const root = parseXml(xmlText);
-	return inspectParsedMusicXml(root);
+	return parseXml(xmlText);
+}
+
+async function resolveMusicXmlRoot(
+	source: Uint8Array | XmlNode,
+): Promise<XmlNode> {
+	return source instanceof Uint8Array ? parseMusicXmlDocument(source) : source;
 }
 
 /**
- * Compiles a `.musicxml`, `.xml`, or `.mxl` buffer into canonical `ScoreTrackIR`
+ * Inspects parts and header metadata of a `.musicxml`, `.xml`, or `.mxl` buffer or parsed AST.
+ */
+export async function inspectMusicXml(
+	source: Uint8Array | XmlNode,
+): Promise<MusicXmlInspection> {
+	const root = await resolveMusicXmlRoot(source);
+	return inspectParsedMusicXml(normalizeScorePartwise(root));
+}
+
+/**
+ * Compiles a `.musicxml`, `.xml`, or `.mxl` buffer or parsed AST into canonical `ScoreTrackIR`
  * and normalized tick-based `SongDocument`.
  */
 export async function compileMusicXml(
-	bytes: Uint8Array,
+	source: Uint8Array | XmlNode,
 	options: MusicXmlImportOptions = {},
 ): Promise<ImportedMusicXmlResult> {
-	const xmlText = await readMusicXmlTextFromBytes(bytes);
-	const root = parseXml(xmlText);
-	const inspection = inspectParsedMusicXml(root);
+	const root = await resolveMusicXmlRoot(source);
+	const score = normalizeScorePartwise(root);
+	const inspection = inspectParsedMusicXml(score);
 	const selectedPart = selectBestPart(inspection.parts, options);
-	const trackIr = buildTrackIrFromPart(root, selectedPart, options);
+	const trackIr = buildTrackIrFromPart(score, selectedPart, options);
 
 	const compileOpts: CompileScoreOptions = {
 		...(options.id ? { id: options.id } : {}),

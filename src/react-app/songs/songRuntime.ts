@@ -208,6 +208,41 @@ export interface SongDocument {
 	bars: SongBar[];
 }
 
+export function slugifyId(raw: string, fallback = "song"): string {
+	const cleaned = raw
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+	return cleaned || fallback;
+}
+
+const GUITAR_STOP_TECHS = new Set<GuitarStopTechnique>([
+	"harmonic",
+	"hammer",
+	"pull",
+	"slide",
+	"palmMute",
+	"letRing",
+	"staccato",
+]);
+
+const BOWED_STOP_TECHS = new Set<NonNullable<BowedSongStop["technique"]>>([
+	"harmonic",
+	"portamento",
+	"staccato",
+	"pizzicato",
+	"slur",
+]);
+
+function pickStopTechnique<T extends string>(
+	tech: SongNoteTechnique | undefined,
+	allowed: ReadonlySet<T>,
+): T | undefined {
+	return tech && allowed.has(tech as T) ? (tech as T) : undefined;
+}
+
 function defaultGuitarKindForQuality(quality: ChordQuality): GuitarChordKind {
 	return quality;
 }
@@ -475,68 +510,46 @@ export function hydrateSong(
 				spreadSec: midis.length >= 3 ? 0.015 : 0,
 			};
 
-			const tupleStops = group.items.map((item) => item[5]);
-			if (
-				instrument === "guitar" &&
-				tupleStops.some((st) => Array.isArray(st))
-			) {
-				event.guitarStops = tupleStops
-					.filter((st): st is [number, number] | [number, number, number] =>
-						Array.isArray(st),
-					)
-					.map((st, idx): GuitarSongStop => {
-						const tech = perfNotes[idx]?.technique;
-						const mappedTech =
-							tech &&
-							(tech === "normal" ||
-								tech === "harmonic" ||
-								tech === "hammer" ||
-								tech === "pull" ||
-								tech === "slide" ||
-								tech === "palmMute" ||
-								tech === "letRing" ||
-								tech === "staccato")
-								? tech
-								: undefined;
-						return {
-							stringIndex: st[0],
-							fret: st[1],
-							...(mappedTech && mappedTech !== "normal"
-								? { technique: mappedTech }
-								: {}),
-						};
-					});
-			} else if (
-				(instrument === "cello" || instrument === "violin") &&
-				tupleStops.some((st) => Array.isArray(st))
-			) {
-				const bowedStops: BowedSongStop[] = tupleStops
-					.filter((st): st is [number, number] | [number, number, number] =>
-						Array.isArray(st),
-					)
-					.map((st, idx) => {
-						const tech = perfNotes[idx]?.technique;
-						const mappedTech =
-							tech &&
-							(tech === "normal" ||
-								tech === "harmonic" ||
-								tech === "portamento" ||
-								tech === "staccato" ||
-								tech === "pizzicato" ||
-								tech === "slur")
-								? tech
-								: undefined;
-						return {
+			if (instrument === "guitar") {
+				const guitarStops = group.items.flatMap(
+					(item, idx): GuitarSongStop[] => {
+						const st = item[5];
+						if (!Array.isArray(st)) return [];
+						const technique = pickStopTechnique(
+							perfNotes[idx]?.technique,
+							GUITAR_STOP_TECHS,
+						);
+						return [
+							{
+								stringIndex: st[0],
+								fret: st[1],
+								...(technique ? { technique } : {}),
+							},
+						];
+					},
+				);
+				if (guitarStops.length > 0) event.guitarStops = guitarStops;
+			} else if (instrument === "cello" || instrument === "violin") {
+				const bowedStops = group.items.flatMap((item, idx): BowedSongStop[] => {
+					const st = item[5];
+					if (!Array.isArray(st)) return [];
+					const technique = pickStopTechnique(
+						perfNotes[idx]?.technique,
+						BOWED_STOP_TECHS,
+					);
+					return [
+						{
 							stringIndex: st[0],
 							semitone: st[1],
 							finger: st[2] ?? 1,
-							...(mappedTech && mappedTech !== "normal"
-								? { technique: mappedTech }
-								: {}),
-						};
-					});
-				if (instrument === "cello") event.celloStops = bowedStops;
-				else event.violinStops = bowedStops;
+							...(technique ? { technique } : {}),
+						},
+					];
+				});
+				if (bowedStops.length > 0) {
+					if (instrument === "cello") event.celloStops = bowedStops;
+					else event.violinStops = bowedStops;
+				}
 			}
 
 			return event;

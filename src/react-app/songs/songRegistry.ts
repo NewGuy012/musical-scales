@@ -1,4 +1,4 @@
-import type { InstrumentTab } from "./songRuntime";
+import { type InstrumentTab, slugifyId } from "./songRuntime";
 
 export type SongRegistryStatus = "PENDING" | "INGESTED";
 
@@ -41,12 +41,7 @@ function sanitizeCell(value: string): string {
 }
 
 function normalizeTitleKey(instrument: InstrumentTab, title: string): string {
-	const slug = title
-		.normalize("NFKD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "");
-	return `${instrument}:${slug}`;
+	return `${instrument}:${slugifyId(title, "").replace(/-/g, "")}`;
 }
 
 export function parseSongRegistryText(text: string): SongRegistryEntry[] {

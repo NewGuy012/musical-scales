@@ -984,55 +984,33 @@ function scheduleChordAtCtxTime(
 	stepNotes?: TimedNoteDetail[],
 	stepVelocity?: number,
 ): void {
-	if (stepNotes && stepNotes.length > 0) {
-		const validDetails = stepNotes.filter((n) => isValidMidi(n.midi));
-		if (validDetails.length === 0) return;
-		const perNoteGain =
-			validDetails.length === 1
-				? 0.24
-				: Math.min(0.22, 0.54 / validDetails.length);
-		const spread =
-			spreadSec ??
-			(validDetails.length === 1
-				? 0
-				: getDefaultChordSpread(preset, arpeggiate));
-		validDetails.forEach((detail, idx) => {
-			scheduleVoice(
-				engine,
-				detail.midi,
-				atCtxTime + idx * spread,
-				detail.durationSec,
-				perNoteGain,
-				preset,
-				{
-					velocity: detail.velocity ?? stepVelocity,
-					technique: detail.technique,
-					slideFromMidi: detail.slideFromMidi,
-				},
-			);
-		});
-		return;
-	}
+	const resolvedNotes: TimedNoteDetail[] =
+		stepNotes && stepNotes.length > 0
+			? stepNotes.filter((n) => isValidMidi(n.midi))
+			: midiNotes.filter(isValidMidi).map((midi) => ({ midi, durationSec }));
+	if (resolvedNotes.length === 0) return;
 
-	const validNotes = midiNotes.filter(isValidMidi);
-	if (validNotes.length === 0) return;
-	if (validNotes.length === 1) {
-		scheduleVoice(engine, validNotes[0], atCtxTime, durationSec, 0.24, preset, {
-			velocity: stepVelocity,
-		});
-		return;
-	}
-	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
-	const spread = spreadSec ?? getDefaultChordSpread(preset, arpeggiate);
-	validNotes.forEach((midi, idx) => {
+	const single = resolvedNotes.length === 1;
+	const perNoteGain = single
+		? 0.24
+		: Math.min(0.22, 0.54 / resolvedNotes.length);
+	const spread = single
+		? 0
+		: (spreadSec ?? getDefaultChordSpread(preset, arpeggiate));
+
+	resolvedNotes.forEach((detail, idx) => {
 		scheduleVoice(
 			engine,
-			midi,
+			detail.midi,
 			atCtxTime + idx * spread,
-			durationSec,
+			detail.durationSec,
 			perNoteGain,
 			preset,
-			{ velocity: stepVelocity },
+			{
+				velocity: detail.velocity ?? stepVelocity,
+				technique: detail.technique,
+				slideFromMidi: detail.slideFromMidi,
+			},
 		);
 	});
 }
@@ -1423,11 +1401,12 @@ export function renderTimedSequenceOfflineSamples(
 				const lpAlpha = isMuted ? 0.25 : 0.68;
 				for (let i = 0; i < numSamples && i < buf.length; i++) {
 					lp = lp + lpAlpha * (buf[i] - lp);
-					let env = 1;
-					if (i < attackSamples) env = i / attackSamples;
-					else if (i >= releaseStart) {
-						env = (numSamples - i) / Math.max(1, numSamples - releaseStart);
-					}
+					const env = computeAttackReleaseEnv(
+						i,
+						attackSamples,
+						releaseStart,
+						numSamples,
+					);
 					out[startSample + i] += lp * amp * env;
 				}
 			} else {
@@ -1436,11 +1415,12 @@ export function renderTimedSequenceOfflineSamples(
 				const h3 = preset === "cello" || preset === "violin" ? 0.22 : 0.12;
 				for (let i = 0; i < numSamples; i++) {
 					const t = i / sampleRate;
-					let env = 1;
-					if (i < attackSamples) env = i / attackSamples;
-					else if (i >= releaseStart) {
-						env = (numSamples - i) / Math.max(1, numSamples - releaseStart);
-					}
+					const env = computeAttackReleaseEnv(
+						i,
+						attackSamples,
+						releaseStart,
+						numSamples,
+					);
 					const wave =
 						0.7 * Math.sin(twoPi * freq * t) +
 						h2 * Math.sin(twoPi * freq * 2 * t) +
@@ -1459,6 +1439,19 @@ export function renderTimedSequenceOfflineSamples(
 		}
 	}
 	return out;
+}
+
+function computeAttackReleaseEnv(
+	sampleIndex: number,
+	attackSamples: number,
+	releaseStart: number,
+	numSamples: number,
+): number {
+	if (sampleIndex < attackSamples) return sampleIndex / attackSamples;
+	if (sampleIndex >= releaseStart) {
+		return (numSamples - sampleIndex) / Math.max(1, numSamples - releaseStart);
+	}
+	return 1;
 }
 
 /**

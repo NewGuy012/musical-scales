@@ -579,6 +579,18 @@ export function mod12(n: number): number {
 	return ((n % 12) + 12) % 12;
 }
 
+export function pcToCircleIndex(pc: number, quality: ChordQuality): number {
+	const base = mod12(pc * 7);
+	return quality === "minor" ? mod12(base - 3) : base;
+}
+
+export function spellNoteOffset(letter: string, offset: number): string | null {
+	const acc = Object.hasOwn(ACCIDENTAL_BY_OFFSET, offset)
+		? ACCIDENTAL_BY_OFFSET[offset]
+		: undefined;
+	return acc !== undefined ? `${letter}${acc}` : null;
+}
+
 export function noteOffset(note: string): number {
 	let offset = 0;
 	for (const ch of note.slice(1)) {
@@ -644,7 +656,7 @@ export function buildScale(root: string, mode: KeyMode): string[] {
 		const targetPc = mod12(rootPc + semitones);
 		let diff = mod12(targetPc - NATURAL_PC[letter]);
 		if (diff > 6) diff -= 12;
-		return `${letter}${ACCIDENTAL_BY_OFFSET[diff] ?? ""}`;
+		return spellNoteOffset(letter, diff) ?? letter;
 	});
 }
 
@@ -721,8 +733,7 @@ export function resolveSlotVariant(
 }
 
 function alterNote(note: string, delta: number): string {
-	const acc = ACCIDENTAL_BY_OFFSET[noteOffset(note) + delta];
-	return acc !== undefined ? `${note[0]}${acc}` : note;
+	return spellNoteOffset(note[0], noteOffset(note) + delta) ?? note;
 }
 
 function buildDiatonicChord(

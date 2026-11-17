@@ -9,6 +9,7 @@ export {
 export {
 	compileMusicXml,
 	inspectMusicXml,
+	parseMusicXmlDocument,
 	type ImportedMusicXmlResult,
 	type MusicXmlImportOptions,
 	type MusicXmlInspection,

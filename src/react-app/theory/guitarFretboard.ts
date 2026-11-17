@@ -11,6 +11,7 @@ import {
 	mod12,
 	noteOffset,
 	noteToPitchClass,
+	spellNoteOffset,
 } from "./circleOfFifths";
 
 export type FretboardOverlayMode =
@@ -401,10 +402,11 @@ export function buildChordVariation(
 		const baseNote = majorScale[degIdx];
 		const nextOffset = noteOffset(baseNote) + delta;
 		const targetPc = mod12(noteToPitchClass(baseNote) + delta);
-		if (nextOffset === 0) return baseNote[0];
-		if (nextOffset === 1) return `${baseNote[0]}♯`;
-		if (nextOffset === -1) return `${baseNote[0]}♭`;
-		return fallbackPalette[targetPc];
+		return (
+			(Math.abs(nextOffset) <= 1
+				? spellNoteOffset(baseNote[0], nextOffset)
+				: null) ?? fallbackPalette[targetPc]
+		);
 	});
 
 	return {
@@ -895,9 +897,9 @@ function resolveRelativeRoot(
 			LETTERS[(letterIdx + (targetKind === "minor" ? 5 : 2)) % 7];
 		let diff = mod12(targetPc - NATURAL_PC[targetLetter]);
 		if (diff > 6) diff -= 12;
-		if (diff === 0) return targetLetter;
-		if (diff === 1) return `${targetLetter}♯`;
-		if (diff === -1) return `${targetLetter}♭`;
+		const spelled =
+			Math.abs(diff) <= 1 ? spellNoteOffset(targetLetter, diff) : null;
+		if (spelled) return spelled;
 	}
 	return fallbackPalette[targetPc];
 }
