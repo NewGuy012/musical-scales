@@ -1,5 +1,11 @@
 import { KeyAnalysis, KeyMode } from "../theory/circleOfFifths";
-import { IconPlay, IconRotate, IconRotateCcw, IconStop } from "./Icons";
+import {
+	IconNeighbors,
+	IconPlay,
+	IconRotate,
+	IconRotateCcw,
+	IconStop,
+} from "./Icons";
 import { SectionHeader } from "./SectionHeader";
 
 interface FifthsFourthsPanelProps {
@@ -107,6 +113,7 @@ export function FifthsFourthsPanel({
 				title="Neighbors"
 				description="4th & 5th · 6/7 notes shared"
 				bodyId="section-neighbors-body"
+				titlePrefix={<IconNeighbors size={14} />}
 				compact
 				className="neighbors-header"
 				isCollapsed={isCollapsed}

@@ -152,6 +152,36 @@ export function IconMusic({ size = 13 }: IconProps) {
 	);
 }
 
+export function IconCircleWheel({ size = 14 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<circle cx="12" cy="12" r="9" />
+			<circle cx="12" cy="12" r="3.5" />
+			<path d="M12 3v5.5M19.79 16.5l-4.76-2.75M4.21 16.5l4.76-2.75" />
+		</StrokeIcon>
+	);
+}
+
+export function IconNeighbors({ size = 14 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<circle cx="12" cy="12" r="2.5" />
+			<path d="m6.5 7.5-4 4.5 4 4.5" />
+			<path d="m17.5 7.5 4 4.5-4 4.5" />
+		</StrokeIcon>
+	);
+}
+
+export function IconChords({ size = 14 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<polygon points="12 3 3 8 12 13 21 8 12 3" />
+			<path d="m3 12.5 9 5 9-5" />
+			<path d="m3 17 9 5 9-5" />
+		</StrokeIcon>
+	);
+}
+
 export function IconChevronDown({ size = 14 }: IconProps) {
 	return (
 		<StrokeIcon size={size}>

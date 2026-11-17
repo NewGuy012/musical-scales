@@ -23,6 +23,7 @@ import { FifthsFourthsPanel } from "./components/FifthsFourthsPanel";
 import { GuitarFretboard } from "./components/GuitarFretboard";
 import {
 	IconChevronDown,
+	IconChords,
 	IconKeyboard,
 	IconMoon,
 	IconPlay,
@@ -2221,6 +2222,7 @@ export function App() {
 							headingId="section-chords-heading"
 							title="Chords"
 							bodyId="section-chords-body"
+							titlePrefix={<IconChords size={14} />}
 							titleBadge={
 								isChordsSequenceActive ? (
 									<span className="tab-live-dot" aria-hidden="true" />

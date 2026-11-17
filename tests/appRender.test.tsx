@@ -86,6 +86,11 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('id="chords-extras-drawer"');
 		expect(html).toContain('id="chord-variations-drawer"');
 
+		// All 4 titled sections render a prefix icon in .section-title-row
+		const titleRowCount =
+			html.split('class="section-title-row"><svg').length - 1;
+		expect(titleRowCount).toBe(4);
+
 		// Right column order: Instruments dock -> Neighbors -> Chords -> Music Teacher (Learn with Real Songs)
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
 		const neighborsSectionIdx = html.indexOf('id="section-neighbors"');

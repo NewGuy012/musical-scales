@@ -10,7 +10,12 @@ import {
 	mod12,
 	resolveSlotVariant,
 } from "../theory/circleOfFifths";
-import { IconPin, IconRotate, handleSvgButtonKeyDown } from "./Icons";
+import {
+	IconCircleWheel,
+	IconPin,
+	IconRotate,
+	handleSvgButtonKeyDown,
+} from "./Icons";
 import { SectionHeader } from "./SectionHeader";
 
 export interface WheelChordHighlight {
@@ -184,6 +189,7 @@ export function CircleWheel({
 				title="Circle of Fifths"
 				description="Outer Major · Inner Minor"
 				bodyId="section-circle-body"
+				titlePrefix={<IconCircleWheel size={14} />}
 				compact
 				isCollapsed={isCollapsed}
 				onToggleCollapse={onToggleCollapse}
