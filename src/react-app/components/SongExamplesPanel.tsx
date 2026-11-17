@@ -32,7 +32,10 @@ export interface SongExamplesPanelProps {
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
 	onSelectSong?: (songId: string) => void;
-	onSelectInstrument?: (instrument: InstrumentTab) => void;
+	onSelectInstrument?: (
+		instrument: InstrumentTab,
+		anchorEl?: HTMLElement | null,
+	) => void;
 	onRequestImportMusicXml?: () => void;
 	onRemoveLocalPreview?: (songId: string) => void;
 	onChangePlaybackSpeed?: (speed: number) => void;
@@ -653,7 +656,9 @@ export function SongExamplesPanel({
 									key={item.instrument}
 									type="button"
 									className="chip-btn chip-btn-compact"
-									onClick={() => onSelectInstrument(item.instrument)}
+									onClick={(e) =>
+										onSelectInstrument(item.instrument, e.currentTarget)
+									}
 								>
 									{item.label} ({item.count})
 								</button>

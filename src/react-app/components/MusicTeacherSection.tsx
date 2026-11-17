@@ -36,7 +36,10 @@ export interface MusicTeacherSectionProps {
 	importError: string | null;
 	pendingPartChoice: PendingMusicXmlPartChoice | null;
 	onToggleCollapse: () => void;
-	onSelectInstrument: (instrument: InstrumentTab) => void;
+	onSelectInstrument: (
+		instrument: InstrumentTab,
+		anchorEl?: HTMLElement | null,
+	) => void;
 	onSelectSong: (songId: string) => void;
 	onImportMusicXmlFile: (file: File) => void;
 	onConfirmPartChoice: (partId: string, instrument: InstrumentTab) => void;
@@ -66,7 +69,7 @@ const INSTRUMENT_OPTIONS: ReadonlyArray<{ id: InstrumentTab; label: string }> =
 	];
 
 /**
- * Collapsible Music Teacher section directly below the Interactive Instruments dock,
+ * Collapsible Music Teacher section below the Chords section,
  * housing the "Learn with Real Songs" subsection and MusicXML file ingestion preview.
  */
 export function MusicTeacherSection({

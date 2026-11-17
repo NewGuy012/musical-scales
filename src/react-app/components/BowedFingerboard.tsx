@@ -72,12 +72,12 @@ const HARMONIC_DOT_SEMITONES = new Set([5, 7, 12]);
 const VISUAL_ROWS = [3, 2, 1, 0] as const;
 
 const SVG_WIDTH = 900;
-const SVG_HEIGHT = 238;
+const SVG_HEIGHT = 202;
 const OPEN_COL_X = 68;
 const NUT_X = 96;
 const NECK_RIGHT = 878;
-const TOP_PAD = 42;
-const BOTTOM_PAD = 34;
+const TOP_PAD = 38;
+const BOTTOM_PAD = 32;
 const ROW_STEP = (SVG_HEIGHT - TOP_PAD - BOTTOM_PAD) / 3;
 
 export function BowedFingerboard({
@@ -276,7 +276,7 @@ export function BowedFingerboard({
 							/>
 							<text
 								x={NUT_X + (activeVoicing.handBaseSemitone - 1) * semiStep + 9}
-								y={SVG_HEIGHT - 8}
+								y={SVG_HEIGHT - 2}
 								className="cello-frame-caption"
 							>
 								LH Frame ({activeVoicing.positionLabel})
@@ -294,7 +294,7 @@ export function BowedFingerboard({
 								{semi === 0 ? (
 									<text
 										x={OPEN_COL_X}
-										y={17}
+										y={13}
 										textAnchor="middle"
 										className="cello-semi-label is-guide"
 									>
@@ -315,7 +315,7 @@ export function BowedFingerboard({
 										/>
 										<text
 											x={centerX}
-											y={17}
+											y={13}
 											textAnchor="middle"
 											className={
 												isGuide

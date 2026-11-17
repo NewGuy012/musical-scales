@@ -16,7 +16,7 @@ import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 const noop = () => {};
 
 describe("Musical Scales UI rendering", () => {
-	test("renders App with Instruments dock, Music Teacher -> Learn with Real Songs below it, and Exploration workspace", () => {
+	test("renders App with Instruments dock, collapsed Chords workspace below it, and collapsed Music Teacher -> Learn with Real Songs at bottom", () => {
 		const html = renderToStaticMarkup(<App />);
 		expect(html).toContain("Musical Scales");
 		expect(html).toContain("Circle of Fifths");
@@ -25,6 +25,12 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("Neighbors");
 		expect(html).toContain("F Major");
 		expect(html).toContain("G Major");
+		expect(html).toContain(
+			'id="section-chords-heading" class="section-title">Chords</h2>',
+		);
+		expect(html).toContain(
+			"Chords &amp; Progressions · Passing &amp; Substitutions",
+		);
 		expect(html).toContain("Diatonic Chords in C");
 		expect(html).toContain("Chords &amp; Progressions");
 		expect(html).toContain("Passing &amp; Substitutions");
@@ -62,11 +68,16 @@ describe("Musical Scales UI rendering", () => {
 		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
 		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
 		expect(html).toContain('aria-label="Expand Neighbors"');
-		expect(html).toContain('aria-label="Collapse Music Teacher"');
-		expect(html).toContain('aria-label="Expand Exploration"');
-		expect(html).toContain('aria-controls="section-exploration-body"');
+		// Right column: Chords and Music Teacher are both collapsed by default
+		expect(html).toContain('aria-label="Expand Chords"');
+		expect(html).toContain('aria-controls="section-chords-body"');
 		expect(html).toContain(
-			'id="section-exploration-body" class="section-body" hidden=""',
+			'id="section-chords-body" class="section-body" hidden=""',
+		);
+		expect(html).toContain('aria-label="Expand Music Teacher"');
+		expect(html).toContain('aria-controls="section-music-teacher-body"');
+		expect(html).toContain(
+			'id="section-music-teacher-body" class="section-body" hidden=""',
 		);
 		expect(html).toContain("↺ F");
 		expect(html).toContain("G ↻");
@@ -76,15 +87,16 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('id="chords-extras-drawer"');
 		expect(html).toContain('id="chord-variations-drawer"');
 
-		// Right column order: Instruments dock -> Music Teacher (Learn with Real Songs) -> Exploration
+		// Right column order: Instruments dock -> Chords -> Music Teacher (Learn with Real Songs)
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
+		const chordsSectionIdx = html.indexOf('id="section-chords"');
 		const musicTeacherIdx = html.indexOf('id="section-music-teacher"');
-		const workspaceIdx = html.indexOf('id="section-exploration"');
 		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
-		expect(musicTeacherIdx).toBeGreaterThan(instrumentsSectionIdx);
-		expect(workspaceIdx).toBeGreaterThan(musicTeacherIdx);
+		expect(chordsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
+		expect(musicTeacherIdx).toBeGreaterThan(chordsSectionIdx);
 
 		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state
+		expect(html).toContain('id="panel-instrument" class="instrument-panel"');
 		expect(html).toContain('id="subsection-learn-real-songs"');
 		expect(html).toContain("songs-instrument-bar");
 		expect(html).toContain('id="songs-tab-piano"');

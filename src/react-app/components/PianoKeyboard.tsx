@@ -32,9 +32,9 @@ export function PianoKeyboard({
 	onPlayNote,
 }: PianoKeyboardProps) {
 	const whiteKeyWidth = 30;
-	const whiteKeyHeight = 82;
+	const whiteKeyHeight = 96;
 	const blackKeyWidth = 18;
-	const blackKeyHeight = 49;
+	const blackKeyHeight = 58;
 
 	const whiteKeys: { midi: number; x: number; pc: number; octave: number }[] =
 		[];

@@ -352,8 +352,7 @@
 }
 
 .wheel-shell.is-collapsed .section-header,
-.panel-card.is-collapsed .section-header,
-.panel-card.is-collapsed .harmony-tabs-bar {
+.panel-card.is-collapsed .section-header {
 	padding-bottom: 0;
 	margin-bottom: 0;
 	border-bottom-color: transparent;
@@ -1538,6 +1537,13 @@
 	color: var(--text-muted);
 }
 
+.instrument-panel {
+	min-height: 298px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
 /* Guitar Fretboard View */
 .guitar-wrap {
 	margin-bottom: 0;
@@ -1670,6 +1676,7 @@
 .fretboard-svg {
 	width: 100%;
 	min-width: 620px;
+	max-height: 192px;
 	height: auto;
 	display: block;
 	user-select: none;
@@ -2227,13 +2234,13 @@
 
 .cello-neck-scroll {
 	overflow-x: auto;
-	margin-top: 8px;
 	padding-bottom: 4px;
 }
 
 .cello-svg {
 	width: 100%;
 	min-width: 660px;
+	max-height: 192px;
 	height: auto;
 	display: block;
 	user-select: none;
@@ -2335,7 +2342,7 @@
 
 .piano-svg {
 	width: 100%;
-	max-height: 175px;
+	max-height: 205px;
 	height: auto;
 	display: block;
 	user-select: none;
@@ -3794,6 +3801,9 @@
 @media (max-width: 720px) {
 	.app-shell {
 		padding: 12px 14px 28px;
+	}
+	.instrument-panel {
+		min-height: 0;
 	}
 	.brand-subtitle {
 		display: none;

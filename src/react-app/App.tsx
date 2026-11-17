@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	SoundPreset,
 	getDefaultChordSpread,
@@ -33,6 +40,7 @@ import {
 	type PendingMusicXmlPartChoice,
 } from "./components/MusicTeacherSection";
 import { PianoKeyboard } from "./components/PianoKeyboard";
+import { SectionHeader } from "./components/SectionHeader";
 import type { MusicXmlPartSummary, XmlNode } from "./musicxml";
 import {
 	getCatalogEntriesForInstrument,
@@ -141,8 +149,8 @@ const MAX_MUSICXML_FILE_BYTES = 10 * 1024 * 1024;
 type MainSectionId =
 	| "section-circle"
 	| "section-neighbors"
-	| "section-music-teacher"
-	| "section-exploration";
+	| "section-chords"
+	| "section-music-teacher";
 type WorkspaceTab = "chords" | "color";
 
 const INSTRUMENT_META: Record<
@@ -167,6 +175,9 @@ const INSTRUMENT_META: Record<
 	},
 };
 
+const useIsomorphicLayoutEffect =
+	typeof document !== "undefined" ? useLayoutEffect : useEffect;
+
 function InstrumentTabList({
 	activeTab,
 	onSelect,
@@ -175,7 +186,7 @@ function InstrumentTabList({
 	controlsId,
 }: {
 	activeTab: InstrumentTab;
-	onSelect: (tabId: InstrumentTab) => void;
+	onSelect: (tabId: InstrumentTab, anchorEl?: HTMLElement | null) => void;
 	idPrefix: string;
 	ariaLabel: string;
 	controlsId: string;
@@ -191,7 +202,7 @@ function InstrumentTabList({
 					aria-selected={activeTab === tabId}
 					aria-controls={controlsId}
 					className={`instrument-tab ${activeTab === tabId ? "is-active" : ""}`}
-					onClick={() => onSelect(tabId)}
+					onClick={(e) => onSelect(tabId, e.currentTarget)}
 				>
 					{INSTRUMENT_META[tabId].label}
 				</button>
@@ -303,28 +314,24 @@ export function App() {
 		Partial<Record<MainSectionId, boolean>>
 	>({
 		"section-neighbors": true,
-		"section-exploration": true,
+		"section-chords": true,
+		"section-music-teacher": true,
 	});
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
 	const songPositionMsRef = useRef<number>(0);
 	const lastUiProgressMsRef = useRef<number>(-100);
 	const songPlayRequestIdRef = useRef<number>(0);
+	const pendingInstrumentAnchorRef = useRef<{
+		element: HTMLElement;
+		top: number;
+	} | null>(null);
 
 	const toggleSectionCollapsed = useCallback((sectionId: MainSectionId) => {
 		setCollapsedSections((prev) => ({
 			...prev,
 			[sectionId]: !prev[sectionId],
 		}));
-	}, []);
-
-	const handleSelectHarmonyTab = useCallback((nextTab: WorkspaceTab) => {
-		setHarmonyTab(nextTab);
-		setCollapsedSections((prev) =>
-			prev["section-exploration"]
-				? { ...prev, "section-exploration": false }
-				: prev,
-		);
 	}, []);
 
 	const updateSongPosition = useCallback((ms: number) => {
@@ -1440,13 +1447,35 @@ export function App() {
 	}, [playingSongId, cuedSongId, stopActiveSequence]);
 
 	const handleSelectInstrumentTab = useCallback(
-		(nextTab: InstrumentTab) => {
+		(nextTab: InstrumentTab, anchorEl?: HTMLElement | null) => {
 			if (nextTab === instrumentView) return;
+			if (typeof window !== "undefined" && anchorEl) {
+				const target =
+					anchorEl.closest<HTMLElement>(
+						".songs-instrument-bar, #section-music-teacher, #section-instruments",
+					) ?? anchorEl;
+				pendingInstrumentAnchorRef.current = {
+					element: target,
+					top: target.getBoundingClientRect().top,
+				};
+			}
 			resetSongContext();
 			setInstrumentView(nextTab);
 		},
 		[instrumentView, resetSongContext],
 	);
+
+	useIsomorphicLayoutEffect(() => {
+		const anchor = pendingInstrumentAnchorRef.current;
+		pendingInstrumentAnchorRef.current = null;
+		if (!anchor || typeof window === "undefined") return;
+		if (!anchor.element.isConnected) return;
+		const nextTop = anchor.element.getBoundingClientRect().top;
+		const delta = nextTop - anchor.top;
+		if (Math.abs(delta) > 0.5) {
+			window.scrollTo(window.scrollX, Math.max(0, window.scrollY + delta));
+		}
+	}, [instrumentView]);
 
 	const selectedSongId = useMemo(() => {
 		const candidate = selectedSongByInstrument[instrumentView];
@@ -1796,12 +1825,14 @@ export function App() {
 	const isVariationActive = Boolean(activeVoicing.id?.startsWith("var-"));
 	const showVariations = variationsOpen || isVariationActive;
 	const hasCustomSettings = preference !== "standard" || soundMode === "pad";
-	const isExplorationCollapsed = Boolean(
-		collapsedSections["section-exploration"],
-	);
+	const isChordsCollapsed = Boolean(collapsedSections["section-chords"]);
 	const isMusicTeacherCollapsed = Boolean(
 		collapsedSections["section-music-teacher"],
 	);
+	const isChordsSequenceActive =
+		activeScaleIndex !== null ||
+		activeProgressionId !== null ||
+		activeColorSeqId !== null;
 	const pendingPartChoice: PendingMusicXmlPartChoice | null =
 		pendingMusicXmlFile
 			? {
@@ -2121,6 +2152,7 @@ export function App() {
 
 						<div
 							id="panel-instrument"
+							className="instrument-panel"
 							role="tabpanel"
 							aria-labelledby={`tab-${instrumentView}`}
 						>
@@ -2190,164 +2222,112 @@ export function App() {
 						</div>
 					</section>
 
-					<MusicTeacherSection
-						instrumentView={instrumentView}
-						instrumentLabel={INSTRUMENT_META[instrumentView].label}
-						repertoireLabel={INSTRUMENT_META[instrumentView].repertoire}
-						instrumentTabList={
-							<InstrumentTabList
-								activeTab={instrumentView}
-								onSelect={handleSelectInstrumentTab}
-								idPrefix="songs-tab"
-								ariaLabel="Learn with Real Songs instrument"
-								controlsId="panel-real-songs"
-							/>
-						}
-						songs={songsForInstrument}
-						otherInstrumentsWithSongs={otherInstrumentsWithSongs}
-						selectedSongId={selectedSongId}
-						playingSongId={playingSongId}
-						cuedSongId={cuedSongId}
-						songPositionMs={songPositionMs}
-						playbackSpeed={songPlaybackSpeed}
-						activeChordStepIndex={activeSongStepIndex}
-						activeNoteLabel={activeSongNoteLabel}
-						selectedPreviewStepId={selectedSongPreviewId}
-						isCollapsed={isMusicTeacherCollapsed}
-						isImporting={isImportingMusicXml}
-						importError={musicXmlImportError}
-						pendingPartChoice={pendingPartChoice}
-						onToggleCollapse={() =>
-							toggleSectionCollapsed("section-music-teacher")
-						}
-						onSelectInstrument={handleSelectInstrumentTab}
-						onSelectSong={handleSelectSong}
-						onImportMusicXmlFile={handleImportMusicXmlFile}
-						onConfirmPartChoice={handleConfirmPartChoice}
-						onCancelPartChoice={() => setPendingMusicXmlFile(null)}
-						onDismissImportError={() => setMusicXmlImportError(null)}
-						onRemoveLocalPreview={handleRemoveLocalPreview}
-						onChangePlaybackSpeed={handleChangePlaybackSpeed}
-						onTogglePlaySong={handleTogglePlaySong}
-						onStopSong={handleStopSong}
-						onSeekSong={handleSeekSong}
-						onBeginScrubSong={handleBeginScrubSong}
-						onSkipSongBar={handleSkipSongBar}
-						onPlayFromSongBar={handlePlayFromSongBar}
-						onSelectSongChordStep={handleSelectSongChordStep}
-					/>
-
 					<section
-						id="section-exploration"
+						id="section-chords"
 						className={`panel-card workspace-card${
-							isExplorationCollapsed ? " is-collapsed" : ""
+							isChordsCollapsed ? " is-collapsed" : ""
 						}`}
-						aria-label="Harmony exploration workspace"
+						aria-labelledby="section-chords-heading"
 					>
-						<div className="harmony-tabs-bar">
-							<div
-								className="instrument-tablist"
-								role="tablist"
-								aria-label="Harmony workspace"
-							>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-chords"
-									aria-selected={harmonyTab === "chords"}
-									aria-controls="panel-harmony-chords"
-									className={`instrument-tab ${
-										harmonyTab === "chords" ? "is-active" : ""
-									}`}
-									onClick={() => handleSelectHarmonyTab("chords")}
-								>
-									Chords &amp; Progressions
-								</button>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-color"
-									aria-selected={harmonyTab === "color"}
-									aria-controls="panel-harmony-color"
-									className={`instrument-tab ${
-										harmonyTab === "color" ? "is-active" : ""
-									}`}
-									onClick={() => handleSelectHarmonyTab("color")}
-								>
-									<span>Passing &amp; Substitutions</span>
-									{activeColorSeqId !== null && (
-										<span className="tab-live-dot" aria-hidden="true" />
-									)}
-								</button>
-							</div>
-
-							<div className="chord-toolbar">
-								{isExplorationCollapsed ? (
+						<SectionHeader
+							headingId="section-chords-heading"
+							title="Chords"
+							description="Chords & Progressions · Passing & Substitutions"
+							bodyId="section-chords-body"
+							titleBadge={
+								isChordsSequenceActive ? (
+									<span className="tab-live-dot" aria-hidden="true" />
+								) : undefined
+							}
+							actions={
+								isChordsCollapsed ? (
 									<span className="workspace-collapsed-key">
 										{analysis.name}
 									</span>
-								) : (
-									<>
-										{harmonyTab === "chords" && (
-											<div
-												className="segmented-control"
-												role="group"
-												aria-label="Chord extension"
-											>
-												<button
-													type="button"
-													className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-													onClick={() => setVoicingMode("triad")}
-												>
-													Triads
-												</button>
-												<button
-													type="button"
-													className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-													onClick={() => setVoicingMode("seventh")}
-												>
-													7ths
-												</button>
-											</div>
-										)}
-
-										<button
-											type="button"
-											className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-											aria-pressed={arpeggiate}
-											onClick={() => setArpeggiate((a) => !a)}
-											title="Roll chord notes sequentially vs. block chord"
-										>
-											Arpeggio
-										</button>
-									</>
-								)}
-
-								<button
-									type="button"
-									className={`section-collapse-btn${
-										isExplorationCollapsed ? " is-collapsed" : ""
-									}`}
-									aria-expanded={!isExplorationCollapsed}
-									aria-controls="section-exploration-body"
-									aria-label={`${
-										isExplorationCollapsed ? "Expand" : "Collapse"
-									} Exploration`}
-									title={`${
-										isExplorationCollapsed ? "Expand" : "Collapse"
-									} Exploration`}
-									onClick={() => toggleSectionCollapsed("section-exploration")}
-								>
-									<IconChevronDown size={14} />
-								</button>
-							</div>
-						</div>
+								) : undefined
+							}
+							isCollapsed={isChordsCollapsed}
+							onToggleCollapse={() => toggleSectionCollapsed("section-chords")}
+						/>
 
 						<div
-							id="section-exploration-body"
+							id="section-chords-body"
 							className="section-body"
-							hidden={isExplorationCollapsed}
+							hidden={isChordsCollapsed}
 						>
+							<div className="harmony-tabs-bar">
+								<div
+									className="instrument-tablist"
+									role="tablist"
+									aria-label="Chords workspace"
+								>
+									<button
+										type="button"
+										role="tab"
+										id="tab-harmony-chords"
+										aria-selected={harmonyTab === "chords"}
+										aria-controls="panel-harmony-chords"
+										className={`instrument-tab ${
+											harmonyTab === "chords" ? "is-active" : ""
+										}`}
+										onClick={() => setHarmonyTab("chords")}
+									>
+										Chords &amp; Progressions
+									</button>
+									<button
+										type="button"
+										role="tab"
+										id="tab-harmony-color"
+										aria-selected={harmonyTab === "color"}
+										aria-controls="panel-harmony-color"
+										className={`instrument-tab ${
+											harmonyTab === "color" ? "is-active" : ""
+										}`}
+										onClick={() => setHarmonyTab("color")}
+									>
+										<span>Passing &amp; Substitutions</span>
+										{activeColorSeqId !== null && (
+											<span className="tab-live-dot" aria-hidden="true" />
+										)}
+									</button>
+								</div>
+
+								<div className="chord-toolbar">
+									{harmonyTab === "chords" && (
+										<div
+											className="segmented-control"
+											role="group"
+											aria-label="Chord extension"
+										>
+											<button
+												type="button"
+												className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("triad")}
+											>
+												Triads
+											</button>
+											<button
+												type="button"
+												className={`seg-btn ${isSeventh ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("seventh")}
+											>
+												7ths
+											</button>
+										</div>
+									)}
+
+									<button
+										type="button"
+										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+										aria-pressed={arpeggiate}
+										onClick={() => setArpeggiate((a) => !a)}
+										title="Roll chord notes sequentially vs. block chord"
+									>
+										Arpeggio
+									</button>
+								</div>
+							</div>
+
 							<div
 								id="panel-harmony-chords"
 								role="tabpanel"
@@ -2357,9 +2337,9 @@ export function App() {
 								<div id="section-key-scale" className="hero-top">
 									<div className="hero-identity">
 										<div className="hero-title-row">
-											<h2 id="key-title" className="hero-key-title">
+											<h3 id="key-title" className="hero-key-title">
 												{analysis.name}
-											</h2>
+											</h3>
 
 											<div
 												className="segmented-control"
@@ -2628,6 +2608,53 @@ export function App() {
 							)}
 						</div>
 					</section>
+
+					<MusicTeacherSection
+						instrumentView={instrumentView}
+						instrumentLabel={INSTRUMENT_META[instrumentView].label}
+						repertoireLabel={INSTRUMENT_META[instrumentView].repertoire}
+						instrumentTabList={
+							<InstrumentTabList
+								activeTab={instrumentView}
+								onSelect={handleSelectInstrumentTab}
+								idPrefix="songs-tab"
+								ariaLabel="Learn with Real Songs instrument"
+								controlsId="panel-real-songs"
+							/>
+						}
+						songs={songsForInstrument}
+						otherInstrumentsWithSongs={otherInstrumentsWithSongs}
+						selectedSongId={selectedSongId}
+						playingSongId={playingSongId}
+						cuedSongId={cuedSongId}
+						songPositionMs={songPositionMs}
+						playbackSpeed={songPlaybackSpeed}
+						activeChordStepIndex={activeSongStepIndex}
+						activeNoteLabel={activeSongNoteLabel}
+						selectedPreviewStepId={selectedSongPreviewId}
+						isCollapsed={isMusicTeacherCollapsed}
+						isImporting={isImportingMusicXml}
+						importError={musicXmlImportError}
+						pendingPartChoice={pendingPartChoice}
+						onToggleCollapse={() =>
+							toggleSectionCollapsed("section-music-teacher")
+						}
+						onSelectInstrument={handleSelectInstrumentTab}
+						onSelectSong={handleSelectSong}
+						onImportMusicXmlFile={handleImportMusicXmlFile}
+						onConfirmPartChoice={handleConfirmPartChoice}
+						onCancelPartChoice={() => setPendingMusicXmlFile(null)}
+						onDismissImportError={() => setMusicXmlImportError(null)}
+						onRemoveLocalPreview={handleRemoveLocalPreview}
+						onChangePlaybackSpeed={handleChangePlaybackSpeed}
+						onTogglePlaySong={handleTogglePlaySong}
+						onStopSong={handleStopSong}
+						onSeekSong={handleSeekSong}
+						onBeginScrubSong={handleBeginScrubSong}
+						onSkipSongBar={handleSkipSongBar}
+						onPlayFromSongBar={handlePlayFromSongBar}
+						onSelectSongChordStep={handleSelectSongChordStep}
+					/>
 				</div>
 			</main>
 		</div>
