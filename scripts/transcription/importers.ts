@@ -112,20 +112,36 @@ function inferInstrument(
 	midiProgram: number,
 	lowToHighTuning?: readonly number[],
 	isPercussion = false,
+	staffCount = 1,
+	isStringed = false,
 ): InstrumentTab | null {
 	if (isPercussion) return null;
 	if (lowToHighTuning && lowToHighTuning.length === 4) {
 		if (arraysEqual(lowToHighTuning, STANDARD_CELLO_MIDI)) return "cello";
 		if (arraysEqual(lowToHighTuning, STANDARD_VIOLIN_MIDI)) return "violin";
 	}
+	if (lowToHighTuning && lowToHighTuning.length >= 6) {
+		return "guitar";
+	}
 	const lower = name.toLowerCase();
 	if (/\bcello\b|violoncello|\bvc\b/.test(lower)) return "cello";
 	if (/\bviolin\b|\bfiddle\b|\bvln\b/.test(lower)) return "violin";
 	if (
-		/\bguitar\b|\bgtr\b|acoustic|nylon|steel|electric|fingerstyle/.test(lower)
+		/\bguitar\b|\bgtr\b|acoustic guitar|nylon|steel|electric guitar|fingerstyle/.test(
+			lower,
+		)
 	) {
 		return "guitar";
 	}
+	if (
+		/\bpiano\b|keyboard|\bklavier\b|\bpno\b|\bgrand\b|\brhodes\b|\bharpsichord\b|\bright hand\b|\bleft hand\b/.test(
+			lower,
+		)
+	) {
+		return "piano";
+	}
+	if (!isStringed && staffCount >= 2) return "piano";
+	if (midiProgram >= 1 && midiProgram <= 7) return "piano";
 	if (midiProgram === 42) return "cello";
 	if (midiProgram === 40) return "violin";
 	if (midiProgram >= 24 && midiProgram <= 31) return "guitar";
@@ -206,6 +222,8 @@ function summarizeAlphaTabTrack(track: alphaTab.model.Track): TrackSummary {
 			track.playbackInfo.program,
 			reversedTuning,
 			isPercussion,
+			track.staves.length,
+			isStringed,
 		),
 	};
 }
@@ -297,6 +315,14 @@ function mapAlphaTabNoteArticulation(
 		return slurToNext ? { slurToNext } : {};
 	}
 
+	if (instrument === "piano") {
+		if (note.isStaccato) return { technique: "staccato", slurToNext };
+		if (note.isSlurDestination || note.isHammerPullDestination) {
+			return { technique: "slur", slurToNext };
+		}
+		return slurToNext ? { slurToNext } : {};
+	}
+
 	// Bowed strings (cello / violin)
 	if (
 		note.isPalmMute ||
@@ -356,7 +382,10 @@ function buildScoreIrFromAlphaTab(
 	options: CommonImportOptions,
 ): ScoreTrackIR {
 	const track = score.tracks[selectedSummary.index];
-	const staff = track.staves[0];
+	const nonPercussionStaves = track.staves.filter((s) => !s.isPercussion);
+	const stavesToImport =
+		nonPercussionStaves.length > 0 ? nonPercussionStaves : track.staves;
+	const staff = stavesToImport[0];
 	const instrument: InstrumentTab =
 		options.instrument ?? selectedSummary.suggestedInstrument ?? "guitar";
 
@@ -382,7 +411,7 @@ function buildScoreIrFromAlphaTab(
 		}
 	}
 
-	const firstBar = staff.bars[0];
+	const firstBar = staff?.bars[0];
 	const firstMb = score.masterBars[0];
 	const keyFifths = firstBar?.keySignature ?? firstMb?.keySignature ?? 0;
 	const keyType =
@@ -409,104 +438,113 @@ function buildScoreIrFromAlphaTab(
 			: 0;
 
 	const barsIR: ScoreBarIR[] = [];
-	const totalBars = Math.min(score.masterBars.length, staff.bars.length);
+	const totalBars = score.masterBars.length;
 
 	for (let bIdx = 0; bIdx < totalBars; bIdx++) {
 		const mb = score.masterBars[bIdx];
-		const bar = staff.bars[bIdx];
 		const barDurationTicks = Math.max(1, mb.calculateDuration(true));
 		const notes: ScoreNoteIR[] = [];
 		const harmonyMap = new Map<number, ScoreHarmonyMark>();
 
-		for (let vIdx = 0; vIdx < bar.voices.length; vIdx++) {
-			const voice = bar.voices[vIdx];
-			if (voice.isEmpty) continue;
+		for (let sIdx = 0; sIdx < stavesToImport.length; sIdx++) {
+			const curStaff = stavesToImport[sIdx];
+			const bar = curStaff.bars[bIdx];
+			if (!bar) continue;
 
-			for (const beat of voice.beats) {
-				for (const auto of beat.automations) {
-					if (auto.type === alphaTab.model.AutomationType.Tempo) {
-						tempoEvents.push({
-							atTick:
-								mb.start +
-								beat.playbackStart +
-								Math.round((auto.ratioPosition ?? 0) * beat.playbackDuration),
-							bpm: auto.value,
+			const curTuning =
+				curStaff.tuning.length > 0 ? [...curStaff.tuning].reverse() : undefined;
+
+			for (let vIdx = 0; vIdx < bar.voices.length; vIdx++) {
+				const voice = bar.voices[vIdx];
+				if (voice.isEmpty) continue;
+
+				for (const beat of voice.beats) {
+					for (const auto of beat.automations) {
+						if (auto.type === alphaTab.model.AutomationType.Tempo) {
+							tempoEvents.push({
+								atTick:
+									mb.start +
+									beat.playbackStart +
+									Math.round((auto.ratioPosition ?? 0) * beat.playbackDuration),
+								bpm: auto.value,
+							});
+						}
+					}
+
+					const rawOffset = Math.max(0, beat.playbackStart);
+					const offsetTicks =
+						quantizeStepTicks > 0
+							? Math.min(
+									Math.max(0, barDurationTicks - quantizeStepTicks),
+									Math.round(rawOffset / quantizeStepTicks) * quantizeStepTicks,
+								)
+							: rawOffset;
+
+					if (beat.hasChord && beat.chord?.name) {
+						harmonyMap.set(offsetTicks, {
+							offsetTicks,
+							chordSymbol: beat.chord.name.trim(),
 						});
 					}
-				}
 
-				const rawOffset = Math.max(0, beat.playbackStart);
-				const offsetTicks =
-					quantizeStepTicks > 0
-						? Math.min(
-								Math.max(0, barDurationTicks - quantizeStepTicks),
-								Math.round(rawOffset / quantizeStepTicks) * quantizeStepTicks,
-							)
-						: rawOffset;
+					if (beat.isRest) continue;
 
-				if (beat.hasChord && beat.chord?.name) {
-					harmonyMap.set(offsetTicks, {
-						offsetTicks,
-						chordSymbol: beat.chord.name.trim(),
-					});
-				}
+					for (const note of beat.notes) {
+						if (note.isTieDestination) continue;
+						const midi = Math.round(note.realValue);
+						if (!Number.isFinite(midi) || midi <= 0 || midi > 127) continue;
 
-				if (beat.isRest) continue;
+						let durationTicks = collectTieChainDurationTicks(note);
+						if (quantizeStepTicks > 0) {
+							durationTicks = Math.max(
+								quantizeStepTicks,
+								Math.round(durationTicks / quantizeStepTicks) *
+									quantizeStepTicks,
+							);
+						}
+						if (
+							(note.isLetRing || beat.isLetRing) &&
+							durationTicks < ALPHATAB_TICKS_PER_QUARTER
+						) {
+							durationTicks = ALPHATAB_TICKS_PER_QUARTER;
+						}
 
-				for (const note of beat.notes) {
-					if (note.isTieDestination) continue;
-					const midi = Math.round(note.realValue);
-					if (!Number.isFinite(midi) || midi <= 0 || midi > 127) continue;
+						const art = mapAlphaTabNoteArticulation(note, beat, instrument);
+						const stringIndex =
+							curStaff.isStringed &&
+							Number.isFinite(note.string) &&
+							note.string >= 1 &&
+							curTuning &&
+							note.string - 1 < curTuning.length
+								? note.string - 1
+								: undefined;
+						const fret =
+							stringIndex !== undefined &&
+							Number.isFinite(note.fret) &&
+							note.fret >= 0
+								? note.fret
+								: undefined;
+						const finger =
+							note.leftHandFinger >= 0 && note.leftHandFinger <= 4
+								? note.leftHandFinger
+								: undefined;
 
-					let durationTicks = collectTieChainDurationTicks(note);
-					if (quantizeStepTicks > 0) {
-						durationTicks = Math.max(
-							quantizeStepTicks,
-							Math.round(durationTicks / quantizeStepTicks) * quantizeStepTicks,
-						);
+						notes.push({
+							midi,
+							offsetTicks,
+							durationTicks,
+							velocity: dynamicToVelocity(
+								note.dynamics ?? beat.dynamics,
+								note.isGhost,
+								note.isDead,
+							),
+							voiceIndex: sIdx * 8 + vIdx,
+							...(stringIndex !== undefined ? { stringIndex } : {}),
+							...(fret !== undefined ? { fret } : {}),
+							...(finger !== undefined ? { finger } : {}),
+							...art,
+						});
 					}
-					if (
-						(note.isLetRing || beat.isLetRing) &&
-						durationTicks < ALPHATAB_TICKS_PER_QUARTER
-					) {
-						durationTicks = ALPHATAB_TICKS_PER_QUARTER;
-					}
-
-					const art = mapAlphaTabNoteArticulation(note, beat, instrument);
-					const stringIndex =
-						staff.isStringed &&
-						Number.isFinite(note.string) &&
-						note.string >= 1 &&
-						reversedTuning &&
-						note.string - 1 < reversedTuning.length
-							? note.string - 1
-							: undefined;
-					const fret =
-						stringIndex !== undefined &&
-						Number.isFinite(note.fret) &&
-						note.fret >= 0
-							? note.fret
-							: undefined;
-					const finger =
-						note.leftHandFinger >= 0 && note.leftHandFinger <= 4
-							? note.leftHandFinger
-							: undefined;
-
-					notes.push({
-						midi,
-						offsetTicks,
-						durationTicks,
-						velocity: dynamicToVelocity(
-							note.dynamics ?? beat.dynamics,
-							note.isGhost,
-							note.isDead,
-						),
-						voiceIndex: vIdx,
-						...(stringIndex !== undefined ? { stringIndex } : {}),
-						...(fret !== undefined ? { fret } : {}),
-						...(finger !== undefined ? { finger } : {}),
-						...art,
-					});
 				}
 			}
 		}
@@ -603,7 +641,8 @@ function summarizeMidiTrack(
 	index: number,
 ): TrackSummary {
 	const isPercussion = track.channel === 9;
-	const name = track.name || track.instrument.name || `Track ${index + 1}`;
+	const explicitName = track.name.trim();
+	const name = explicitName || track.instrument.name || `Track ${index + 1}`;
 	const program = track.instrument.number;
 	return {
 		index,
@@ -614,12 +653,52 @@ function summarizeMidiTrack(
 		midiProgram: program,
 		noteCount: track.notes.length,
 		suggestedInstrument: inferInstrument(
-			name,
+			explicitName,
 			program,
 			undefined,
 			isPercussion,
+			1,
+			false,
 		),
 	};
+}
+
+function applySustainPedalExtensions<
+	T extends { ticks: number; durationTicks: number },
+>(
+	notes: readonly T[],
+	cc64Events: readonly { ticks: number; value: number }[],
+	maxExtendTicks: number,
+): T[] {
+	if (cc64Events.length === 0 || notes.length === 0) return [...notes];
+	const sortedCc = [...cc64Events].sort((a, b) => a.ticks - b.ticks);
+	const intervals: Array<{ start: number; end: number }> = [];
+	let downTick: number | null = null;
+	for (const ev of sortedCc) {
+		if (ev.value >= 0.5 && downTick === null) {
+			downTick = ev.ticks;
+		} else if (ev.value < 0.5 && downTick !== null) {
+			if (ev.ticks > downTick) {
+				intervals.push({ start: downTick, end: ev.ticks });
+			}
+			downTick = null;
+		}
+	}
+	if (intervals.length === 0) return [...notes];
+
+	return notes.map((note) => {
+		const noteEnd = note.ticks + note.durationTicks;
+		let extendedEnd = noteEnd;
+		for (const iv of intervals) {
+			if (note.ticks < iv.end && noteEnd >= iv.start && noteEnd < iv.end) {
+				extendedEnd = Math.min(iv.end, note.ticks + maxExtendTicks);
+				break;
+			}
+		}
+		return extendedEnd > noteEnd
+			? { ...note, durationTicks: extendedEnd - note.ticks }
+			: note;
+	});
 }
 
 /**
@@ -682,7 +761,16 @@ export function importMidiBuffer(
 	const quantStepTicks =
 		subdivision > 0 ? Math.max(1, Math.round((4 / subdivision) * ppq)) : 0;
 
-	const normalizedNotes = track.notes.map((n) => {
+	const pedalNotes =
+		instrument === "piano"
+			? applySustainPedalExtensions(
+					track.notes,
+					track.controlChanges[64] ?? [],
+					ppq * 4,
+				)
+			: track.notes;
+
+	const normalizedNotes = pedalNotes.map((n) => {
 		const ticks =
 			quantStepTicks > 0
 				? Math.round(n.ticks / quantStepTicks) * quantStepTicks

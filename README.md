@@ -24,9 +24,9 @@
 <br />
 
 <p align="center">
-  <img src="./docs/images/studio-piano-dark.png" alt="Musical Scales workspace in dark theme" width="100%" />
+  <img src="./docs/images/circle-of-fifths-wheel.jpg" alt="Musical Scales Circle of Fifths interactive wheel" width="520" />
   <br />
-  <sub><strong>Musical Scales</strong> — top Table of Contents bar with clearly labeled <strong>Circle of Fifths</strong>, <strong>Neighbors</strong>, <strong>Key &amp; Scale</strong>, <strong>Exploration</strong>, and <strong>Instruments</strong> sections.</sub>
+  <sub>Interactive <strong>Circle of Fifths</strong> wheel with relative minor inner ring, 4th/5th neighbor navigation, and instant tonic playback.</sub>
 </p>
 
 ---
@@ -38,59 +38,22 @@ Use the **Contents** bar at the top of the app to jump straight to any section:
 1. **Circle of Fifths** — Click the outer **Major** or inner **Relative Minor** ring to switch keys and hear the tonic chord. Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or rotate the active key to the top.
 2. **Neighbors** — Compare adjacent **4th** and **5th** keys side by side (`6/7` shared notes, single half-step change), audition `I–IV–I` / `I–V–I` cadences, or walk smoothly around the circle.
 3. **Key & Scale** — View the treble **Key Signature** staff, jump to **Relative** or **Parallel** keys, flip enharmonic spellings (`B/C♭`, `F♯/G♭`, `D♭/C♯`), and play the 7-note scale.
-4. **Exploration** — Switch between two focused tabs:
+4. **Exploration** — Switch between focused tabs:
    - **Chords & Progressions**: Diatonic Major, Minor, Diminished, Harmonic `V`, and Parallel chords (Triads or 7ths, block or Arpeggio) plus curated chord progressions.
    - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
 5. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
-6. **Real Songs** — Dedicated section below **Instruments** with a repertoire dropdown selector, full bar-by-bar arrangements, study guides, section jumps, practice tips, and a scrubbable transport bar synced to the active instrument above.
+6. **Real Songs** — Dedicated bar-by-bar repertoire player with study guides, section jumps, practice tips, expressive articulations (harmonics, palm muting, slides, hammer-ons/pull-offs, pizzicato, slurs), and a scrubbable transport synced to the active instrument view.
 
 ---
 
 ## Instruments & Real Songs
 
-| Instrument | Interactive View                                                                                       | Built-in Real Song                                                                                                                                                                     |
-| :--------- | :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights & scale-tone dots                        | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)<br />Franz Schubert — _Moment Musicaux No. 3_ (`F Minor · 2/4 · 78 bars`)                                                |
-| **Guitar** | 6-string, 15-fret neck (`E A D G B e`) with CAGED voicings, Pentatonic/Scale & `+ Chromatic` overlays  | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 3/4 · 34 bars`)<br />Merle Travis — _Cannonball Rag_ (`G Major · 4/4 · 75 bars`)                                                     |
-| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 71 bars`)                                                                                                                 |
-| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`) with left-hand frames (`LH Frame`), finger numbers & `Bow Roll` | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`)<br />Joseph Haydn — _Cello Concerto No. 2 in D Major (III. Rondo: Allegro)_ (`D Major · 6/8 · 50 bars`) |
-
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <strong>Exploration (Real Songs) &amp; Guitar</strong><br /><br />
-      <img src="./docs/images/instrument-guitar.png" alt="Real Songs study guide for Amazing Grace paired with the 15-fret Guitar fretboard" width="100%" />
-    </td>
-    <td width="50%" align="center">
-      <strong>Exploration (Real Songs) &amp; Violin</strong><br /><br />
-      <img src="./docs/images/instrument-violin.png" alt="Real Songs study guide for Massenet Méditation from Thaïs paired with the fretless Violin fingerboard" width="100%" />
-    </td>
-  </tr>
-</table>
-
-<details>
-<summary><strong>More screenshots</strong> — Cello &amp; Real Songs, Light theme &amp; Circle of Fifths close-up</summary>
-
-<br />
-
-<table>
-  <tr>
-    <td width="34%" align="center">
-      <strong>Cello &amp; Real Songs</strong><br /><br />
-      <img src="./docs/images/instrument-cello.png" alt="Real Songs study guide for Bach Cello Suite No. 1 paired with the fretless Cello fingerboard" width="100%" />
-    </td>
-    <td width="38%" align="center">
-      <strong>Light Theme (G Major)</strong><br /><br />
-      <img src="./docs/images/studio-piano-light.png" alt="Musical Scales in light theme showing G Major" width="100%" />
-    </td>
-    <td width="28%" align="center">
-      <strong>Circle of Fifths Wheel</strong><br /><br />
-      <img src="./docs/images/circle-of-fifths-wheel.jpg" alt="Circle of Fifths interactive key wheel" width="100%" />
-    </td>
-  </tr>
-</table>
-
-</details>
+| Instrument | Interactive View                                                                                                             | Built-in Real Song                                                                                                                                                          |
+| :--------- | :--------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Piano**  | 2-octave clickable keyboard (`C4`–`B5`) with chord highlights, out-of-range octave folding &amp; scale-tone dots             | Claude Debussy — _Clair de lune_ (`D♭ Major · 9/8 · 72 bars`)<br />Franz Schubert — _Moment Musicaux No. 3_ (`F Minor · 2/4 · 78 bars`)                                     |
+| **Guitar** | 6-string fretboard (15–22 frets, custom tunings &amp; capo) with CAGED voicings, Pentatonic/Scale &amp; `+ Chromatic` guides | _Amazing Grace_ (arr. Tommy Emmanuel) (`E Major · 9/8 · 34 bars`)<br />Merle Travis — _Cannonball Rag_ (`G Major · 2/2 · 58 bars`)                                          |
+| **Violin** | 4-string fretless neck (`G3–D4–A4–E5`, up to 24 semitones) with left-hand frames, finger numbers &amp; `Bow Roll`            | Jules Massenet — _Méditation (from Thaïs)_ (`D Major · 4/4 · 71 bars`)                                                                                                      |
+| **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`, up to 24 semitones / thumb position) with left-hand frames &amp; `Bow Roll`           | J.S. Bach — _Cello Suite No. 1 Prelude (BWV 1007)_ (`G Major · 4/4 · 42 bars`)<br />Joseph Haydn — _Cello Concerto No. 2 (I. Allegro moderato)_ (`D Major · 4/4 · 28 bars`) |
 
 ---
 
@@ -122,17 +85,19 @@ bun dev       # open http://localhost:5173
 
 <br />
 
-| Command           | Description                                                   |
-| :---------------- | :------------------------------------------------------------ |
-| `bun dev`         | Start Vite + Cloudflare Workers dev server                    |
-| `bun test`        | Run unit, voicing, audio, and UI tests plus `bun fmt --check` |
-| `bun fmt`         | Format codebase with Bun                                      |
-| `bun check -b`    | Typecheck app, Node, and Worker projects                      |
-| `bun lint`        | Run typecheck and format verification                         |
-| `bun run build`   | Build production client and worker bundles into `dist/`       |
-| `bun run preview` | Build and preview production bundle locally                   |
-| `bun deploy`      | Deploy to Cloudflare Workers via Wrangler                     |
+| Command               | Description                                                                 |
+| :-------------------- | :-------------------------------------------------------------------------- |
+| `bun dev`             | Start Vite + Cloudflare Workers dev server                                  |
+| `bun test`            | Run unit, voicing, audio, pipeline, and UI tests plus `bun fmt --check`     |
+| `bun fmt`             | Format codebase with Bun                                                    |
+| `bun check -b`        | Typecheck app, Node, and Worker projects                                    |
+| `bun lint`            | Run typecheck and format verification                                       |
+| `bun run build`       | Build production client and worker bundles into `dist/`                     |
+| `bun run preview`     | Build and preview production bundle locally                                 |
+| `bun deploy`          | Deploy to Cloudflare Workers via Wrangler                                   |
+| `bun run import-song` | Import `.gp`/`.gpx`/`.musicxml`/`.mid` into `CompactSongSpec` + preview WAV |
 
-See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, and data-flow diagrams.
+- See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, and data-flow diagrams.
+- See [`docs/transcription-pipeline.md`](./docs/transcription-pipeline.md) to import Guitar Pro tab, MusicXML scores, MIDI files, or YouTube audio (`yt-dlp` → `demucs` → `basic-pitch`) for Piano, Guitar, Violin, and Cello.
 
 </details>

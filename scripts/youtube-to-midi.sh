@@ -9,10 +9,10 @@ Downloads audio from YouTube, optionally separates instrument stems with Demucs,
 transcribes polyphonic MIDI via Spotify Basic Pitch, and imports into CompactSongSpec.
 
 Options:
-  --instrument <guitar|cello|violin>  Target instrument (default: guitar)
+  --instrument <type>                 piano | guitar | cello | violin (default: guitar)
   --out-dir <dir>                     Working directory for audio/MIDI (default: /tmp/youtube-import)
-  --stem <guitar|other|none>          Stem selection with htdemucs_6s (default: auto by instrument)
-  --no-demucs                         Skip Demucs stem separation (faster for solo recordings)
+  --stem <piano|guitar|other|none>    Stem selection with htdemucs_6s (default: auto by instrument)
+  --no-demucs                         Skip Demucs stem separation (faster for solo piano/guitar/cello)
   --quantize <n>                      Grid subdivision passed to import-song (default: 16)
   --out <path>                        Write CompactSongSpec (.ts or .json) via import-song
   --wav <path>                        Render verification WAV preview via import-song
@@ -111,7 +111,9 @@ require_cmd basic-pitch "Install with: pipx install basic-pitch"
 if [[ "$STEM" == "none" ]]; then
 	USE_DEMUCS=0
 elif [[ "$STEM" == "auto" ]]; then
-	if [[ "$INSTRUMENT" == "guitar" ]]; then
+	if [[ "$INSTRUMENT" == "piano" ]]; then
+		STEM="piano"
+	elif [[ "$INSTRUMENT" == "guitar" ]]; then
 		STEM="guitar"
 	else
 		STEM="other"

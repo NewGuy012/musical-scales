@@ -250,7 +250,9 @@ function inferSectionGuide(
 		harmonyHook: `Tracks ${keyLabel} harmony bar-by-bar against the Circle of Fifths.`,
 		practiceTips: [
 			"Audition individual sections slowly before stringing the full arrangement together.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
+			instrument === "piano"
+				? "Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard."
+				: "Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
 			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
 		],
 		sections,

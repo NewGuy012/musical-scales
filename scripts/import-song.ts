@@ -41,7 +41,7 @@ Supported inputs:
 Options:
   -i, --input <path>        Input score or MIDI file (can also be passed positionally)
   -l, --list-tracks         List tracks in the file and exit
-      --instrument <type>   guitar | cello | violin (auto-detected if omitted)
+      --instrument <type>   piano | guitar | cello | violin (auto-detected if omitted)
       --track <index>       Zero-based track index to import
       --id <slug>           Override generated song ID
       --title <text>        Override song title
@@ -140,12 +140,13 @@ async function main(): Promise<void> {
 	let instrument: InstrumentTab | undefined;
 	if (values.instrument !== undefined) {
 		if (
+			values.instrument !== "piano" &&
 			values.instrument !== "guitar" &&
 			values.instrument !== "cello" &&
 			values.instrument !== "violin"
 		) {
 			throw new Error(
-				`Invalid --instrument "${values.instrument}". Expected guitar, cello, or violin.`,
+				`Invalid --instrument "${values.instrument}". Expected piano, guitar, cello, or violin.`,
 			);
 		}
 		instrument = values.instrument;

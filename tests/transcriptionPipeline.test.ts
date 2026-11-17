@@ -429,4 +429,85 @@ describe("Score IR compiler, ergonomic solver, and harmonic analyzer", () => {
 		expect(song.steps[0].barDurationMs).toBe(2400);
 		expect(song.steps[1].barDurationMs).toBe(1600);
 	});
+
+	test("imports grand-staff Piano MusicXML merging treble and bass staves", () => {
+		const pianoXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>Grand Staff Prelude</work-title></work>
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>0</fifths><mode>major</mode></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <staves>2</staves>
+        <clef number="1"><sign>G</sign><line>2</line></clef>
+        <clef number="2"><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <direction><sound tempo="108"/></direction>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>8</duration><voice>1</voice><type>half</type><staff>1</staff></note>
+      <note><chord/><pitch><step>E</step><octave>5</octave></pitch><duration>8</duration><voice>1</voice><type>half</type><staff>1</staff></note>
+      <note><pitch><step>G</step><octave>5</octave></pitch><duration>8</duration><voice>1</voice><type>half</type><staff>1</staff></note>
+      <backup><duration>16</duration></backup>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>16</duration><voice>2</voice><type>whole</type><staff>2</staff></note>
+    </measure>
+  </part>
+</score-partwise>`;
+
+		const bytes = new TextEncoder().encode(pianoXml);
+		const { trackIr, songSpec } = importScoreWithAlphaTab(bytes);
+		expect(trackIr.instrument).toBe("piano");
+		expect(songSpec.instruments).toEqual(["piano"]);
+
+		const song = hydrateSong(songSpec);
+		// Beat 1 combines LH C3 (48) + RH C5 (72), E5 (76) from both staves
+		expect(song.steps[0].events[0].midi).toEqual([48, 72, 76]);
+		expect(song.steps[0].events[0].guitarStops).toBeUndefined();
+		expect(song.steps[0].events[0].celloStops).toBeUndefined();
+		expect(song.steps[0].events[1].midi).toEqual([79]);
+
+		const flat = flattenSongPlaybackSteps(song);
+		const pcm = renderTimedSequenceOfflineSamples(flat.events, {
+			preset: "piano",
+			sampleRate: 22050,
+			totalDurationMs: flat.totalDurationMs,
+		});
+		expect(pcm.length).toBeGreaterThan(22050);
+	});
+
+	test("imports Piano MIDI and extends note durations across CC64 sustain pedal", () => {
+		const midi = new Midi();
+		midi.header.tempos.push({ ticks: 0, bpm: 120 });
+		midi.header.timeSignatures.push({ ticks: 0, timeSignature: [4, 4] });
+		midi.header.keySignatures.push({ ticks: 0, key: "C", scale: "major" });
+
+		const pianoTrack = midi.addTrack();
+		pianoTrack.name = "Grand Piano";
+		pianoTrack.instrument.number = 0;
+		const ppq = midi.header.ppq;
+		pianoTrack.addNote({
+			midi: 48,
+			ticks: 0,
+			durationTicks: ppq / 2,
+			velocity: 0.75,
+		});
+		pianoTrack.addNote({
+			midi: 64,
+			ticks: ppq,
+			durationTicks: ppq / 2,
+			velocity: 0.8,
+		});
+		pianoTrack.addCC({ number: 64, ticks: 0, value: 1 });
+		pianoTrack.addCC({ number: 64, ticks: ppq * 3, value: 0 });
+
+		const { trackIr, songSpec } = importMidiBuffer(midi.toArray(), {
+			quantizeSubdivision: 16,
+		});
+		expect(trackIr.instrument).toBe("piano");
+		expect(songSpec.instruments).toEqual(["piano"]);
+		// Both C3 and E4 should sustain until pedal lift at tick 3 * ppq
+		expect(trackIr.bars[0].notes[0].durationTicks).toBe(ppq * 3);
+		expect(trackIr.bars[0].notes[1].durationTicks).toBe(ppq * 2);
+	});
 });
