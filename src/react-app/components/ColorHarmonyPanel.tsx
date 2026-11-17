@@ -15,6 +15,7 @@ interface ColorHarmonyPanelProps {
 	activeChordId: string | null;
 	activeSequenceId: string | null;
 	activeSequenceStepIdx: number | null;
+	initialTopic?: ColorHarmonyTopic;
 	onSelectChord: (chord: HarmonyChordSpec) => void;
 	onPlaySequence: (sequenceId: string, steps: HarmonyChordSpec[]) => void;
 }
@@ -26,15 +27,44 @@ const TOPICS: readonly { id: ColorHarmonyTopic; label: string }[] = [
 	{ id: "tritone", label: "Tritone Subs" },
 ];
 
+function SequencePlayButton({
+	isPlaying,
+	idleLabel,
+	onClick,
+}: {
+	isPlaying: boolean;
+	idleLabel: string;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			className={`pill-action-btn pill-action-sm ${isPlaying ? "is-playing" : ""}`}
+			onClick={onClick}
+		>
+			{isPlaying ? (
+				<>
+					<IconStop size={10} /> Stop
+				</>
+			) : (
+				<>
+					<IconPlay size={10} /> {idleLabel}
+				</>
+			)}
+		</button>
+	);
+}
+
 export function ColorHarmonyPanel({
 	colorAnalysis,
 	activeChordId,
 	activeSequenceId,
 	activeSequenceStepIdx,
+	initialTopic = "chromatic",
 	onSelectChord,
 	onPlaySequence,
 }: ColorHarmonyPanelProps) {
-	const [topic, setTopic] = useState<ColorHarmonyTopic>("chromatic");
+	const [topic, setTopic] = useState<ColorHarmonyTopic>(initialTopic);
 
 	const renderStepChip = (
 		chord: HarmonyChordSpec,
@@ -78,15 +108,8 @@ export function ColorHarmonyPanel({
 	};
 
 	const renderPatternCard = (pattern: ColorHarmonyPattern) => {
-		const {
-			id,
-			title,
-			kindLabel,
-			formula,
-			explanation,
-			steps,
-			targetStepIndex,
-		} = pattern;
+		const { id, title, kindLabel, explanation, steps, targetStepIndex } =
+			pattern;
 		const isPlaying = activeSequenceId === id;
 
 		return (
@@ -95,38 +118,27 @@ export function ColorHarmonyPanel({
 					<div className="color-pattern-titles">
 						<span className="color-kind-badge">{kindLabel}</span>
 						<h3 className="color-pattern-title">{title}</h3>
-						<span className="color-pattern-formula">{formula}</span>
 					</div>
-					<button
-						type="button"
-						className={`pill-action-btn pill-action-sm ${
-							isPlaying ? "is-playing" : ""
-						}`}
+					<SequencePlayButton
+						isPlaying={isPlaying}
+						idleLabel="Play"
 						onClick={() => onPlaySequence(id, steps)}
+					/>
+				</div>
+
+				<div className="color-pattern-body">
+					<div
+						className="color-steps-row"
+						role="group"
+						aria-label={`${title} chords`}
 					>
-						{isPlaying ? (
-							<>
-								<IconStop size={10} /> Stop
-							</>
-						) : (
-							<>
-								<IconPlay size={10} /> Play
-							</>
+						{steps.map((step, idx) =>
+							renderStepChip(step, id, idx, idx === targetStepIndex),
 						)}
-					</button>
-				</div>
+					</div>
 
-				<div
-					className="color-steps-row"
-					role="group"
-					aria-label={`${title} chords`}
-				>
-					{steps.map((step, idx) =>
-						renderStepChip(step, id, idx, idx === targetStepIndex),
-					)}
+					<p className="color-pattern-desc">{explanation}</p>
 				</div>
-
-				<p className="color-pattern-desc">{explanation}</p>
 			</article>
 		);
 	};
@@ -149,34 +161,22 @@ export function ColorHarmonyPanel({
 					<div className="color-pattern-titles">
 						<h3 className="color-pattern-title">{pair.label}</h3>
 						<span className="tritone-guide-pill">
-							Shared tritone: {pair.sharedTritoneNotes.join(" & ")}
+							Tritone: {pair.sharedTritoneNotes.join(" & ")}
 						</span>
 					</div>
 				</div>
 
-				<div className="tritone-ab-grid">
+				<div className={compact ? "tritone-branches" : "tritone-ab-grid"}>
 					<div className="tritone-branch">
 						<div className="tritone-branch-head">
 							<span className="tritone-branch-label">
 								Standard V7 ({pair.originalDominant.symbol})
 							</span>
-							<button
-								type="button"
-								className={`pill-action-btn pill-action-sm ${
-									isPlayingOrig ? "is-playing" : ""
-								}`}
+							<SequencePlayButton
+								isPlaying={isPlayingOrig}
+								idleLabel="Hear V7"
 								onClick={() => onPlaySequence(origId, pair.originalProgression)}
-							>
-								{isPlayingOrig ? (
-									<>
-										<IconStop size={10} /> Stop
-									</>
-								) : (
-									<>
-										<IconPlay size={10} /> Hear V7
-									</>
-								)}
-							</button>
+							/>
 						</div>
 						<div className="color-steps-row">
 							{pair.originalProgression.map((step, idx) =>
@@ -190,23 +190,11 @@ export function ColorHarmonyPanel({
 							<span className="tritone-branch-label">
 								Tritone Sub ({pair.tritoneSubChord.symbol})
 							</span>
-							<button
-								type="button"
-								className={`pill-action-btn pill-action-sm ${
-									isPlayingSub ? "is-playing" : ""
-								}`}
+							<SequencePlayButton
+								isPlaying={isPlayingSub}
+								idleLabel="Hear ♭II7"
 								onClick={() => onPlaySequence(subId, pair.subProgression)}
-							>
-								{isPlayingSub ? (
-									<>
-										<IconStop size={10} /> Stop
-									</>
-								) : (
-									<>
-										<IconPlay size={10} /> Hear ♭II7
-									</>
-								)}
-							</button>
+							/>
 						</div>
 						<div className="color-steps-row">
 							{pair.subProgression.map((step, idx) =>
@@ -217,7 +205,9 @@ export function ColorHarmonyPanel({
 				</div>
 
 				<p className="color-pattern-desc">
-					{pair.tritoneMathNote} {pair.bassMotionComparison}
+					{compact
+						? pair.bassMotionComparison
+						: `${pair.tritoneMathNote} ${pair.bassMotionComparison}`}
 				</p>
 			</article>
 		);
@@ -251,7 +241,7 @@ export function ColorHarmonyPanel({
 					<p className="color-topic-overview">
 						{colorAnalysis.chromaticPassing.overview}
 					</p>
-					<div className="color-cards-stack">
+					<div className="color-cards-grid">
 						{colorAnalysis.chromaticPassing.patterns.map(renderPatternCard)}
 					</div>
 				</div>
@@ -264,48 +254,38 @@ export function ColorHarmonyPanel({
 					</p>
 
 					<section className="dim-symmetry-box">
-						<div className="color-pattern-head">
-							<div className="color-pattern-titles">
-								<span className="color-kind-badge">Symmetry Engine</span>
+						<div className="dim-symmetry-split">
+							<div className="dim-symmetry-info">
+								<div className="color-pattern-head">
+									<span className="color-kind-badge">Symmetry Engine</span>
+									<SequencePlayButton
+										isPlaying={activeSequenceId === "dim-symmetry-walk"}
+										idleLabel="Hear 3-Fret Shift"
+										onClick={() =>
+											onPlaySequence(
+												"dim-symmetry-walk",
+												colorAnalysis.diminishedHarmony.symmetryFamilyChords,
+											)
+										}
+									/>
+								</div>
 								<h3 className="color-pattern-title">
 									{colorAnalysis.diminishedHarmony.symmetryFamilyTitle}
 								</h3>
+								<p className="color-pattern-desc">
+									{colorAnalysis.diminishedHarmony.symmetryNote}
+								</p>
 							</div>
-							<button
-								type="button"
-								className={`pill-action-btn pill-action-sm ${
-									activeSequenceId === "dim-symmetry-walk" ? "is-playing" : ""
-								}`}
-								onClick={() =>
-									onPlaySequence(
-										"dim-symmetry-walk",
-										colorAnalysis.diminishedHarmony.symmetryFamilyChords,
-									)
-								}
-							>
-								{activeSequenceId === "dim-symmetry-walk" ? (
-									<>
-										<IconStop size={10} /> Stop
-									</>
-								) : (
-									<>
-										<IconPlay size={10} /> Hear 3-Fret Shift
-									</>
+							<div className="dim-symmetry-grid">
+								{colorAnalysis.diminishedHarmony.symmetryFamilyChords.map(
+									(chord, idx) =>
+										renderStepChip(chord, "dim-symmetry-walk", idx, idx === 0),
 								)}
-							</button>
-						</div>
-						<p className="color-pattern-desc">
-							{colorAnalysis.diminishedHarmony.symmetryNote}
-						</p>
-						<div className="dim-symmetry-grid">
-							{colorAnalysis.diminishedHarmony.symmetryFamilyChords.map(
-								(chord, idx) =>
-									renderStepChip(chord, "dim-symmetry-walk", idx, idx === 0),
-							)}
+							</div>
 						</div>
 					</section>
 
-					<div className="color-cards-stack">
+					<div className="color-cards-grid">
 						{colorAnalysis.diminishedHarmony.patterns.map(renderPatternCard)}
 					</div>
 				</div>
@@ -329,37 +309,27 @@ export function ColorHarmonyPanel({
 												→ {item.targetChord.symbol} ({item.targetRoman})
 											</span>
 										</div>
-										<button
-											type="button"
-											className={`pill-action-btn pill-action-sm ${
-												isPlaying ? "is-playing" : ""
-											}`}
+										<SequencePlayButton
+											isPlaying={isPlaying}
+											idleLabel="Resolve"
 											onClick={() =>
 												onPlaySequence(seqId, item.resolutionSteps)
 											}
-										>
-											{isPlaying ? (
-												<>
-													<IconStop size={10} /> Stop
-												</>
-											) : (
-												<>
-													<IconPlay size={10} /> Resolve
-												</>
+										/>
+									</div>
+
+									<div className="color-pattern-body">
+										<div className="color-steps-row">
+											{item.resolutionSteps.map((step, idx) =>
+												renderStepChip(step, seqId, idx, idx === 0),
 											)}
-										</button>
-									</div>
+										</div>
 
-									<div className="color-steps-row">
-										{item.resolutionSteps.map((step, idx) =>
-											renderStepChip(step, seqId, idx, idx === 0),
-										)}
+										<p className="color-pattern-desc">
+											<strong>Pull:</strong> {item.leadingToneMove}{" "}
+											{item.circleMotionNote}
+										</p>
 									</div>
-
-									<p className="color-pattern-desc">
-										<strong>Pull:</strong> {item.leadingToneMove}{" "}
-										{item.circleMotionNote}
-									</p>
 								</article>
 							);
 						})}
@@ -380,9 +350,9 @@ export function ColorHarmonyPanel({
 					{colorAnalysis.tritoneSubstitutions.secondarySubs.length > 0 && (
 						<div className="secondary-tritones-wrap">
 							<h3 className="secondary-tritones-heading">
-								Secondary Tritone Substitutions (subV7 / target)
+								Secondary Tritone Substitutions
 							</h3>
-							<div className="color-cards-stack">
+							<div className="tritone-secondary-grid">
 								{colorAnalysis.tritoneSubstitutions.secondarySubs.map((pair) =>
 									renderTritoneComparisonCard(pair, true),
 								)}

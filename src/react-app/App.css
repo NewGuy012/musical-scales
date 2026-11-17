@@ -2710,19 +2710,24 @@
 }
 
 .color-topic-overview {
-	font-size: 0.76rem;
+	margin: 0;
+	font-size: 0.75rem;
 	line-height: 1.45;
-	color: var(--text-secondary);
-	padding: 8px 11px;
-	border-radius: 10px;
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-hairline);
+	color: var(--text-muted);
 }
 
-.color-cards-stack {
-	display: flex;
-	flex-direction: column;
+.color-cards-grid,
+.sec-dom-grid,
+.tritone-secondary-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
+}
+
+.color-cards-grid > :last-child:nth-child(odd),
+.sec-dom-grid > :last-child:nth-child(odd),
+.tritone-secondary-grid > :last-child:nth-child(odd) {
+	grid-column: 1 / -1;
 }
 
 .color-pattern-card,
@@ -2782,34 +2787,57 @@
 	color: var(--text-primary);
 }
 
-.color-pattern-formula {
-	font-size: 0.72rem;
-	font-weight: 600;
-	color: var(--text-muted);
+.color-pattern-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.color-cards-grid > :last-child:nth-child(odd) .color-pattern-body,
+.sec-dom-grid > :last-child:nth-child(odd) .color-pattern-body {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	align-items: center;
+	gap: 12px;
 }
 
 .color-pattern-desc {
+	margin: 0;
 	font-size: 0.72rem;
 	line-height: 1.42;
 	color: var(--text-secondary);
 }
 
 .color-steps-row {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
 	gap: 6px;
+}
+
+.dim-symmetry-split {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	align-items: center;
+	gap: 12px;
+}
+
+.dim-symmetry-info {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	min-width: 0;
 }
 
 .dim-symmetry-grid {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
 	gap: 6px;
 }
 
 .color-step-chip {
 	text-align: left;
-	min-width: 82px;
-	padding: 6px 9px;
+	min-width: 0;
+	padding: 6px 8px;
 	border-radius: 9px;
 	background: var(--bg-card);
 	border: 1px solid var(--border-hairline);
@@ -2885,18 +2913,14 @@
 	font-size: 0.64rem;
 	font-weight: 600;
 	color: var(--text-secondary);
+	overflow-wrap: anywhere;
 }
 
 .csc-borrowed {
 	font-size: 0.61rem;
 	font-weight: 700;
 	color: var(--color-fifth);
-}
-
-.sec-dom-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
+	overflow-wrap: anywhere;
 }
 
 .tritone-guide-pill {
@@ -2910,6 +2934,17 @@
 
 .tritone-ab-grid {
 	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.tritone-branches {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 6px;
+}
+
+.tritone-secondary-grid > :last-child:nth-child(odd) .tritone-branches {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
 }
@@ -3773,8 +3808,14 @@
 	}
 	.song-guide-brief,
 	.guitar-scale-guide,
+	.color-cards-grid,
 	.sec-dom-grid,
-	.tritone-ab-grid {
+	.tritone-secondary-grid,
+	.tritone-ab-grid,
+	.dim-symmetry-split,
+	.color-cards-grid > :last-child:nth-child(odd) .color-pattern-body,
+	.sec-dom-grid > :last-child:nth-child(odd) .color-pattern-body,
+	.tritone-secondary-grid > :last-child:nth-child(odd) .tritone-branches {
 		grid-template-columns: 1fr;
 	}
 	.dim-symmetry-grid {

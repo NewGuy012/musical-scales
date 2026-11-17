@@ -479,5 +479,48 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("Em7");
 		expect(html).toContain("E♭m7");
 		expect(html).toContain("F♯m7♭5");
+		expect(html).toContain("color-cards-grid");
+
+		const dimHtml = renderToStaticMarkup(
+			<ColorHarmonyPanel
+				colorAnalysis={color}
+				activeChordId={null}
+				activeSequenceId={null}
+				activeSequenceStepIdx={null}
+				initialTopic="diminished"
+				onSelectChord={noop}
+				onPlaySequence={noop}
+			/>,
+		);
+		expect(dimHtml).toContain("dim-symmetry-split");
+		expect(dimHtml).toContain("C♯dim7");
+
+		const secHtml = renderToStaticMarkup(
+			<ColorHarmonyPanel
+				colorAnalysis={color}
+				activeChordId={null}
+				activeSequenceId={null}
+				activeSequenceStepIdx={null}
+				initialTopic="secondary"
+				onSelectChord={noop}
+				onPlaySequence={noop}
+			/>,
+		);
+		expect(secHtml).toContain("sec-dom-grid");
+		expect(secHtml).toContain("V7/V");
+
+		const triHtml = renderToStaticMarkup(
+			<ColorHarmonyPanel
+				colorAnalysis={color}
+				activeChordId={null}
+				activeSequenceId={null}
+				activeSequenceStepIdx={null}
+				initialTopic="tritone"
+				onSelectChord={noop}
+				onPlaySequence={noop}
+			/>,
+		);
+		expect(triHtml).toContain("tritone-secondary-grid");
+		expect(triHtml).toContain("D♭7");
 	});
 });
