@@ -34,9 +34,9 @@
 ## What's Inside
 
 1. **Circle of Fifths** — Click the outer **Major** or inner **Relative Minor** ring to switch keys and hear the tonic chord. Toggle **C Pinned** / **Key at 12:00** to keep `C` fixed or rotate the active key to the top.
-2. **Neighbors** — Compare adjacent **4th** and **5th** keys side by side (`6/7` shared notes, single half-step change), audition `I–IV–I` / `I–V–I` cadences, or walk smoothly around the circle.
-3. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
-4. **Chords** — Collapsible theory workspace (collapsed by default) directly beneath the Instruments dock, covering:
+2. **Instruments** — Switch between **Piano**, **Guitar**, **Violin**, and **Cello** at any time, audition 13 chord variations (`Maj`, `m`, `7`, `maj7`, `m7`, `dim`, `dim7`, `m7♭5`, `aug`, `add9`, `m(add9)`, `sus4`, `sus2`), and play notes directly on the keyboard, fretboard, or fingerboards.
+3. **Neighbors** — Compare adjacent **4th** and **5th** keys side by side (`6/7` shared notes, single half-step change) directly beneath the Instruments dock, audition `I–IV–I` / `I–V–I` cadences, or walk smoothly around the circle.
+4. **Chords** — Collapsible theory workspace (collapsed by default) below Neighbors, covering:
    - **Chords & Progressions**: Treble **Key Signature** staff, Relative/Parallel jumps, enharmonic flips (`B/C♭`, `F♯/G♭`, `D♭/C♯`), 7-note scale, Diatonic Major/Minor/Diminished chords (Triads or 7ths, block or Arpeggio), and curated progressions.
    - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
 5. **Music Teacher → Learn with Real Songs** — Collapsible section (collapsed by default) below the Chords section. Load **MusicXML** (`.musicxml`, `.xml`, `.mxl`) scores via CLI ingestion or instant browser drag-and-drop preview with bar-by-bar harmony, study guides, practice speeds (`0.5x–1.25x`), expressive articulations, and scrubbable transport synced live to the active instrument and Circle of Fifths.

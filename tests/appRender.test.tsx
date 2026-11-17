@@ -65,10 +65,9 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("Keyboard shortcuts");
 		expect(html).toContain('aria-label="Audio and spelling preferences"');
 
-		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
+		// Left column: Circle of Fifths is expanded; Right column: Neighbors, Chords, and Music Teacher are collapsed by default
 		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
 		expect(html).toContain('aria-label="Expand Neighbors"');
-		// Right column: Chords and Music Teacher are both collapsed by default
 		expect(html).toContain('aria-label="Expand Chords"');
 		expect(html).toContain('aria-controls="section-chords-body"');
 		expect(html).toContain(
@@ -87,12 +86,14 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('id="chords-extras-drawer"');
 		expect(html).toContain('id="chord-variations-drawer"');
 
-		// Right column order: Instruments dock -> Chords -> Music Teacher (Learn with Real Songs)
+		// Right column order: Instruments dock -> Neighbors -> Chords -> Music Teacher (Learn with Real Songs)
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
+		const neighborsSectionIdx = html.indexOf('id="section-neighbors"');
 		const chordsSectionIdx = html.indexOf('id="section-chords"');
 		const musicTeacherIdx = html.indexOf('id="section-music-teacher"');
 		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
-		expect(chordsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
+		expect(neighborsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
+		expect(chordsSectionIdx).toBeGreaterThan(neighborsSectionIdx);
 		expect(musicTeacherIdx).toBeGreaterThan(chordsSectionIdx);
 
 		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state

@@ -224,8 +224,9 @@ External Python Pipeline (Video / Audio / Sheet Music)
   - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony workspace tab (`chords`, `color`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), consolidated transient `activeSequence` / `songPlayback` / `openPopover` states, and single-parse in-browser MusicXML preview state (`10 MB` file limit, async playback request cancellation).
   - Right column stacks:
     1. **Interactive Instruments Dock** (`#section-instruments`)
-    2. **Chords** (`#section-chords`, collapsible, collapsed by default) → `Chords & Progressions` and `Passing & Substitutions`
-    3. **Music Teacher** (`#section-music-teacher`, collapsible, collapsed by default) → **Learn with Real Songs** subsection (`MusicTeacherSection.tsx` + `SongExamplesPanel.tsx`), keeping the instrument visualizer above and Circle of Fifths wheel beside it synced live during song playback
+    2. **Neighbors** (`#section-neighbors`, collapsible, collapsed by default) → Adjacent 4th & 5th key comparison, cadence audition, and circle walk
+    3. **Chords** (`#section-chords`, collapsible, collapsed by default) → `Chords & Progressions` and `Passing & Substitutions`
+    4. **Music Teacher** (`#section-music-teacher`, collapsible, collapsed by default) → **Learn with Real Songs** subsection (`MusicTeacherSection.tsx` + `SongExamplesPanel.tsx`), keeping the instrument visualizer above and Circle of Fifths wheel beside it synced live during song playback
 - **[`CircleWheel.tsx`](../src/react-app/components/CircleWheel.tsx)**:
   - Computes shortest-path cumulative rotation (`±180°` delta normalization) so stepping clockwise/counter-clockwise smoothly animates the selected tonic to 12 o'clock while counter-rotating text labels to remain upright.
 

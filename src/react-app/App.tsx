@@ -2054,16 +2054,6 @@ export function App() {
 						onToggleRotate={() => setRotateToSelected((r) => !r)}
 						onToggleCollapse={() => toggleSectionCollapsed("section-circle")}
 					/>
-
-					<FifthsFourthsPanel
-						analysis={analysis}
-						walkingDirection={walkingDirection}
-						isCollapsed={Boolean(collapsedSections["section-neighbors"])}
-						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
-						onAuditionRelationship={handleAuditionRelationship}
-						onToggleWalk={handleToggleWalk}
-						onToggleCollapse={() => toggleSectionCollapsed("section-neighbors")}
-					/>
 				</div>
 
 				<div className="inspector-column">
@@ -2209,6 +2199,16 @@ export function App() {
 							)}
 						</div>
 					</section>
+
+					<FifthsFourthsPanel
+						analysis={analysis}
+						walkingDirection={walkingDirection}
+						isCollapsed={Boolean(collapsedSections["section-neighbors"])}
+						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
+						onAuditionRelationship={handleAuditionRelationship}
+						onToggleWalk={handleToggleWalk}
+						onToggleCollapse={() => toggleSectionCollapsed("section-neighbors")}
+					/>
 
 					<section
 						id="section-chords"
