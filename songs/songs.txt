@@ -1,0 +1,12 @@
+# Musical Scales — Real Songs Registry
+# Standard format: MusicXML (.musicxml, .xml, .mxl) in songs/musicxml/
+# Run `bun run ingest-songs` to compile MusicXML scores and sync this file.
+#
+# Status  | Instrument | Title                                      | Composer / Source                         | Key      | Meter | ID                         | Source
+[PENDING] | piano      | Moment Musicaux No. 3                      | Franz Schubert · Op. 94, No. 3 (D. 780)   | F Minor  | 2/4   | schubert-moment-musicaux-3 | -
+[PENDING] | piano      | Clair de lune                              | Claude Debussy · Suite bergamasque, L. 75 | D♭ Major | 9/8   | debussy-clair-de-lune      | -
+[PENDING] | guitar     | Cannonball Rag                             | Merle Travis · arr. Chris Murrin          | G Major  | 2/2   | cannonball-rag-guitar      | -
+[PENDING] | guitar     | Amazing Grace                              | Traditional · arr. Tommy Emmanuel         | E Major  | 9/8   | amazing-grace-guitar       | -
+[PENDING] | violin     | Méditation (from Thaïs)                    | Jules Massenet · Act II Intermezzo        | D Major  | 4/4   | massenet-meditation-thais  | -
+[PENDING] | cello      | Cello Suite No. 1 — Prelude (BWV 1007)     | J.S. Bach                                 | G Major  | 4/4   | bach-cello-suite-1         | -
+[PENDING] | cello      | Cello Concerto No. 2 (I. Allegro moderato) | Joseph Haydn (Hob. VIIb:2)                | D Major  | 4/4   | haydn-cello-concerto-2     | -

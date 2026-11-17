@@ -32,6 +32,7 @@
 		"deploy": "wrangler deploy",
 		"dev": "vite",
 		"import-song": "bun scripts/import-song.ts",
+		"ingest-songs": "bun scripts/ingest-songs.ts",
 		"lint": "bun check -b && bun fmt --check",
 		"preview": "bun run build && vite preview",
 		"test": "bun test && bun fmt --check"
