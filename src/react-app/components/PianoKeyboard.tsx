@@ -1,10 +1,9 @@
 import {
 	ChordQuality,
 	READABLE_CHROMATIC,
-	getPianoBadgeClass,
-	handleSvgButtonKeyDown,
 	mod12,
 } from "../theory/circleOfFifths";
+import { getQualityClass, handleSvgButtonKeyDown } from "./Icons";
 
 interface PianoKeyboardProps {
 	activeMidiNotes: number[];
@@ -74,7 +73,7 @@ export function PianoKeyboard({
 			: rawSongMidi.map((m) => (m >= 84 ? 72 : 60) + mod12(m)),
 	);
 	const scaleSet = new Set(scalePitchClasses);
-	const qualityClass = getPianoBadgeClass(activeQuality);
+	const qualityClass = getQualityClass(activeQuality);
 
 	const renderKey = (
 		key: { midi: number; x: number; pc: number; octave: number },

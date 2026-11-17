@@ -63,31 +63,6 @@ export function ChordsPanel({
 		);
 	};
 
-	const renderExtraPill = (
-		chord: DiatonicChord,
-		label: string,
-		variantClass: string,
-		suffix = "",
-		title?: string,
-	) => {
-		const id = getChordCardId(chord, suffix);
-		return (
-			<button
-				key={id}
-				type="button"
-				className={`extra-chord-pill ${variantClass} ${
-					activeChordId === id ? "is-selected" : ""
-				}`}
-				onClick={() => onSelectChord(chord, id)}
-				title={title}
-			>
-				<span className="extra-label">{label}</span>
-				<span className="extra-main">{getSymbol(chord)}</span>
-				<span className="extra-notes">{getNotes(chord).join(" · ")}</span>
-			</button>
-		);
-	};
-
 	return (
 		<div className="chords-panel-wrap">
 			<div
@@ -141,14 +116,25 @@ export function ChordsPanel({
 				className="chords-extras-row"
 				hidden={!showExtras}
 			>
-				{analysis.harmonicMinorV &&
-					renderExtraPill(
-						analysis.harmonicMinorV,
-						"Harmonic V",
-						"extra-harmonic",
-						"-harmonic",
-						"Raised 7th harmonic minor dominant chord",
-					)}
+				{analysis.harmonicMinorV && harmonicVId && (
+					<button
+						key={harmonicVId}
+						type="button"
+						className={`extra-chord-pill extra-harmonic ${
+							activeChordId === harmonicVId ? "is-selected" : ""
+						}`}
+						onClick={() => onSelectChord(analysis.harmonicMinorV!, harmonicVId)}
+						title="Raised 7th harmonic minor dominant chord"
+					>
+						<span className="extra-label">Harmonic V</span>
+						<span className="extra-main">
+							{getSymbol(analysis.harmonicMinorV)}
+						</span>
+						<span className="extra-notes">
+							{getNotes(analysis.harmonicMinorV).join(" · ")}
+						</span>
+					</button>
+				)}
 
 				<div className="root-pair-box">
 					<span className="extra-label">Parallel {analysis.root}</span>

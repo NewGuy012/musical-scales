@@ -25,6 +25,7 @@ import {
 	IconSwap,
 	IconVolume,
 	IconVolumeMute,
+	getQualityClass,
 } from "./components/Icons";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import {
@@ -67,7 +68,6 @@ import {
 	ProgressionCategory,
 	analyzeKey,
 	getChordCardId,
-	getPianoBadgeClass,
 	mod12,
 	noteToPitchClass,
 	pcToCircleIndex,
@@ -93,6 +93,32 @@ interface ActiveVoicing {
 	diatonicChord: DiatonicChord | null;
 	wheelHighlight: WheelChordHighlight | null;
 }
+
+type ActiveSequenceState =
+	| { kind: "scale"; stepIndex: number }
+	| { kind: "progression"; id: string; stepIndex: number }
+	| { kind: "walk"; direction: "fourth" | "fifth" }
+	| { kind: "guitarRun"; midi: number }
+	| { kind: "color"; id: string; stepIndex: number }
+	| null;
+
+interface SongPlaybackState {
+	playingId: string | null;
+	cuedId: string | null;
+	positionMs: number;
+	stepIndex: number | null;
+	noteLabel: string | null;
+	event: FlattenedSongStep | null;
+}
+
+const INITIAL_SONG_PLAYBACK: SongPlaybackState = {
+	playingId: null,
+	cuedId: null,
+	positionMs: 0,
+	stepIndex: null,
+	noteLabel: null,
+	event: null,
+};
 
 const MAJOR_DEGREES = ["1", "2", "3", "4", "5", "6", "7"] as const;
 const MINOR_DEGREES = ["1", "2", "♭3", "4", "5", "♭6", "♭7"] as const;
@@ -205,8 +231,11 @@ export function App() {
 	const [instrumentView, setInstrumentView] = useState<InstrumentTab>("piano");
 	const [harmonyTab, setHarmonyTab] = useState<WorkspaceTab>("chords");
 	const [variationsOpen, setVariationsOpen] = useState<boolean>(false);
-	const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-	const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+	const [openPopover, setOpenPopover] = useState<
+		"settings" | "shortcuts" | null
+	>(null);
+	const settingsOpen = openPopover === "settings";
+	const shortcutsOpen = openPopover === "shortcuts";
 	const settingsContainerRef = useRef<HTMLDivElement | null>(null);
 	const shortcutsContainerRef = useRef<HTMLDivElement | null>(null);
 	const soundPreset: SoundPreset =
@@ -216,29 +245,36 @@ export function App() {
 
 	const [auditionOverride, setAuditionOverride] =
 		useState<ActiveVoicing | null>(null);
-	const [activeScaleIndex, setActiveScaleIndex] = useState<number | null>(null);
 	const [selectedProgressionId, setSelectedProgressionId] =
 		useState<string>("maj-1451");
-	const [activeProgressionId, setActiveProgressionId] = useState<string | null>(
-		null,
+	const [activeSequence, setActiveSequence] =
+		useState<ActiveSequenceState>(null);
+	const activeScaleIndex =
+		activeSequence?.kind === "scale" ? activeSequence.stepIndex : null;
+	const activeProgressionId =
+		activeSequence?.kind === "progression" ? activeSequence.id : null;
+	const activeProgressionStepIdx =
+		activeSequence?.kind === "progression" ? activeSequence.stepIndex : null;
+	const walkingDirection =
+		activeSequence?.kind === "walk" ? activeSequence.direction : null;
+	const activeGuitarRunMidi =
+		activeSequence?.kind === "guitarRun" ? activeSequence.midi : null;
+	const activeColorSeqId =
+		activeSequence?.kind === "color" ? activeSequence.id : null;
+	const activeColorStepIdx =
+		activeSequence?.kind === "color" ? activeSequence.stepIndex : null;
+
+	const [songPlayback, setSongPlayback] = useState<SongPlaybackState>(
+		INITIAL_SONG_PLAYBACK,
 	);
-	const [activeProgressionStepIdx, setActiveProgressionStepIdx] = useState<
-		number | null
-	>(null);
-	const [walkingDirection, setWalkingDirection] = useState<
-		"fourth" | "fifth" | null
-	>(null);
-	const [playingSongId, setPlayingSongId] = useState<string | null>(null);
-	const [cuedSongId, setCuedSongId] = useState<string | null>(null);
-	const [songPositionMs, setSongPositionMs] = useState<number>(0);
-	const [activeSongStepIndex, setActiveSongStepIndex] = useState<number | null>(
-		null,
-	);
-	const [activeSongNoteLabel, setActiveSongNoteLabel] = useState<string | null>(
-		null,
-	);
-	const [activeSongEvent, setActiveSongEvent] =
-		useState<FlattenedSongStep | null>(null);
+	const {
+		playingId: playingSongId,
+		cuedId: cuedSongId,
+		positionMs: songPositionMs,
+		stepIndex: activeSongStepIndex,
+		noteLabel: activeSongNoteLabel,
+		event: activeSongEvent,
+	} = songPlayback;
 	const [selectedSongPreviewId, setSelectedSongPreviewId] = useState<
 		string | null
 	>(null);
@@ -263,13 +299,6 @@ export function App() {
 		localId: string;
 	} | null>(null);
 	const [songPlaybackSpeed, setSongPlaybackSpeed] = useState<number>(1);
-	const [activeGuitarRunMidi, setActiveGuitarRunMidi] = useState<number | null>(
-		null,
-	);
-	const [activeColorSeqId, setActiveColorSeqId] = useState<string | null>(null);
-	const [activeColorStepIdx, setActiveColorStepIdx] = useState<number | null>(
-		null,
-	);
 	const [collapsedSections, setCollapsedSections] = useState<
 		Partial<Record<MainSectionId, boolean>>
 	>({
@@ -280,6 +309,7 @@ export function App() {
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
 	const songPositionMsRef = useRef<number>(0);
 	const lastUiProgressMsRef = useRef<number>(-100);
+	const songPlayRequestIdRef = useRef<number>(0);
 
 	const toggleSectionCollapsed = useCallback((sectionId: MainSectionId) => {
 		setCollapsedSections((prev) => ({
@@ -300,7 +330,7 @@ export function App() {
 	const updateSongPosition = useCallback((ms: number) => {
 		songPositionMsRef.current = ms;
 		lastUiProgressMsRef.current = ms;
-		setSongPositionMs(ms);
+		setSongPlayback((prev) => ({ ...prev, positionMs: ms }));
 	}, []);
 
 	const analysis = useMemo(
@@ -322,28 +352,18 @@ export function App() {
 	}, []);
 
 	const clearTransientSequences = useCallback(() => {
-		setActiveScaleIndex(null);
-		setActiveProgressionId(null);
-		setActiveProgressionStepIdx(null);
-		setWalkingDirection(null);
+		setActiveSequence(null);
 		setSelectedSongPreviewId(null);
-		setActiveGuitarRunMidi(null);
-		setActiveColorSeqId(null);
-		setActiveColorStepIdx(null);
 	}, []);
 
 	const resetSongPlaybackState = useCallback(() => {
-		setPlayingSongId(null);
-		setCuedSongId(null);
 		songPositionMsRef.current = 0;
-		setSongPositionMs(0);
 		lastUiProgressMsRef.current = -100;
-		setActiveSongStepIndex(null);
-		setActiveSongNoteLabel(null);
-		setActiveSongEvent(null);
+		setSongPlayback(INITIAL_SONG_PLAYBACK);
 	}, []);
 
 	const stopActiveSequence = useCallback(() => {
+		songPlayRequestIdRef.current += 1;
 		cancelActivePlaybackEngine();
 		clearTransientSequences();
 		resetSongPlaybackState();
@@ -648,7 +668,7 @@ export function App() {
 			preset: soundPreset,
 			stepMs: 260,
 			onStep: (idx) => {
-				setActiveScaleIndex(idx);
+				setActiveSequence({ kind: "scale", stepIndex: idx });
 				const noteLabel = analysis.scaleNotes[idx % analysis.scaleNotes.length];
 				setAuditionOverride({
 					id: null,
@@ -662,7 +682,7 @@ export function App() {
 				});
 			},
 			onDone: () => {
-				setActiveScaleIndex(null);
+				setActiveSequence(null);
 				setAuditionOverride(null);
 				cancelSequenceRef.current = null;
 			},
@@ -688,10 +708,13 @@ export function App() {
 				preset: soundPreset,
 				stepMs,
 				onStep: (idx) => {
-					setActiveGuitarRunMidi(midiNotes[idx] ?? null);
+					const midi = midiNotes[idx];
+					setActiveSequence(
+						midi !== undefined ? { kind: "guitarRun", midi } : null,
+					);
 				},
 				onDone: () => {
-					setActiveGuitarRunMidi(null);
+					setActiveSequence(null);
 					cancelSequenceRef.current = null;
 				},
 			});
@@ -806,11 +829,10 @@ export function App() {
 			}
 			stopActiveSequence();
 			setSelectedProgressionId(prog.id);
-			setActiveProgressionId(prog.id);
-			setActiveProgressionStepIdx(0);
+			setActiveSequence({ kind: "progression", id: prog.id, stepIndex: 0 });
 
 			const chordSteps = prog.degrees.map((deg) =>
-				deg === -5 && analysis.harmonicMinorV
+				deg === -5 && analysis.harmonicMinorV !== null
 					? { chord: analysis.harmonicMinorV, suffix: "-harmonic" }
 					: { chord: analysis.chords[deg - 1], suffix: "" },
 			);
@@ -827,15 +849,18 @@ export function App() {
 					arpeggiate,
 					spreadSec: instrumentSpreadSec,
 					onStep: (idx) => {
-						setActiveProgressionStepIdx(idx);
+						setActiveSequence({
+							kind: "progression",
+							id: prog.id,
+							stepIndex: idx,
+						});
 						const { chord, suffix } = chordSteps[idx];
 						setAuditionOverride(
 							toChordVoicing(chord, getChordCardId(chord, suffix)),
 						);
 					},
 					onDone: () => {
-						setActiveProgressionId(null);
-						setActiveProgressionStepIdx(null);
+						setActiveSequence(null);
 						setAuditionOverride(null);
 						cancelSequenceRef.current = null;
 					},
@@ -909,8 +934,7 @@ export function App() {
 			stopActiveSequence();
 			if (steps.length === 0) return;
 
-			setActiveColorSeqId(seqId);
-			setActiveColorStepIdx(0);
+			setActiveSequence({ kind: "color", id: seqId, stepIndex: 0 });
 
 			cancelSequenceRef.current = playStepSequence(
 				steps.map((chord) => ({
@@ -929,12 +953,11 @@ export function App() {
 					arpeggiate,
 					spreadSec: instrumentSpreadSec,
 					onStep: (idx) => {
-						setActiveColorStepIdx(idx);
+						setActiveSequence({ kind: "color", id: seqId, stepIndex: idx });
 						setAuditionOverride(toColorChordVoicing(steps[idx]));
 					},
 					onDone: () => {
-						setActiveColorSeqId(null);
-						setActiveColorStepIdx(null);
+						setActiveSequence(null);
 						setAuditionOverride(null);
 						cancelSequenceRef.current = null;
 					},
@@ -959,7 +982,7 @@ export function App() {
 				return;
 			}
 			stopActiveSequence();
-			setWalkingDirection(direction);
+			setActiveSequence({ kind: "walk", direction });
 
 			const delta = direction === "fifth" ? 1 : -1;
 			const steps = Array.from({ length: 13 }, (_, stepIdx) => {
@@ -982,7 +1005,7 @@ export function App() {
 					setAuditionOverride(null);
 				},
 				onDone: () => {
-					setWalkingDirection(null);
+					setActiveSequence(null);
 					cancelSequenceRef.current = null;
 				},
 			});
@@ -1127,11 +1150,20 @@ export function App() {
 		) => {
 			const clampedMs = Math.max(0, Math.min(timeMs, plan.totalDurationMs));
 			const { event } = findPlaybackEventAtTime(plan.events, clampedMs);
-			updateSongPosition(clampedMs);
+			songPositionMsRef.current = clampedMs;
+			lastUiProgressMsRef.current = clampedMs;
+			setSongPlayback((prev) => ({
+				...prev,
+				positionMs: clampedMs,
+				...(event
+					? {
+							stepIndex: event.chordStepIndex,
+							noteLabel: event.noteLabel,
+							event,
+						}
+					: {}),
+			}));
 			if (event) {
-				setActiveSongStepIndex(event.chordStepIndex);
-				setActiveSongNoteLabel(event.noteLabel);
-				setActiveSongEvent(event);
 				applySongStepHighlight(
 					songAnalysis,
 					event.chordStep,
@@ -1140,7 +1172,7 @@ export function App() {
 			}
 			return clampedMs;
 		},
-		[applySongStepHighlight, updateSongPosition],
+		[applySongStepHighlight],
 	);
 
 	const prepareSongContext = useCallback(
@@ -1148,8 +1180,11 @@ export function App() {
 			cancelActivePlaybackEngine();
 			clearTransientSequences();
 			setSelectedVoicingByInstrument({});
-			setPlayingSongId(isPlaying ? song.id : null);
-			setCuedSongId(song.id);
+			setSongPlayback((prev) => ({
+				...prev,
+				playingId: isPlaying ? song.id : null,
+				cuedId: song.id,
+			}));
 			setSelectedSlot(song.keySlot);
 			setMode(song.keyMode);
 		},
@@ -1180,9 +1215,12 @@ export function App() {
 				onStep: (idx) => {
 					const ev = plan.events[idx];
 					if (!ev) return;
-					setActiveSongStepIndex(ev.chordStepIndex);
-					setActiveSongNoteLabel(ev.noteLabel);
-					setActiveSongEvent(ev);
+					setSongPlayback((prev) => ({
+						...prev,
+						stepIndex: ev.chordStepIndex,
+						noteLabel: ev.noteLabel,
+						event: ev,
+					}));
 					applySongStepHighlight(songAnalysis, ev.chordStep, ev.subBarChord);
 				},
 				onProgress: (elapsedMs) => {
@@ -1214,19 +1252,26 @@ export function App() {
 
 	const handleTogglePlaySong = useCallback(
 		(song: SongExample) => {
+			const requestId = ++songPlayRequestIdRef.current;
 			if (playingSongId === song.id) {
 				cancelActivePlaybackEngine();
-				setPlayingSongId(null);
+				setSongPlayback((prev) => ({ ...prev, playingId: null }));
 				return;
 			}
+			const resumePos = cuedSongId === song.id ? songPositionMsRef.current : 0;
 			const launch = async () => {
-				const ready =
-					song.steps.length > 0 ? song : await ensureSongLoaded(song.id);
-				if (cuedSongId === ready.id) {
-					startSongPlaybackFrom(ready, songPositionMsRef.current);
-					return;
+				try {
+					const ready =
+						song.steps.length > 0 ? song : await ensureSongLoaded(song.id);
+					if (songPlayRequestIdRef.current !== requestId) return;
+					startSongPlaybackFrom(ready, resumePos);
+				} catch (err) {
+					if (songPlayRequestIdRef.current === requestId) {
+						setMusicXmlImportError(
+							err instanceof Error ? err.message : "Failed to load song.",
+						);
+					}
 				}
-				startSongPlaybackFrom(ready, 0);
 			};
 			void launch();
 		},
@@ -1420,13 +1465,15 @@ export function App() {
 			return;
 		}
 		let cancelled = false;
-		void loadSongById(selectedSongId).then((loaded) => {
-			if (!cancelled) {
-				setLoadedSongsById((prev) =>
-					prev[selectedSongId] ? prev : { ...prev, [selectedSongId]: loaded },
-				);
-			}
-		});
+		void loadSongById(selectedSongId)
+			.then((loaded) => {
+				if (!cancelled) {
+					setLoadedSongsById((prev) =>
+						prev[selectedSongId] ? prev : { ...prev, [selectedSongId]: loaded },
+					);
+				}
+			})
+			.catch(() => {});
 		return () => {
 			cancelled = true;
 		};
@@ -1688,12 +1735,8 @@ export function App() {
 			if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
 			if (e.key === "Escape") {
-				if (settingsOpen) {
-					setSettingsOpen(false);
-					return;
-				}
-				if (shortcutsOpen) {
-					setShortcutsOpen(false);
+				if (openPopover !== null) {
+					setOpenPopover(null);
 					return;
 				}
 				stopActiveSequence();
@@ -1718,38 +1761,30 @@ export function App() {
 	}, [
 		selectedSlot,
 		mode,
-		settingsOpen,
-		shortcutsOpen,
+		openPopover,
 		selectKey,
 		handlePlayTonic,
 		stopActiveSequence,
 	]);
 
 	useEffect(() => {
-		if (!shortcutsOpen && !settingsOpen) return;
+		if (openPopover === null) return;
 		const handlePointerDown = (e: PointerEvent) => {
 			const target = e.target as Node;
-			if (
-				shortcutsOpen &&
-				shortcutsContainerRef.current &&
-				!shortcutsContainerRef.current.contains(target)
-			) {
-				setShortcutsOpen(false);
-			}
-			if (
-				settingsOpen &&
-				settingsContainerRef.current &&
-				!settingsContainerRef.current.contains(target)
-			) {
-				setSettingsOpen(false);
+			const activeContainer =
+				openPopover === "settings"
+					? settingsContainerRef.current
+					: shortcutsContainerRef.current;
+			if (activeContainer && !activeContainer.contains(target)) {
+				setOpenPopover(null);
 			}
 		};
 		window.addEventListener("pointerdown", handlePointerDown);
 		return () => window.removeEventListener("pointerdown", handlePointerDown);
-	}, [shortcutsOpen, settingsOpen]);
+	}, [openPopover]);
 
 	const scaleDegreeLabels = mode === "major" ? MAJOR_DEGREES : MINOR_DEGREES;
-	const activeQualityBadgeClass = getPianoBadgeClass(activeVoicing.quality);
+	const activeQualityBadgeClass = getQualityClass(activeVoicing.quality);
 	const isSongActive = playingSongId !== null || cuedSongId !== null;
 	const liveSongEvent = isSongActive ? activeSongEvent : null;
 	const activeSongForInstrument =
@@ -1834,7 +1869,11 @@ export function App() {
 							className={`icon-square-btn ${
 								settingsOpen || hasCustomSettings ? "is-on" : ""
 							}`}
-							onClick={() => setSettingsOpen((open) => !open)}
+							onClick={() =>
+								setOpenPopover((prev) =>
+									prev === "settings" ? null : "settings",
+								)
+							}
 							aria-expanded={settingsOpen}
 							aria-controls="settings-popover"
 							aria-label="Audio and spelling preferences"
@@ -1920,7 +1959,11 @@ export function App() {
 						<button
 							type="button"
 							className={`icon-square-btn ${shortcutsOpen ? "is-on" : ""}`}
-							onClick={() => setShortcutsOpen((open) => !open)}
+							onClick={() =>
+								setOpenPopover((prev) =>
+									prev === "shortcuts" ? null : "shortcuts",
+								)
+							}
 							aria-expanded={shortcutsOpen}
 							aria-label="Keyboard shortcuts"
 							title="Keyboard shortcuts"

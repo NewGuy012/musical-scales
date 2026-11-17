@@ -9,7 +9,7 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 } from "../songs/songRuntime";
-import { IconChevronDown, IconUpload, IconX } from "./Icons";
+import { IconChevronDown, IconUpload, IconX, getQualityClass } from "./Icons";
 
 const PRACTICE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25] as const;
 
@@ -555,12 +555,7 @@ function SongCard({
 						const isSelectedPreview =
 							!isCuedThis && selectedPreviewStepId === step.id;
 						const isHighlighted = isLiveActive || isSelectedPreview;
-						const qualityClass =
-							step.quality === "minor"
-								? "is-minor"
-								: step.quality === "diminished"
-									? "is-dim"
-									: "is-major";
+						const qualityClass = getQualityClass(step.quality);
 
 						return (
 							<button

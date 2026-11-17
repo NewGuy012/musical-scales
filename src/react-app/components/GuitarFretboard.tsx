@@ -2,8 +2,6 @@ import { useState } from "react";
 import {
 	ChordQuality,
 	KeyMode,
-	getGuitarQualityClass,
-	handleSvgButtonKeyDown,
 	mod12,
 	noteToPitchClass,
 } from "../theory/circleOfFifths";
@@ -21,7 +19,12 @@ import {
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { GuitarSongStop } from "../songs/songRuntime";
-import { IconChevronDown, IconPlay } from "./Icons";
+import {
+	IconChevronDown,
+	IconPlay,
+	getQualityClass,
+	handleSvgButtonKeyDown,
+} from "./Icons";
 
 export type FretboardOverlayMode = GuitarFretboardOverlayMode;
 export type FretboardLabelMode = "notes" | "intervals";
@@ -148,7 +151,7 @@ export function GuitarFretboard({
 	const [selectedPhraseId, setSelectedPhraseId] = useState<string | null>(null);
 	const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
 
-	const qualityClass = getGuitarQualityClass(activeQuality);
+	const qualityClass = getQualityClass(activeQuality);
 	const rootNote = chordNotes[0] ?? "C";
 	const rootPc = noteToPitchClass(rootNote);
 	const chordPcSet = new Set(chordNotes.map(noteToPitchClass));

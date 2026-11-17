@@ -7,11 +7,10 @@ import {
 	KeyAnalysis,
 	KeyMode,
 	formatShortSignature,
-	handleSvgButtonKeyDown,
 	mod12,
 	resolveSlotVariant,
 } from "../theory/circleOfFifths";
-import { IconPin, IconRotate } from "./Icons";
+import { IconPin, IconRotate, handleSvgButtonKeyDown } from "./Icons";
 import { SectionHeader } from "./SectionHeader";
 
 export interface WheelChordHighlight {

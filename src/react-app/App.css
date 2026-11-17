@@ -1633,37 +1633,32 @@
 	color: var(--text-muted);
 }
 
-.voicing-pill.guitar-active-major.is-selected {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
+.q-major {
+	--q-color: var(--color-tonic);
+	--q-soft: var(--color-tonic-soft);
+	--q-dot-text: #090d14;
 }
 
-.voicing-pill.guitar-active-minor.is-selected {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
+.q-minor {
+	--q-color: var(--color-minor);
+	--q-soft: var(--color-minor-soft);
+	--q-dot-text: #ffffff;
 }
 
-.voicing-pill.guitar-active-dim.is-selected {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
+.q-dim {
+	--q-color: var(--color-dim);
+	--q-soft: var(--color-dim-soft);
+	--q-dot-text: #ffffff;
 }
 
-.piano-badge.guitar-active-major,
-.piano-badge.piano-active-major {
-	background: var(--color-tonic-soft);
-	color: var(--color-tonic);
+.voicing-pill.is-selected {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
 }
 
-.piano-badge.guitar-active-minor,
-.piano-badge.piano-active-minor {
-	background: var(--color-minor-soft);
-	color: var(--color-minor);
-}
-
-.piano-badge.guitar-active-dim,
-.piano-badge.piano-active-dim {
-	background: var(--color-dim-soft);
-	color: var(--color-dim);
+.piano-badge {
+	background: var(--q-soft, var(--color-tonic-soft));
+	color: var(--q-color, var(--color-tonic));
 }
 
 .fretboard-scroll {
@@ -1739,16 +1734,8 @@
 	filter: brightness(1.12);
 }
 
-.fret-dot-primary.guitar-active-major .fret-dot-bg {
-	fill: var(--color-tonic);
-}
-
-.fret-dot-primary.guitar-active-minor .fret-dot-bg {
-	fill: var(--color-minor);
-}
-
-.fret-dot-primary.guitar-active-dim .fret-dot-bg {
-	fill: var(--color-dim);
+.fret-dot-primary .fret-dot-bg {
+	fill: var(--q-color, var(--color-tonic));
 }
 
 .fret-dot-bg.is-root-ring {
@@ -1759,31 +1746,15 @@
 .fret-dot-text {
 	font-size: 8.5px;
 	font-weight: 800;
-	fill: #090d14;
+	fill: var(--q-dot-text, #090d14);
 	pointer-events: none;
-}
-
-.fret-dot-primary.guitar-active-minor .fret-dot-text,
-.fret-dot-primary.guitar-active-dim .fret-dot-text {
-	fill: #ffffff;
 }
 
 .fret-dot-ghost-bg {
 	fill: var(--bg-card);
 	fill-opacity: 0.85;
+	stroke: var(--q-color, var(--color-tonic));
 	stroke-width: 1.4;
-}
-
-.fret-dot-ghost.guitar-active-major .fret-dot-ghost-bg {
-	stroke: var(--color-tonic);
-}
-
-.fret-dot-ghost.guitar-active-minor .fret-dot-ghost-bg {
-	stroke: var(--color-minor);
-}
-
-.fret-dot-ghost.guitar-active-dim .fret-dot-ghost-bg {
-	stroke: var(--color-dim);
 }
 
 .fret-dot-ghost-text {
@@ -1896,36 +1867,13 @@
 	flex-shrink: 0;
 }
 
-.legend-dot.is-primary.guitar-active-major,
-.legend-dot.is-primary.piano-active-major {
-	background: var(--color-tonic);
-}
-
-.legend-dot.is-primary.guitar-active-minor,
-.legend-dot.is-primary.piano-active-minor {
-	background: var(--color-minor);
-}
-
-.legend-dot.is-primary.guitar-active-dim,
-.legend-dot.is-primary.piano-active-dim {
-	background: var(--color-dim);
+.legend-dot.is-primary {
+	background: var(--q-color, var(--color-tonic));
 }
 
 .legend-dot.is-ghost {
 	background: var(--bg-card);
-	border: 1.5px solid var(--text-secondary);
-}
-
-.legend-dot.is-ghost.guitar-active-major {
-	border-color: var(--color-tonic);
-}
-
-.legend-dot.is-ghost.guitar-active-minor {
-	border-color: var(--color-minor);
-}
-
-.legend-dot.is-ghost.guitar-active-dim {
-	border-color: var(--color-dim);
+	border: 1.5px solid var(--q-color, var(--text-secondary));
 }
 
 .legend-dot.is-pentatonic {
@@ -2440,19 +2388,9 @@
 	fill: #334155;
 }
 
-.piano-key.is-active.piano-active-major .piano-key-rect {
-	fill: var(--color-tonic);
-	stroke: var(--color-tonic);
-}
-
-.piano-key.is-active.piano-active-minor .piano-key-rect {
-	fill: var(--color-minor);
-	stroke: var(--color-minor);
-}
-
-.piano-key.is-active.piano-active-dim .piano-key-rect {
-	fill: var(--color-dim);
-	stroke: var(--color-dim);
+.piano-key.is-active .piano-key-rect {
+	fill: var(--q-color, var(--color-tonic));
+	stroke: var(--q-color, var(--color-tonic));
 }
 
 .piano-note-label {
@@ -2503,20 +2441,8 @@
 	stroke-width: 1.5;
 }
 
-.piano-key.is-song-hit.is-active.piano-active-major .piano-key-rect {
-	fill: var(--color-tonic);
-	stroke: var(--text-primary);
-	stroke-width: 2.2;
-}
-
-.piano-key.is-song-hit.is-active.piano-active-minor .piano-key-rect {
-	fill: var(--color-minor);
-	stroke: var(--text-primary);
-	stroke-width: 2.2;
-}
-
-.piano-key.is-song-hit.is-active.piano-active-dim .piano-key-rect {
-	fill: var(--color-dim);
+.piano-key.is-song-hit.is-active .piano-key-rect {
+	fill: var(--q-color, var(--color-tonic));
 	stroke: var(--text-primary);
 	stroke-width: 2.2;
 }
@@ -3201,30 +3127,6 @@
 	grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
 }
 
-@media (max-width: 720px) {
-	.song-transport {
-		grid-template-columns: 1fr auto;
-	}
-
-	.song-scrubber-wrap {
-		grid-column: 1 / -1;
-		order: 2;
-	}
-
-	.song-time-readout {
-		justify-self: end;
-	}
-
-	.song-timeline {
-		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-	}
-
-	.song-timeline.is-long {
-		max-height: 300px;
-		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-	}
-}
-
 /* Music Teacher -> Learn with Real Songs Section */
 .music-teacher-card.is-drag-over {
 	border-color: var(--color-fifth);
@@ -3811,22 +3713,10 @@
 	transform: translateY(-1px);
 }
 
-.song-step-btn.is-active.is-major {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-	box-shadow: 0 0 0 1px var(--color-tonic);
-}
-
-.song-step-btn.is-active.is-minor {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
-	box-shadow: 0 0 0 1px var(--color-minor);
-}
-
-.song-step-btn.is-active.is-dim {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
-	box-shadow: 0 0 0 1px var(--color-dim);
+.song-step-btn.is-active {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
+	box-shadow: 0 0 0 1px var(--q-color, var(--color-tonic));
 }
 
 .song-step-top {
@@ -3925,11 +3815,26 @@
 		align-items: flex-start;
 		gap: 6px;
 	}
-	.root-pair-box {
-		margin-left: 0;
-	}
+	.root-pair-box,
 	.piano-legend-hint {
 		margin-left: 0;
+	}
+	.song-transport {
+		grid-template-columns: 1fr auto;
+	}
+	.song-scrubber-wrap {
+		grid-column: 1 / -1;
+		order: 2;
+	}
+	.song-time-readout {
+		justify-self: end;
+	}
+	.song-timeline,
+	.song-timeline.is-long {
+		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+	}
+	.song-timeline.is-long {
+		max-height: 300px;
 	}
 }
 

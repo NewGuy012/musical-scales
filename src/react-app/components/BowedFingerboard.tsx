@@ -8,8 +8,6 @@ import {
 } from "../theory/celloFingerboard";
 import {
 	type ChordQuality,
-	getGuitarQualityClass,
-	handleSvgButtonKeyDown,
 	mod12,
 	noteToPitchClass,
 } from "../theory/circleOfFifths";
@@ -19,7 +17,12 @@ import {
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { BowedSongStop } from "../songs/songRuntime";
-import { IconChevronDown, IconPlay } from "./Icons";
+import {
+	IconChevronDown,
+	IconPlay,
+	getQualityClass,
+	handleSvgButtonKeyDown,
+} from "./Icons";
 
 export type BowedOverlayMode = "voicing" | "all-tones" | "scale";
 export type BowedLabelMode = "notes" | "intervals" | "fingers";
@@ -121,7 +124,7 @@ export function BowedFingerboard({
 	const rootNote = chordNotes[0] ?? keyRootName ?? scaleNotes[0] ?? "C";
 	const rootPc = noteToPitchClass(rootNote);
 	const resolvedKind = chordKind ?? "major";
-	const qualityClass = getGuitarQualityClass(chordQuality);
+	const qualityClass = getQualityClass(chordQuality);
 	const chordPcSet = new Set(chordNotes.map(noteToPitchClass));
 	const scalePcSet = new Set(scaleNotes.map(noteToPitchClass));
 	const resolveNoteName = createPitchClassNameResolver(

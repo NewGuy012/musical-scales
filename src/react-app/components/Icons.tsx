@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { ChordQuality } from "../theory/circleOfFifths";
 
 interface IconProps {
 	size?: number;
@@ -192,4 +193,22 @@ export function IconX({ size = 12 }: IconProps) {
 			<line x1="6" y1="6" x2="18" y2="18" />
 		</StrokeIcon>
 	);
+}
+
+export function getQualityClass(
+	quality: ChordQuality,
+): "q-major" | "q-minor" | "q-dim" {
+	if (quality === "minor") return "q-minor";
+	if (quality === "diminished") return "q-dim";
+	return "q-major";
+}
+
+export function handleSvgButtonKeyDown(
+	e: { key: string; preventDefault: () => void },
+	action: () => void,
+): void {
+	if (e.key === "Enter" || e.key === " ") {
+		e.preventDefault();
+		action();
+	}
 }
