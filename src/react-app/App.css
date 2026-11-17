@@ -468,7 +468,8 @@
 }
 
 .wheel-shell.is-collapsed .section-header,
-.panel-card.is-collapsed .section-header {
+.panel-card.is-collapsed .section-header,
+.panel-card.is-collapsed .harmony-tabs-bar {
 	padding-bottom: 0;
 	margin-bottom: 0;
 	border-bottom-color: transparent;
@@ -1296,6 +1297,18 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 6px;
+	margin-left: auto;
+}
+
+.workspace-collapsed-key {
+	font-size: 0.76rem;
+	font-weight: 700;
+	color: var(--text-secondary);
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-hairline);
+	white-space: nowrap;
 }
 
 .sub-section-head {
@@ -1648,6 +1661,7 @@
 .instrument-tab {
 	display: inline-flex;
 	align-items: center;
+	gap: 6px;
 	border: none;
 	background: transparent;
 	color: var(--text-secondary);
@@ -1659,6 +1673,11 @@
 		background-color 140ms ease,
 		color 140ms ease,
 		box-shadow 140ms ease;
+}
+
+.instrument-tab .tab-count-pill,
+.instrument-tab .tab-live-dot {
+	margin-left: 0;
 }
 
 .instrument-tab:hover {

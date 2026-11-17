@@ -59,6 +59,8 @@ describe("Musical Scales UI rendering", () => {
 		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
 		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
 		expect(html).toContain('aria-label="Expand Neighbors"');
+		expect(html).toContain('aria-label="Collapse Exploration"');
+		expect(html).toContain('aria-controls="section-exploration-body"');
 		expect(html).toContain("↺ F");
 		expect(html).toContain("G ↻");
 
@@ -67,16 +69,16 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('id="chords-extras-drawer"');
 		expect(html).toContain('id="chord-variations-drawer"');
 
-		// Persistent Instrument Dock sits below the workspace card so it stays visible across all workspace modes
+		// Persistent Instrument Dock sits above the workspace card so it stays visible across all workspace modes
 		const workspaceIdx = html.indexOf('id="section-exploration"');
 		const realSongsIdx = html.indexOf('id="section-real-songs"');
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
-		expect(workspaceIdx).toBeGreaterThan(-1);
+		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
+		expect(workspaceIdx).toBeGreaterThan(instrumentsSectionIdx);
 		expect(realSongsIdx).toBeGreaterThan(workspaceIdx);
-		expect(instrumentsSectionIdx).toBeGreaterThan(realSongsIdx);
 		expect(html).toContain('id="tab-harmony-songs"');
 		expect(html).toContain("Piano Repertoire");
-		expect(html).toContain("Synced with Piano below");
+		expect(html).toContain("Synced with Piano above");
 		expect(html).toContain("song-select");
 		expect(html).toContain("1 of 2 pieces");
 		expect(html).toContain("1. Moment Musicaux No. 3");
