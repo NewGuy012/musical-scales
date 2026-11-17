@@ -196,10 +196,10 @@ function hydrateSong({
 }
 
 export const SONG_EXAMPLES: SongExample[] = [
-	hydrateSong(DEBUSSY_CLAIR_DE_LUNE_SPEC),
 	hydrateSong(SCHUBERT_MOMENT_MUSICAUX_3_SPEC),
-	hydrateSong(TOMMY_AMAZING_GRACE_SPEC),
+	hydrateSong(DEBUSSY_CLAIR_DE_LUNE_SPEC),
 	hydrateSong(CANNONBALL_RAG_SPEC),
+	hydrateSong(TOMMY_AMAZING_GRACE_SPEC),
 	hydrateSong(MASSENET_MEDITATION_SPEC),
 	hydrateSong(BACH_CELLO_SUITE_1_SPEC),
 	hydrateSong(HAYDN_CELLO_CONCERTO_2_SPEC),

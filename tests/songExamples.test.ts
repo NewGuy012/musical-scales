@@ -21,12 +21,12 @@ describe("songExamples", () => {
 		const celloSongs = getSongsForInstrument("cello");
 
 		expect(pianoSongs.map((s) => s.id)).toEqual([
-			"debussy-clair-de-lune",
 			"schubert-moment-musicaux-3",
+			"debussy-clair-de-lune",
 		]);
 		expect(guitarSongs.map((s) => s.id)).toEqual([
-			"amazing-grace-guitar",
 			"cannonball-rag-guitar",
+			"amazing-grace-guitar",
 		]);
 		expect(violinSongs.map((s) => s.id)).toEqual(["massenet-meditation-thais"]);
 		expect(celloSongs.map((s) => s.id)).toEqual([
@@ -115,7 +115,7 @@ describe("songExamples", () => {
 
 describe("Curated piano, guitar, violin, and cello arrangements", () => {
 	test("Clair de lune includes all 72 bars in D♭ Major (9/8) with modulated C♯m7 section", () => {
-		const [clair] = getSongsForInstrument("piano");
+		const [, clair] = getSongsForInstrument("piano");
 		expect(clair).toBeDefined();
 		expect(clair.id).toBe("debussy-clair-de-lune");
 		expect(clair.title).toBe("Clair de lune");
@@ -135,7 +135,7 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 	});
 
 	test("Tommy Emmanuel Amazing Grace spans Intro, Verse 1 & 2, and Harp Harmonic Outro in E Major", () => {
-		const [grace] = getSongsForInstrument("guitar");
+		const [, grace] = getSongsForInstrument("guitar");
 		expect(grace).toBeDefined();
 		expect(grace.id).toBe("amazing-grace-guitar");
 		expect(grace.composerOrSource).toContain("Tommy Emmanuel");
@@ -212,7 +212,7 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 	});
 
 	test("Schubert Moment Musicaux No. 3 covers 78 bars in F Minor (2/4) with A♭ episode and Picardy F Major coda", () => {
-		const [, schubert] = getSongsForInstrument("piano");
+		const [schubert] = getSongsForInstrument("piano");
 		expect(schubert).toBeDefined();
 		expect(schubert.id).toBe("schubert-moment-musicaux-3");
 		expect(schubert.title).toBe("Moment Musicaux No. 3");
@@ -281,7 +281,7 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 	});
 
 	test("Cannonball Rag (75 bars, G Major) and Haydn Cello Concerto No. 2 (50 bars, D Major) preserve exact bars & stops", () => {
-		const [, cannonball] = getSongsForInstrument("guitar");
+		const [cannonball] = getSongsForInstrument("guitar");
 		expect(cannonball.keySlot).toBe(1);
 		expect(cannonball.keyMode).toBe("major");
 		expect(cannonball.timeSignature).toBe("4/4");

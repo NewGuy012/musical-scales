@@ -61,21 +61,91 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("is-in-chord");
 		expect(html).toContain("is-chord-root");
 		expect(html).toContain("Keyboard shortcuts");
-		// Real Songs is a dedicated section below Instruments, showing the active instrument's repertoire
+		// Table of contents renders Exploration as a single top-level link without subsection buttons
+		const tocStart = html.indexOf('<nav class="toc-bar"');
+		const tocEnd = html.indexOf("</nav>", tocStart);
+		const tocHtml = html.slice(tocStart, tocEnd);
+		expect(tocHtml).not.toContain("toc-group");
+		expect(tocHtml).not.toContain("toc-sub-btn");
+		expect(tocHtml).not.toContain("Passing");
+		expect(tocHtml).toContain('href="#section-exploration"');
+		expect(tocHtml).toContain("Exploration");
+
+		// All 6 main sections expose accessible collapse toggles
+		for (const sectionTitle of [
+			"Circle of Fifths",
+			"Neighbors",
+			"Key &amp; Scale",
+			"Exploration",
+			"Instruments",
+			"Real Songs",
+		]) {
+			expect(html).toContain(`aria-label="Collapse ${sectionTitle}"`);
+		}
+
+		// Real Songs is a dedicated section below Instruments, showing the instrument switcher on top and active repertoire
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
 		const realSongsSectionIdx = html.indexOf('id="section-real-songs"');
 		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
 		expect(realSongsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
 		expect(html).not.toContain('id="tab-harmony-songs"');
+		const realSongsHtml = html.slice(realSongsSectionIdx);
+		expect(realSongsHtml).toContain('id="songs-tab-piano"');
+		expect(realSongsHtml).toContain('id="songs-tab-guitar"');
+		expect(realSongsHtml).toContain('id="songs-tab-violin"');
+		expect(realSongsHtml).toContain('id="songs-tab-cello"');
+		expect(realSongsHtml.indexOf('id="songs-tab-piano"')).toBeLessThan(
+			realSongsHtml.indexOf("song-select"),
+		);
 		expect(html).toContain("Piano Repertoire");
 		expect(html).toContain("Synced with Piano above");
 		expect(html).toContain("song-select");
 		expect(html).toContain("1 of 2 pieces");
-		expect(html).toContain("Clair de lune");
-		expect(html).toContain("Moment Musicaux No. 3");
+		expect(html).toContain("1. Moment Musicaux No. 3");
+		expect(html).toContain("2. Clair de lune");
 		expect(html).not.toContain("Méditation");
 		expect(html).not.toContain("Cello Suite No. 1");
 		expect(html).not.toContain("Amazing Grace");
+	});
+
+	test("renders collapsed state cleanly for collapsible section panels", () => {
+		const cMaj = analyzeKey(0, "major");
+		const collapsedHtml = renderToStaticMarkup(
+			<>
+				<CircleWheel
+					analysis={cMaj}
+					selectedSlot={0}
+					mode="major"
+					preference="standard"
+					slotOverrides={{}}
+					highlightedChord={null}
+					rotateToSelected={false}
+					isCollapsed={true}
+					onSelectKey={() => {}}
+					onPlayTonic={() => {}}
+					onStepFourth={() => {}}
+					onStepFifth={() => {}}
+					onToggleRotate={() => {}}
+					onToggleCollapse={() => {}}
+				/>
+				<FifthsFourthsPanel
+					analysis={cMaj}
+					walkingDirection={null}
+					isCollapsed={true}
+					onSelectKey={() => {}}
+					onAuditionRelationship={() => {}}
+					onToggleWalk={() => {}}
+					onToggleCollapse={() => {}}
+				/>
+			</>,
+		);
+		expect(collapsedHtml).toContain('aria-label="Expand Circle of Fifths"');
+		expect(collapsedHtml).toContain('aria-label="Expand Neighbors"');
+		expect(collapsedHtml).toContain('aria-expanded="false"');
+		expect(collapsedHtml).toContain('id="section-circle-body"');
+		expect(collapsedHtml).toContain('id="section-neighbors-body"');
+		expect(collapsedHtml).toContain('hidden=""');
+		expect(collapsedHtml).not.toContain("Walk 4ths");
 	});
 
 	test("renders GuitarFretboard with C major CAGED voicings and 15-fret neck markers", () => {

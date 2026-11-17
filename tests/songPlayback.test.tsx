@@ -163,17 +163,17 @@ describe("songPlayback helpers and synchronized UI", () => {
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(guitarHtml).toContain("Amazing Grace");
-		expect(guitarHtml).toContain("Tommy Emmanuel");
+		expect(guitarHtml).toContain("Cannonball Rag");
+		expect(guitarHtml).toContain("Merle Travis");
+		expect(guitarHtml).toContain("75 Bars");
 		expect(guitarHtml).toContain("song-select");
 		expect(guitarHtml).toContain("1 of 2 pieces");
-		expect(guitarHtml).toContain("Cannonball Rag");
+		expect(guitarHtml).toContain("Amazing Grace");
 
-		const pianoSongs = getSongsForInstrument("piano");
-		const pianoSelectHtml = renderToStaticMarkup(
+		const guitarSecondHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				songs={pianoSongs}
-				selectedSongId="schubert-moment-musicaux-3"
+				songs={getSongsForInstrument("guitar")}
+				selectedSongId="amazing-grace-guitar"
 				playingSongId={null}
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
@@ -182,11 +182,44 @@ describe("songPlayback helpers and synchronized UI", () => {
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(pianoSelectHtml).toContain("2 of 2 pieces");
-		expect(pianoSelectHtml).toContain("Moment Musicaux No. 3");
-		expect(pianoSelectHtml).toContain("Franz Schubert");
-		expect(pianoSelectHtml).toContain("78 Bars");
-		expect(pianoSelectHtml).toContain("Clair de lune");
+		expect(guitarSecondHtml).toContain("2 of 2 pieces");
+		expect(guitarSecondHtml).toContain("Amazing Grace");
+		expect(guitarSecondHtml).toContain("Tommy Emmanuel");
+
+		const pianoSongs = getSongsForInstrument("piano");
+		const pianoDefaultHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={pianoSongs}
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(pianoDefaultHtml).toContain("1 of 2 pieces");
+		expect(pianoDefaultHtml).toContain("Moment Musicaux No. 3");
+		expect(pianoDefaultHtml).toContain("Franz Schubert");
+		expect(pianoDefaultHtml).toContain("78 Bars");
+		expect(pianoDefaultHtml).toContain("Clair de lune");
+
+		const pianoSecondHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={pianoSongs}
+				selectedSongId="debussy-clair-de-lune"
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(pianoSecondHtml).toContain("2 of 2 pieces");
+		expect(pianoSecondHtml).toContain("Clair de lune");
+		expect(pianoSecondHtml).toContain("Claude Debussy");
+		expect(pianoSecondHtml).toContain("72 Bars");
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {

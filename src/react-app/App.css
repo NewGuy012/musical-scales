@@ -311,69 +311,20 @@
 }
 
 .toc-num {
-	display: inline-grid;
-	place-items: center;
-	width: 16px;
-	height: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 17px;
+	height: 17px;
 	border-radius: 5px;
 	background: var(--bg-subtle);
 	border: 1px solid var(--border-hairline);
 	font-size: 0.65rem;
 	font-weight: 750;
+	line-height: 1;
 	color: var(--text-muted);
 	font-variant-numeric: tabular-nums;
-}
-
-.toc-group {
-	display: inline-flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 4px 2px 2px;
-	border-radius: 10px;
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-hairline);
-}
-
-.toc-group-root {
-	border: none;
-	background: transparent;
-	padding: 2px 6px 2px 8px;
-}
-
-.toc-sub-sep {
-	color: var(--text-muted);
-	font-size: 0.72rem;
-	margin: 0 1px;
-}
-
-.toc-sub-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 3px 8px;
-	border-radius: 7px;
-	border: 1px solid transparent;
-	background: transparent;
-	color: var(--text-secondary);
-	font-size: 0.72rem;
-	font-weight: 650;
-	white-space: nowrap;
-	transition:
-		border-color 130ms ease,
-		background-color 130ms ease,
-		color 130ms ease;
-}
-
-.toc-sub-btn:hover {
-	color: var(--text-primary);
-	background: var(--bg-subtle);
-}
-
-.toc-sub-btn.is-active {
-	background: var(--bg-card);
-	border-color: var(--border-strong);
-	color: var(--text-primary);
+	flex-shrink: 0;
 }
 
 .toc-link-songs > svg {
@@ -390,8 +341,14 @@
 }
 
 .toc-count-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 16px;
+	height: 16px;
 	font-size: 0.64rem;
 	font-weight: 750;
+	line-height: 1;
 	padding: 0 5px;
 	border-radius: 999px;
 	background: var(--bg-card);
@@ -420,7 +377,66 @@
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	flex: 1 1 160px;
 	min-width: 0;
+}
+
+.section-heading.is-collapsible {
+	cursor: pointer;
+}
+
+.section-heading.is-collapsible:hover .section-title {
+	color: var(--color-fifth);
+}
+
+.section-header-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.section-collapse-btn {
+	width: 26px;
+	height: 26px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	border: 1px solid var(--border-hairline);
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	flex-shrink: 0;
+	transition:
+		border-color 140ms ease,
+		color 140ms ease,
+		background-color 140ms ease;
+}
+
+.section-collapse-btn:hover {
+	color: var(--text-primary);
+	border-color: var(--border-strong);
+}
+
+.section-collapse-btn svg {
+	transform: rotate(180deg);
+	transition: transform 160ms ease;
+}
+
+.section-collapse-btn.is-collapsed svg {
+	transform: rotate(0deg);
+}
+
+.wheel-shell.is-collapsed .section-header,
+.panel-card.is-collapsed .section-header {
+	padding-bottom: 0;
+	margin-bottom: 0;
+	border-bottom-color: transparent;
+}
+
+.section-body[hidden] {
+	display: none;
 }
 
 .section-title-row {
@@ -1213,8 +1229,12 @@
 }
 
 .tab-count-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	font-size: 0.68rem;
 	font-weight: 700;
+	line-height: 1.2;
 	padding: 1px 6px;
 	border-radius: 999px;
 	background: var(--bg-subtle);

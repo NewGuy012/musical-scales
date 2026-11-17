@@ -163,3 +163,11 @@ export function IconMusic({ size = 13 }: IconProps) {
 		</StrokeIcon>
 	);
 }
+
+export function IconChevronDown({ size = 14 }: IconProps) {
+	return (
+		<StrokeIcon size={size}>
+			<path d="m6 9 6 6 6-6" />
+		</StrokeIcon>
+	);
+}

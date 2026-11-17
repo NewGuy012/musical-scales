@@ -28,6 +28,7 @@ import {
 } from "./components/Icons";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
 import { PianoKeyboard } from "./components/PianoKeyboard";
+import { SectionHeader } from "./components/SectionHeader";
 import { SongExamplesPanel } from "./components/SongExamplesPanel";
 import { BowedVoicing, getBowedVoicings } from "./theory/celloFingerboard";
 import {
@@ -98,6 +99,14 @@ const INSTRUMENT_TABS: readonly InstrumentTab[] = [
 	"cello",
 ] as const;
 
+type MainSectionId =
+	| "section-circle"
+	| "section-neighbors"
+	| "section-key-scale"
+	| "section-exploration"
+	| "section-instruments"
+	| "section-real-songs";
+
 const INSTRUMENT_META: Record<
 	InstrumentTab,
 	{ label: string; repertoire: string; tuning: string }
@@ -119,6 +128,39 @@ const INSTRUMENT_META: Record<
 		tuning: "C2–G2–D3–A3",
 	},
 };
+
+function InstrumentTabList({
+	activeTab,
+	onSelect,
+	idPrefix,
+	ariaLabel,
+	controlsId,
+}: {
+	activeTab: InstrumentTab;
+	onSelect: (tabId: InstrumentTab) => void;
+	idPrefix: string;
+	ariaLabel: string;
+	controlsId: string;
+}) {
+	return (
+		<div className="instrument-tablist" role="tablist" aria-label={ariaLabel}>
+			{INSTRUMENT_TABS.map((tabId) => (
+				<button
+					key={tabId}
+					type="button"
+					role="tab"
+					id={`${idPrefix}-${tabId}`}
+					aria-selected={activeTab === tabId}
+					aria-controls={controlsId}
+					className={`instrument-tab ${activeTab === tabId ? "is-active" : ""}`}
+					onClick={() => onSelect(tabId)}
+				>
+					{INSTRUMENT_META[tabId].label}
+				</button>
+			))}
+		</div>
+	);
+}
 
 function getInstrumentVoicings(
 	instrument: InstrumentTab,
@@ -195,37 +237,57 @@ export function App() {
 	const [highlightedSectionId, setHighlightedSectionId] = useState<
 		string | null
 	>(null);
+	const [collapsedSections, setCollapsedSections] = useState<
+		Partial<Record<MainSectionId, boolean>>
+	>({});
 
 	const cancelSequenceRef = useRef<(() => void) | null>(null);
 	const flashTimerRef = useRef<number | null>(null);
 	const songPositionMsRef = useRef<number>(0);
 	const lastUiProgressMsRef = useRef<number>(-100);
 
-	const jumpToSection = useCallback((sectionId: string) => {
-		if (typeof document === "undefined") return;
-		const el = document.getElementById(sectionId);
-		if (!el) return;
-		const rect = el.getBoundingClientRect();
-		const isInView = rect.top >= 0 && rect.bottom <= window.innerHeight;
-		if (!isInView) {
-			el.scrollIntoView({ behavior: "smooth", block: "start" });
-		}
-		setHighlightedSectionId(sectionId);
-		if (flashTimerRef.current !== null) {
-			window.clearTimeout(flashTimerRef.current);
-		}
-		flashTimerRef.current = window.setTimeout(() => {
-			setHighlightedSectionId((curr) => (curr === sectionId ? null : curr));
-			flashTimerRef.current = null;
-		}, 1100);
+	const toggleSectionCollapsed = useCallback((sectionId: MainSectionId) => {
+		setCollapsedSections((prev) => ({
+			...prev,
+			[sectionId]: !prev[sectionId],
+		}));
 	}, []);
 
-	const jumpToExplorationTab = useCallback(
-		(tab: "chords" | "color") => {
-			setHarmonyTab(tab);
-			jumpToSection("section-exploration");
+	const jumpToSection = useCallback(
+		(sectionId: MainSectionId) => {
+			const wasCollapsed = Boolean(collapsedSections[sectionId]);
+			if (wasCollapsed) {
+				setCollapsedSections((prev) => ({
+					...prev,
+					[sectionId]: false,
+				}));
+			}
+			if (typeof document !== "undefined") {
+				const scrollTarget = () => {
+					const el = document.getElementById(sectionId);
+					if (!el) return;
+					const rect = el.getBoundingClientRect();
+					const isInView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+					if (wasCollapsed || !isInView) {
+						el.scrollIntoView({ behavior: "smooth", block: "start" });
+					}
+				};
+				if (wasCollapsed) {
+					window.requestAnimationFrame(scrollTarget);
+				} else {
+					scrollTarget();
+				}
+			}
+			setHighlightedSectionId(sectionId);
+			if (flashTimerRef.current !== null) {
+				window.clearTimeout(flashTimerRef.current);
+			}
+			flashTimerRef.current = window.setTimeout(() => {
+				setHighlightedSectionId((curr) => (curr === sectionId ? null : curr));
+				flashTimerRef.current = null;
+			}, 1100);
 		},
-		[jumpToSection],
+		[collapsedSections],
 	);
 
 	const updateSongPosition = useCallback((ms: number) => {
@@ -1555,43 +1617,18 @@ export function App() {
 						<span className="toc-num">3</span>
 						<span>Key &amp; Scale</span>
 					</a>
-					<div
-						className="toc-group"
-						role="group"
-						aria-label="Exploration subsections"
+					<a
+						href="#section-exploration"
+						className="toc-link"
+						onClick={(e) => {
+							e.preventDefault();
+							jumpToSection("section-exploration");
+						}}
+						title="Chords, progressions & passing harmony"
 					>
-						<a
-							href="#section-exploration"
-							className="toc-link toc-group-root"
-							onClick={(e) => {
-								e.preventDefault();
-								jumpToSection("section-exploration");
-							}}
-							title="Chords, progressions & passing harmony"
-						>
-							<span className="toc-num">4</span>
-							<span>Exploration</span>
-						</a>
-						<span className="toc-sub-sep" aria-hidden="true">
-							·
-						</span>
-						<button
-							type="button"
-							className={`toc-sub-btn ${harmonyTab === "chords" ? "is-active" : ""}`}
-							onClick={() => jumpToExplorationTab("chords")}
-							title="Jump to Diatonic Chords & Progressions"
-						>
-							Chords
-						</button>
-						<button
-							type="button"
-							className={`toc-sub-btn ${harmonyTab === "color" ? "is-active" : ""}`}
-							onClick={() => jumpToExplorationTab("color")}
-							title="Jump to Passing & Substitutions"
-						>
-							Passing
-						</button>
-					</div>
+						<span className="toc-num">4</span>
+						<span>Exploration</span>
+					</a>
 					<a
 						href="#section-instruments"
 						className="toc-link"
@@ -1640,20 +1677,24 @@ export function App() {
 						}
 						rotateToSelected={rotateToSelected}
 						isTargeted={highlightedSectionId === "section-circle"}
+						isCollapsed={Boolean(collapsedSections["section-circle"])}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onPlayTonic={handlePlayTonic}
 						onStepFourth={() => selectKey(selectedSlot - 1, mode)}
 						onStepFifth={() => selectKey(selectedSlot + 1, mode)}
 						onToggleRotate={() => setRotateToSelected((r) => !r)}
+						onToggleCollapse={() => toggleSectionCollapsed("section-circle")}
 					/>
 
 					<FifthsFourthsPanel
 						analysis={analysis}
 						walkingDirection={walkingDirection}
 						isTargeted={highlightedSectionId === "section-neighbors"}
+						isCollapsed={Boolean(collapsedSections["section-neighbors"])}
 						onSelectKey={(slot, nextMode) => selectKey(slot, nextMode)}
 						onAuditionRelationship={handleAuditionRelationship}
 						onToggleWalk={handleToggleWalk}
+						onToggleCollapse={() => toggleSectionCollapsed("section-neighbors")}
 					/>
 				</div>
 
@@ -1664,158 +1705,164 @@ export function App() {
 							highlightedSectionId === "section-key-scale"
 								? " is-toc-targeted"
 								: ""
-						}`}
+						}${collapsedSections["section-key-scale"] ? " is-collapsed" : ""}`}
 						aria-labelledby="key-scale-heading"
 					>
-						<div className="section-header">
-							<div className="section-heading">
-								<h2 id="key-scale-heading" className="section-title">
-									Key &amp; Scale
-								</h2>
-								<p className="section-desc">
-									Key signature, relative &amp; parallel links, and 7-note scale
-								</p>
-							</div>
-						</div>
+						<SectionHeader
+							headingId="key-scale-heading"
+							title="Key & Scale"
+							description="Key signature, relative & parallel links, and 7-note scale"
+							bodyId="section-key-scale-body"
+							isCollapsed={Boolean(collapsedSections["section-key-scale"])}
+							onToggleCollapse={() =>
+								toggleSectionCollapsed("section-key-scale")
+							}
+						/>
 
-						<div className="hero-top">
-							<div className="hero-identity">
-								<div className="hero-title-row">
-									<h3 id="key-title" className="hero-key-title">
-										{analysis.name}
-									</h3>
+						<div
+							id="section-key-scale-body"
+							className="section-body"
+							hidden={Boolean(collapsedSections["section-key-scale"])}
+						>
+							<div className="hero-top">
+								<div className="hero-identity">
+									<div className="hero-title-row">
+										<h3 id="key-title" className="hero-key-title">
+											{analysis.name}
+										</h3>
 
-									<div
-										className="segmented-control"
-										role="group"
-										aria-label="Scale mode"
-									>
-										{(["major", "minor"] as const).map((m) => (
+										<div
+											className="segmented-control"
+											role="group"
+											aria-label="Scale mode"
+										>
+											{(["major", "minor"] as const).map((m) => (
+												<button
+													key={m}
+													type="button"
+													className={`seg-btn ${mode === m ? "is-active" : ""}`}
+													onClick={() => selectKey(selectedSlot, m)}
+												>
+													{m === "major" ? "Major" : "Minor"}
+												</button>
+											))}
+										</div>
+									</div>
+
+									<div className="hero-meta-row">
+										<span className="sig-summary-pill">
+											{analysis.signatureLabel}
+										</span>
+										{analysis.enharmonicTwin && (
 											<button
-												key={m}
 												type="button"
-												className={`seg-btn ${mode === m ? "is-active" : ""}`}
-												onClick={() => selectKey(selectedSlot, m)}
+												className="enharmonic-btn"
+												onClick={handleFlipEnharmonic}
+												title={`Switch to enharmonic spelling ${analysis.enharmonicTwin.name}`}
 											>
-												{m === "major" ? "Major" : "Minor"}
+												<IconSwap size={12} />
+												<span>{analysis.enharmonicTwin.shortName}</span>
+											</button>
+										)}
+										{(
+											[
+												[
+													"Relative",
+													analysis.relativeKey,
+													"Shares the exact same key signature and notes",
+												],
+												[
+													"Parallel",
+													analysis.parallelKey,
+													"Shares the same tonic root note (±3 steps on circle)",
+												],
+											] as const
+										).map(([relType, targetKey, title]) => (
+											<button
+												key={relType}
+												type="button"
+												className="jump-pill"
+												onClick={() =>
+													selectKey(targetKey.slotIndex, targetKey.mode)
+												}
+												title={title}
+											>
+												{relType}: <strong>{targetKey.shortName}</strong>
 											</button>
 										))}
 									</div>
 								</div>
 
-								<div className="hero-meta-row">
-									<span className="sig-summary-pill">
-										{analysis.signatureLabel}
-									</span>
-									{analysis.enharmonicTwin && (
-										<button
-											type="button"
-											className="enharmonic-btn"
-											onClick={handleFlipEnharmonic}
-											title={`Switch to enharmonic spelling ${analysis.enharmonicTwin.name}`}
-										>
-											<IconSwap size={12} />
-											<span>{analysis.enharmonicTwin.shortName}</span>
-										</button>
-									)}
-									{(
-										[
-											[
-												"Relative",
-												analysis.relativeKey,
-												"Shares the exact same key signature and notes",
-											],
-											[
-												"Parallel",
-												analysis.parallelKey,
-												"Shares the same tonic root note (±3 steps on circle)",
-											],
-										] as const
-									).map(([relType, targetKey, title]) => (
-										<button
-											key={relType}
-											type="button"
-											className="jump-pill"
-											onClick={() =>
-												selectKey(targetKey.slotIndex, targetKey.mode)
-											}
-											title={title}
-										>
-											{relType}: <strong>{targetKey.shortName}</strong>
-										</button>
-									))}
-								</div>
+								<KeySignatureStaff
+									accidentalsCount={analysis.accidentalsCount}
+									accidentals={analysis.accidentals}
+								/>
 							</div>
 
-							<KeySignatureStaff
-								accidentalsCount={analysis.accidentalsCount}
-								accidentals={analysis.accidentals}
-							/>
-						</div>
-
-						<div className="scale-strip-wrap">
-							<div className="scale-strip-header">
-								<span className="scale-strip-label">
-									{analysis.name} Scale
-									{analysis.accidentals.length > 0 && (
-										<span className="scale-acc-list">
-											{" "}
-											· {analysis.accidentals.join(" ")}
-										</span>
-									)}
-								</span>
-								<button
-									type="button"
-									className={`pill-action-btn pill-action-sm ${activeScaleIndex !== null ? "is-playing" : ""}`}
-									onClick={handlePlayScale}
-								>
-									{activeScaleIndex !== null ? (
-										<>
-											<IconStop size={10} /> Stop
-										</>
-									) : (
-										<>
-											<IconPlay size={10} /> Play Scale
-										</>
-									)}
-								</button>
-							</div>
-
-							<div className="scale-notes-row">
-								{analysis.scaleNotes.map((note, idx) => {
-									const pc = scalePitchClasses[idx];
-									const isInChord = activeChordPitchClasses.has(pc);
-									const isChordRoot = activeChordRootPc === pc;
-									const isLit =
-										activeScaleIndex === idx ||
-										(activeScaleIndex === 7 && idx === 0);
-									return (
-										<button
-											key={`${note}-${idx}`}
-											type="button"
-											className={`scale-note-pill ${idx === 0 ? "is-root" : ""} ${
-												isInChord ? "is-in-chord" : ""
-											} ${isChordRoot ? "is-chord-root" : ""} ${
-												isLit ? "is-lit" : ""
-											}`}
-											title={
-												isChordRoot
-													? `${note} · Active chord root`
-													: isInChord
-														? `${note} · In active chord`
-														: `Play ${note}`
-											}
-											onClick={() =>
-												playSingleNote(analysis.scaleMidi[idx], soundPreset)
-											}
-										>
-											<span className="scale-deg">
-												{scaleDegreeLabels[idx]}
+							<div className="scale-strip-wrap">
+								<div className="scale-strip-header">
+									<span className="scale-strip-label">
+										{analysis.name} Scale
+										{analysis.accidentals.length > 0 && (
+											<span className="scale-acc-list">
+												{" "}
+												· {analysis.accidentals.join(" ")}
 											</span>
-											<span className="scale-note">{note}</span>
-										</button>
-									);
-								})}
+										)}
+									</span>
+									<button
+										type="button"
+										className={`pill-action-btn pill-action-sm ${activeScaleIndex !== null ? "is-playing" : ""}`}
+										onClick={handlePlayScale}
+									>
+										{activeScaleIndex !== null ? (
+											<>
+												<IconStop size={10} /> Stop
+											</>
+										) : (
+											<>
+												<IconPlay size={10} /> Play Scale
+											</>
+										)}
+									</button>
+								</div>
+
+								<div className="scale-notes-row">
+									{analysis.scaleNotes.map((note, idx) => {
+										const pc = scalePitchClasses[idx];
+										const isInChord = activeChordPitchClasses.has(pc);
+										const isChordRoot = activeChordRootPc === pc;
+										const isLit =
+											activeScaleIndex === idx ||
+											(activeScaleIndex === 7 && idx === 0);
+										return (
+											<button
+												key={`${note}-${idx}`}
+												type="button"
+												className={`scale-note-pill ${idx === 0 ? "is-root" : ""} ${
+													isInChord ? "is-in-chord" : ""
+												} ${isChordRoot ? "is-chord-root" : ""} ${
+													isLit ? "is-lit" : ""
+												}`}
+												title={
+													isChordRoot
+														? `${note} · Active chord root`
+														: isInChord
+															? `${note} · In active chord`
+															: `Play ${note}`
+												}
+												onClick={() =>
+													playSingleNote(analysis.scaleMidi[idx], soundPreset)
+												}
+											>
+												<span className="scale-deg">
+													{scaleDegreeLabels[idx]}
+												</span>
+												<span className="scale-note">{note}</span>
+											</button>
+										);
+									})}
+								</div>
 							</div>
 						</div>
 					</section>
@@ -1826,229 +1873,239 @@ export function App() {
 							highlightedSectionId === "section-exploration"
 								? " is-toc-targeted"
 								: ""
+						}${
+							collapsedSections["section-exploration"] ? " is-collapsed" : ""
 						}`}
 						aria-labelledby="exploration-heading"
 					>
-						<div className="section-header">
-							<div className="section-heading">
-								<h2 id="exploration-heading" className="section-title">
-									Exploration
-								</h2>
-								<p className="section-desc">
-									Chords &amp; progressions and passing harmony
-								</p>
-							</div>
-						</div>
-
-						<div className="harmony-tabs-bar">
-							<div
-								className="instrument-tablist"
-								role="tablist"
-								aria-label="Exploration topics"
-							>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-chords"
-									aria-selected={harmonyTab === "chords"}
-									aria-controls="panel-harmony"
-									className={`instrument-tab ${
-										harmonyTab === "chords" ? "is-active" : ""
-									}`}
-									onClick={() => setHarmonyTab("chords")}
-								>
-									Chords &amp; Progressions
-								</button>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-color"
-									aria-selected={harmonyTab === "color"}
-									aria-controls="panel-harmony"
-									className={`instrument-tab ${
-										harmonyTab === "color" ? "is-active" : ""
-									}`}
-									onClick={() => setHarmonyTab("color")}
-								>
-									<span>Passing &amp; Substitutions</span>
-									{activeColorSeqId !== null && (
-										<span className="tab-live-dot" aria-hidden="true" />
-									)}
-								</button>
-							</div>
-
-							<div className="chord-toolbar">
-								{harmonyTab === "chords" && (
-									<div
-										className="segmented-control"
-										role="group"
-										aria-label="Chord extension"
-									>
-										<button
-											type="button"
-											className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-											onClick={() => setVoicingMode("triad")}
-										>
-											Triads
-										</button>
-										<button
-											type="button"
-											className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-											onClick={() => setVoicingMode("seventh")}
-										>
-											7ths
-										</button>
-									</div>
-								)}
-
-								<button
-									type="button"
-									className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-									aria-pressed={arpeggiate}
-									onClick={() => setArpeggiate((a) => !a)}
-									title="Roll chord notes sequentially vs. block chord"
-								>
-									Arpeggio
-								</button>
-							</div>
-						</div>
+						<SectionHeader
+							headingId="exploration-heading"
+							title="Exploration"
+							description="Chords & progressions and passing harmony"
+							bodyId="section-exploration-body"
+							isCollapsed={Boolean(collapsedSections["section-exploration"])}
+							onToggleCollapse={() =>
+								toggleSectionCollapsed("section-exploration")
+							}
+						/>
 
 						<div
-							id="panel-harmony"
-							role="tabpanel"
-							aria-labelledby={`tab-harmony-${harmonyTab}`}
+							id="section-exploration-body"
+							className="section-body"
+							hidden={Boolean(collapsedSections["section-exploration"])}
 						>
-							{harmonyTab === "chords" ? (
-								<>
-									<div className="sub-section-head">
-										<h3 className="sub-section-title">
-											Diatonic Chords in {analysis.shortName}
-										</h3>
-										<span className="sub-section-hint">
-											Click a chord to hear it and inspect its notes
-										</span>
-									</div>
-									<ChordsPanel
-										analysis={analysis}
-										voicingMode={voicingMode}
-										activeChordId={activeVoicing.id}
-										onSelectChord={handleSelectChord}
-										onPlayRootPairChord={handlePlayRootPairChord}
-									/>
+							<div className="harmony-tabs-bar">
+								<div
+									className="instrument-tablist"
+									role="tablist"
+									aria-label="Exploration topics"
+								>
+									<button
+										type="button"
+										role="tab"
+										id="tab-harmony-chords"
+										aria-selected={harmonyTab === "chords"}
+										aria-controls="panel-harmony"
+										className={`instrument-tab ${
+											harmonyTab === "chords" ? "is-active" : ""
+										}`}
+										onClick={() => setHarmonyTab("chords")}
+									>
+										Chords &amp; Progressions
+									</button>
+									<button
+										type="button"
+										role="tab"
+										id="tab-harmony-color"
+										aria-selected={harmonyTab === "color"}
+										aria-controls="panel-harmony"
+										className={`instrument-tab ${
+											harmonyTab === "color" ? "is-active" : ""
+										}`}
+										onClick={() => setHarmonyTab("color")}
+									>
+										<span>Passing &amp; Substitutions</span>
+										{activeColorSeqId !== null && (
+											<span className="tab-live-dot" aria-hidden="true" />
+										)}
+									</button>
+								</div>
 
-									<div className="progressions-wrap">
-										<div className="progressions-bar">
-											<div className="progressions-select-group">
-												<label
-													htmlFor="progression-select"
-													className="progressions-title"
-												>
-													Progressions in {analysis.shortName}
-												</label>
-												<select
-													id="progression-select"
-													className="progression-select"
-													aria-label={`Choose chord progression in ${analysis.shortName}`}
-													value={selectedProgression.id}
-													onChange={(e) =>
-														handleSelectProgressionFromDropdown(e.target.value)
-													}
-												>
-													{progressionGroups.map((group) => (
-														<optgroup
-															key={group.category}
-															label={group.category}
-														>
-															{group.items.map((prog) => (
-																<option key={prog.id} value={prog.id}>
-																	{prog.name} — {prog.label}
-																</option>
-															))}
-														</optgroup>
-													))}
-												</select>
-											</div>
-
+								<div className="chord-toolbar">
+									{harmonyTab === "chords" && (
+										<div
+											className="segmented-control"
+											role="group"
+											aria-label="Chord extension"
+										>
 											<button
 												type="button"
-												className={`pill-action-btn pill-action-sm ${
-													activeProgressionId === selectedProgression.id
-														? "is-playing"
-														: ""
-												}`}
-												onClick={() =>
-													handlePlayProgression(selectedProgression)
-												}
-												title={selectedProgression.description}
+												className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("triad")}
 											>
-												{activeProgressionId === selectedProgression.id ? (
-													<>
-														<IconStop size={10} /> Stop
-													</>
-												) : (
-													<>
-														<IconPlay size={10} /> Play Progression
-													</>
-												)}
+												Triads
+											</button>
+											<button
+												type="button"
+												className={`seg-btn ${isSeventh ? "is-active" : ""}`}
+												onClick={() => setVoicingMode("seventh")}
+											>
+												7ths
 											</button>
 										</div>
+									)}
 
-										<div className="progression-steps-row">
-											<div
-												className="progression-steps-chips"
-												role="group"
-												aria-label={`${selectedProgression.name} chord steps`}
-											>
-												{selectedProgression.degrees.map((deg, idx) => {
-													const isHarmonicV =
-														deg === -5 && analysis.harmonicMinorV !== null;
-													const stepChord = isHarmonicV
-														? analysis.harmonicMinorV!
-														: analysis.chords[deg - 1];
-													const suffix = isHarmonicV ? "-harmonic" : "";
-													const cardId = getChordCardId(stepChord, suffix);
-													const isCurrentStep =
-														activeProgressionId === selectedProgression.id &&
-														activeProgressionStepIdx === idx;
-													const symbol = isSeventh
-														? stepChord.seventhSymbol
-														: stepChord.symbol;
-													return (
-														<button
-															key={`${selectedProgression.id}-step-${idx}`}
-															type="button"
-															className={`prog-step-chip chord-quality-${stepChord.quality} ${
-																isCurrentStep ? "is-active-step" : ""
-															}`}
-															onClick={() =>
-																handleSelectChord(stepChord, cardId)
-															}
-															title={`Play ${symbol} (${stepChord.roman})`}
-														>
-															<span className="prog-step-roman">
-																{stepChord.roman}
-															</span>
-															<span className="prog-step-sym">{symbol}</span>
-														</button>
-													);
-												})}
-											</div>
-											<span className="progression-desc">
-												{selectedProgression.description}
+									<button
+										type="button"
+										className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+										aria-pressed={arpeggiate}
+										onClick={() => setArpeggiate((a) => !a)}
+										title="Roll chord notes sequentially vs. block chord"
+									>
+										Arpeggio
+									</button>
+								</div>
+							</div>
+
+							<div
+								id="panel-harmony"
+								role="tabpanel"
+								aria-labelledby={`tab-harmony-${harmonyTab}`}
+							>
+								{harmonyTab === "chords" ? (
+									<>
+										<div className="sub-section-head">
+											<h3 className="sub-section-title">
+												Diatonic Chords in {analysis.shortName}
+											</h3>
+											<span className="sub-section-hint">
+												Click a chord to hear it and inspect its notes
 											</span>
 										</div>
-									</div>
-								</>
-							) : (
-								<ColorHarmonyPanel
-									colorAnalysis={colorAnalysis}
-									activeChordId={activeVoicing.id}
-									activeSequenceId={activeColorSeqId}
-									activeSequenceStepIdx={activeColorStepIdx}
-									onSelectChord={handleSelectColorChord}
-									onPlaySequence={handlePlayColorSequence}
-								/>
-							)}
+										<ChordsPanel
+											analysis={analysis}
+											voicingMode={voicingMode}
+											activeChordId={activeVoicing.id}
+											onSelectChord={handleSelectChord}
+											onPlayRootPairChord={handlePlayRootPairChord}
+										/>
+
+										<div className="progressions-wrap">
+											<div className="progressions-bar">
+												<div className="progressions-select-group">
+													<label
+														htmlFor="progression-select"
+														className="progressions-title"
+													>
+														Progressions in {analysis.shortName}
+													</label>
+													<select
+														id="progression-select"
+														className="progression-select"
+														aria-label={`Choose chord progression in ${analysis.shortName}`}
+														value={selectedProgression.id}
+														onChange={(e) =>
+															handleSelectProgressionFromDropdown(
+																e.target.value,
+															)
+														}
+													>
+														{progressionGroups.map((group) => (
+															<optgroup
+																key={group.category}
+																label={group.category}
+															>
+																{group.items.map((prog) => (
+																	<option key={prog.id} value={prog.id}>
+																		{prog.name} — {prog.label}
+																	</option>
+																))}
+															</optgroup>
+														))}
+													</select>
+												</div>
+
+												<button
+													type="button"
+													className={`pill-action-btn pill-action-sm ${
+														activeProgressionId === selectedProgression.id
+															? "is-playing"
+															: ""
+													}`}
+													onClick={() =>
+														handlePlayProgression(selectedProgression)
+													}
+													title={selectedProgression.description}
+												>
+													{activeProgressionId === selectedProgression.id ? (
+														<>
+															<IconStop size={10} /> Stop
+														</>
+													) : (
+														<>
+															<IconPlay size={10} /> Play Progression
+														</>
+													)}
+												</button>
+											</div>
+
+											<div className="progression-steps-row">
+												<div
+													className="progression-steps-chips"
+													role="group"
+													aria-label={`${selectedProgression.name} chord steps`}
+												>
+													{selectedProgression.degrees.map((deg, idx) => {
+														const isHarmonicV =
+															deg === -5 && analysis.harmonicMinorV !== null;
+														const stepChord = isHarmonicV
+															? analysis.harmonicMinorV!
+															: analysis.chords[deg - 1];
+														const suffix = isHarmonicV ? "-harmonic" : "";
+														const cardId = getChordCardId(stepChord, suffix);
+														const isCurrentStep =
+															activeProgressionId === selectedProgression.id &&
+															activeProgressionStepIdx === idx;
+														const symbol = isSeventh
+															? stepChord.seventhSymbol
+															: stepChord.symbol;
+														return (
+															<button
+																key={`${selectedProgression.id}-step-${idx}`}
+																type="button"
+																className={`prog-step-chip chord-quality-${stepChord.quality} ${
+																	isCurrentStep ? "is-active-step" : ""
+																}`}
+																onClick={() =>
+																	handleSelectChord(stepChord, cardId)
+																}
+																title={`Play ${symbol} (${stepChord.roman})`}
+															>
+																<span className="prog-step-roman">
+																	{stepChord.roman}
+																</span>
+																<span className="prog-step-sym">{symbol}</span>
+															</button>
+														);
+													})}
+												</div>
+												<span className="progression-desc">
+													{selectedProgression.description}
+												</span>
+											</div>
+										</div>
+									</>
+								) : (
+									<ColorHarmonyPanel
+										colorAnalysis={colorAnalysis}
+										activeChordId={activeVoicing.id}
+										activeSequenceId={activeColorSeqId}
+										activeSequenceStepIdx={activeColorStepIdx}
+										onSelectChord={handleSelectColorChord}
+										onPlaySequence={handlePlayColorSequence}
+									/>
+								)}
+							</div>
 						</div>
 					</section>
 
@@ -2058,154 +2115,151 @@ export function App() {
 							highlightedSectionId === "section-instruments"
 								? " is-toc-targeted"
 								: ""
+						}${
+							collapsedSections["section-instruments"] ? " is-collapsed" : ""
 						}`}
 						aria-labelledby="instruments-heading"
 					>
-						<div className="section-header">
-							<div className="section-heading">
-								<h2 id="instruments-heading" className="section-title">
-									Instruments
-								</h2>
-								<p className="section-desc">
-									Interactive chord voicings, chord variations &amp; fingerings
-								</p>
-							</div>
-						</div>
+						<SectionHeader
+							headingId="instruments-heading"
+							title="Instruments"
+							description="Interactive chord voicings, chord variations & fingerings"
+							bodyId="section-instruments-body"
+							isCollapsed={Boolean(collapsedSections["section-instruments"])}
+							onToggleCollapse={() =>
+								toggleSectionCollapsed("section-instruments")
+							}
+						/>
 
-						<div className="instrument-tabs-bar">
-							<div
-								className="instrument-tablist"
-								role="tablist"
-								aria-label="Instrument view"
-							>
-								{INSTRUMENT_TABS.map((tabId) => (
-									<button
-										key={tabId}
-										type="button"
-										role="tab"
-										id={`tab-${tabId}`}
-										aria-selected={instrumentView === tabId}
-										aria-controls="panel-instrument"
-										className={`instrument-tab ${
-											instrumentView === tabId ? "is-active" : ""
-										}`}
-										onClick={() => handleSelectInstrumentTab(tabId)}
-									>
-										{INSTRUMENT_META[tabId].label}
-									</button>
-								))}
-							</div>
+						<div
+							id="section-instruments-body"
+							className="section-body"
+							hidden={Boolean(collapsedSections["section-instruments"])}
+						>
+							<div className="instrument-tabs-bar">
+								<InstrumentTabList
+									activeTab={instrumentView}
+									onSelect={handleSelectInstrumentTab}
+									idPrefix="tab"
+									ariaLabel="Instrument view"
+									controlsId="panel-instrument"
+								/>
 
-							<div className="instrument-status-cluster">
-								{activeVoicing.label && (
-									<span className={`piano-badge ${activeQualityBadgeClass}`}>
-										{activeVoicing.label}
+								<div className="instrument-status-cluster">
+									{activeVoicing.label && (
+										<span className={`piano-badge ${activeQualityBadgeClass}`}>
+											{activeVoicing.label}
+										</span>
+									)}
+									<span className="instrument-notes-pill">
+										{activeVoicing.notes.join(" · ")}
 									</span>
+									<span className="instrument-tab-meta">
+										{INSTRUMENT_META[instrumentView].tuning}
+									</span>
+								</div>
+							</div>
+
+							<div
+								className="chord-variations-bar"
+								role="group"
+								aria-label={`Chord variations for root ${activeRootNote}`}
+							>
+								<span className="variations-root-label">
+									{activeRootNote} Variations:
+								</span>
+								<div className="variations-pills-scroll">
+									{CHORD_VARIATION_SPECS.map((spec) => {
+										const isSelected = activeVoicing.guitarKind === spec.kind;
+										return (
+											<button
+												key={spec.kind}
+												type="button"
+												className={`var-pill var-quality-${spec.quality} ${
+													isSelected ? "is-selected" : ""
+												}`}
+												aria-pressed={isSelected}
+												onClick={() => handleSelectChordVariation(spec.kind)}
+												title={`${activeRootNote}${spec.suffix} — ${spec.description} (${spec.formula})`}
+											>
+												{spec.label}
+											</button>
+										);
+									})}
+								</div>
+							</div>
+
+							<div
+								id="panel-instrument"
+								role="tabpanel"
+								aria-labelledby={`tab-${instrumentView}`}
+							>
+								{instrumentView === "piano" ? (
+									<PianoKeyboard
+										activeMidiNotes={activeVoicing.midi}
+										activeSongMidi={liveSongEvent?.midi ?? null}
+										activeQuality={activeVoicing.quality}
+										scalePitchClasses={scalePitchClasses}
+										activeNoteNamesByMidi={activeNoteNamesByMidi}
+										onPlayNote={(midi) =>
+											playSingleNote(midi, soundPreset, 0.72)
+										}
+									/>
+								) : instrumentView === "guitar" ? (
+									<GuitarFretboard
+										activeQuality={activeVoicing.quality}
+										chordNotes={activeVoicing.notes}
+										chordKind={activeVoicing.guitarKind}
+										voicings={activeInstrumentVoicings as GuitarVoicing[]}
+										selectedVoicing={
+											activeInstrumentVoicing as GuitarVoicing | null
+										}
+										activeSongMidi={liveSongEvent?.midi ?? null}
+										activeSongStops={liveSongEvent?.guitarStops ?? null}
+										activeRunMidi={activeGuitarRunMidi}
+										scalePitchClasses={scalePitchClasses}
+										scaleNoteNames={analysis.scaleNotes}
+										keyRootName={analysis.scaleNotes[0]}
+										keyMode={mode}
+										preferFlats={preferFlats}
+										onSelectVoicing={handleSelectInstrumentVoicing}
+										onStrumVoicing={handleAuditionInstrumentVoicing}
+										onPlayFretNote={(midi) =>
+											playSingleNote(midi, soundPreset, 0.78)
+										}
+										onPlayNoteSequence={handlePlayGuitarNoteSequence}
+									/>
+								) : (
+									<BowedFingerboard
+										instrument={instrumentView}
+										chordLabel={activeVoicing.label}
+										chordQuality={activeVoicing.quality}
+										chordKind={activeVoicing.guitarKind}
+										chordNotes={activeVoicing.notes}
+										scaleNotes={analysis.scaleNotes}
+										keyRootName={analysis.scaleNotes[0]}
+										preferFlats={preferFlats}
+										voicings={activeInstrumentVoicings as BowedVoicing[]}
+										activeVoicing={
+											activeInstrumentVoicing as BowedVoicing | null
+										}
+										activeSongStops={
+											(instrumentView === "violin"
+												? liveSongEvent?.violinStops
+												: liveSongEvent?.celloStops) ?? null
+										}
+										onSelectVoicing={handleSelectInstrumentVoicing}
+										onRollVoicing={handleAuditionInstrumentVoicing}
+										onPlayNote={(midi) =>
+											playSingleNote(
+												midi,
+												soundPreset,
+												instrumentView === "violin" ? 0.8 : 0.85,
+											)
+										}
+									/>
 								)}
-								<span className="instrument-notes-pill">
-									{activeVoicing.notes.join(" · ")}
-								</span>
-								<span className="instrument-tab-meta">
-									{INSTRUMENT_META[instrumentView].tuning}
-								</span>
 							</div>
-						</div>
-
-						<div
-							className="chord-variations-bar"
-							role="group"
-							aria-label={`Chord variations for root ${activeRootNote}`}
-						>
-							<span className="variations-root-label">
-								{activeRootNote} Variations:
-							</span>
-							<div className="variations-pills-scroll">
-								{CHORD_VARIATION_SPECS.map((spec) => {
-									const isSelected = activeVoicing.guitarKind === spec.kind;
-									return (
-										<button
-											key={spec.kind}
-											type="button"
-											className={`var-pill var-quality-${spec.quality} ${
-												isSelected ? "is-selected" : ""
-											}`}
-											aria-pressed={isSelected}
-											onClick={() => handleSelectChordVariation(spec.kind)}
-											title={`${activeRootNote}${spec.suffix} — ${spec.description} (${spec.formula})`}
-										>
-											{spec.label}
-										</button>
-									);
-								})}
-							</div>
-						</div>
-
-						<div
-							id="panel-instrument"
-							role="tabpanel"
-							aria-labelledby={`tab-${instrumentView}`}
-						>
-							{instrumentView === "piano" ? (
-								<PianoKeyboard
-									activeMidiNotes={activeVoicing.midi}
-									activeSongMidi={liveSongEvent?.midi ?? null}
-									activeQuality={activeVoicing.quality}
-									scalePitchClasses={scalePitchClasses}
-									activeNoteNamesByMidi={activeNoteNamesByMidi}
-									onPlayNote={(midi) => playSingleNote(midi, soundPreset, 0.72)}
-								/>
-							) : instrumentView === "guitar" ? (
-								<GuitarFretboard
-									activeQuality={activeVoicing.quality}
-									chordNotes={activeVoicing.notes}
-									chordKind={activeVoicing.guitarKind}
-									voicings={activeInstrumentVoicings as GuitarVoicing[]}
-									selectedVoicing={
-										activeInstrumentVoicing as GuitarVoicing | null
-									}
-									activeSongMidi={liveSongEvent?.midi ?? null}
-									activeSongStops={liveSongEvent?.guitarStops ?? null}
-									activeRunMidi={activeGuitarRunMidi}
-									scalePitchClasses={scalePitchClasses}
-									scaleNoteNames={analysis.scaleNotes}
-									keyRootName={analysis.scaleNotes[0]}
-									keyMode={mode}
-									preferFlats={preferFlats}
-									onSelectVoicing={handleSelectInstrumentVoicing}
-									onStrumVoicing={handleAuditionInstrumentVoicing}
-									onPlayFretNote={(midi) =>
-										playSingleNote(midi, soundPreset, 0.78)
-									}
-									onPlayNoteSequence={handlePlayGuitarNoteSequence}
-								/>
-							) : (
-								<BowedFingerboard
-									instrument={instrumentView}
-									chordLabel={activeVoicing.label}
-									chordQuality={activeVoicing.quality}
-									chordKind={activeVoicing.guitarKind}
-									chordNotes={activeVoicing.notes}
-									scaleNotes={analysis.scaleNotes}
-									keyRootName={analysis.scaleNotes[0]}
-									preferFlats={preferFlats}
-									voicings={activeInstrumentVoicings as BowedVoicing[]}
-									activeVoicing={activeInstrumentVoicing as BowedVoicing | null}
-									activeSongStops={
-										(instrumentView === "violin"
-											? liveSongEvent?.violinStops
-											: liveSongEvent?.celloStops) ?? null
-									}
-									onSelectVoicing={handleSelectInstrumentVoicing}
-									onRollVoicing={handleAuditionInstrumentVoicing}
-									onPlayNote={(midi) =>
-										playSingleNote(
-											midi,
-											soundPreset,
-											instrumentView === "violin" ? 0.8 : 0.85,
-										)
-									}
-								/>
-							)}
 						</div>
 					</section>
 
@@ -2215,53 +2269,75 @@ export function App() {
 							highlightedSectionId === "section-real-songs"
 								? " is-toc-targeted"
 								: ""
-						}`}
+						}${collapsedSections["section-real-songs"] ? " is-collapsed" : ""}`}
 						aria-labelledby="real-songs-heading"
 					>
-						<div className="section-header">
-							<div className="section-heading">
-								<div className="section-title-row">
-									<IconMusic size={15} />
-									<h2 id="real-songs-heading" className="section-title">
-										Real Songs
-									</h2>
+						<SectionHeader
+							headingId="real-songs-heading"
+							title="Real Songs"
+							description="Bar-by-bar arrangements, study guides & interactive playback"
+							bodyId="section-real-songs-body"
+							titlePrefix={<IconMusic size={15} />}
+							titleBadge={
+								<>
 									<span className="tab-count-pill">
 										{songsForInstrument.length}
 									</span>
 									{(playingSongId !== null || cuedSongId !== null) && (
 										<span className="tab-live-dot" aria-hidden="true" />
 									)}
-								</div>
-								<p className="section-desc">
-									Bar-by-bar arrangements, study guides &amp; interactive
-									playback
-								</p>
+								</>
+							}
+							isCollapsed={Boolean(collapsedSections["section-real-songs"])}
+							onToggleCollapse={() =>
+								toggleSectionCollapsed("section-real-songs")
+							}
+						/>
+
+						<div
+							id="section-real-songs-body"
+							className="section-body"
+							hidden={Boolean(collapsedSections["section-real-songs"])}
+						>
+							<div className="instrument-tabs-bar songs-instrument-bar">
+								<InstrumentTabList
+									activeTab={instrumentView}
+									onSelect={handleSelectInstrumentTab}
+									idPrefix="songs-tab"
+									ariaLabel="Real Songs instrument"
+									controlsId="panel-real-songs"
+								/>
+								<span className="instrument-tab-meta">
+									{INSTRUMENT_META[instrumentView].repertoire} · Synced with{" "}
+									{INSTRUMENT_META[instrumentView].label} above
+								</span>
 							</div>
 
-							<span className="instrument-tab-meta">
-								{INSTRUMENT_META[instrumentView].repertoire} · Synced with{" "}
-								{INSTRUMENT_META[instrumentView].label} above
-							</span>
+							<div
+								id="panel-real-songs"
+								role="tabpanel"
+								aria-labelledby={`songs-tab-${instrumentView}`}
+							>
+								<SongExamplesPanel
+									songs={songsForInstrument}
+									selectedSongId={selectedSongId}
+									playingSongId={playingSongId}
+									cuedSongId={cuedSongId}
+									songPositionMs={songPositionMs}
+									activeChordStepIndex={activeSongStepIndex}
+									activeNoteLabel={activeSongNoteLabel}
+									selectedPreviewStepId={selectedSongPreviewId}
+									onSelectSong={handleSelectSong}
+									onTogglePlaySong={handleTogglePlaySong}
+									onStopSong={handleStopSong}
+									onSeekSong={handleSeekSong}
+									onBeginScrubSong={handleBeginScrubSong}
+									onSkipSongBar={handleSkipSongBar}
+									onPlayFromSongBar={handlePlayFromSongBar}
+									onSelectSongChordStep={handleSelectSongChordStep}
+								/>
+							</div>
 						</div>
-
-						<SongExamplesPanel
-							songs={songsForInstrument}
-							selectedSongId={selectedSongId}
-							playingSongId={playingSongId}
-							cuedSongId={cuedSongId}
-							songPositionMs={songPositionMs}
-							activeChordStepIndex={activeSongStepIndex}
-							activeNoteLabel={activeSongNoteLabel}
-							selectedPreviewStepId={selectedSongPreviewId}
-							onSelectSong={handleSelectSong}
-							onTogglePlaySong={handleTogglePlaySong}
-							onStopSong={handleStopSong}
-							onSeekSong={handleSeekSong}
-							onBeginScrubSong={handleBeginScrubSong}
-							onSkipSongBar={handleSkipSongBar}
-							onPlayFromSongBar={handlePlayFromSongBar}
-							onSelectSongChordStep={handleSelectSongChordStep}
-						/>
 					</section>
 				</div>
 			</main>
