@@ -2220,7 +2220,6 @@ export function App() {
 						<SectionHeader
 							headingId="section-chords-heading"
 							title="Chords"
-							description="Chords & Progressions · Passing & Substitutions"
 							bodyId="section-chords-body"
 							titleBadge={
 								isChordsSequenceActive ? (
@@ -2228,7 +2227,7 @@ export function App() {
 								) : undefined
 							}
 							actions={
-								isChordsCollapsed ? (
+								isChordsCollapsed || harmonyTab === "color" ? (
 									<span className="workspace-collapsed-key">
 										{analysis.name}
 									</span>

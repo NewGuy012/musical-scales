@@ -28,7 +28,7 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain(
 			'id="section-chords-heading" class="section-title">Chords</h2>',
 		);
-		expect(html).toContain(
+		expect(html).not.toContain(
 			"Chords &amp; Progressions · Passing &amp; Substitutions",
 		);
 		expect(html).toContain("Diatonic Chords in C");

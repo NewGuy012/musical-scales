@@ -4,7 +4,7 @@ import { IconChevronDown } from "./Icons";
 interface SectionHeaderProps {
 	headingId: string;
 	title: string;
-	description: string;
+	description?: string;
 	bodyId?: string;
 	compact?: boolean;
 	className?: string;
@@ -54,7 +54,7 @@ export function SectionHeader({
 						{title}
 					</h2>
 				)}
-				<p className="section-desc">{description}</p>
+				{description && <p className="section-desc">{description}</p>}
 			</div>
 
 			{(actions || onToggleCollapse) && (
