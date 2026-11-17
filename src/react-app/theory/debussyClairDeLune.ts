@@ -1,4 +1,4 @@
-import type { CompactSongSpec, SongNoteEvent } from "./songExamples";
+import type { CompactSongSpec, SongNoteEvent } from "./songRuntime";
 
 function e(
 	midi: number[],

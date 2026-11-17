@@ -9,11 +9,17 @@ import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 import {
+	SONG_CATALOG,
+	loadSongById,
+} from "../src/react-app/theory/songCatalog";
+import {
+	SONG_EXAMPLES,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
 	getSongsForInstrument,
+	scaleSongExampleSpeed,
 } from "../src/react-app/theory/songExamples";
 
 const noop = () => {};
@@ -486,5 +492,44 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(celloThumbHtml).toContain(">19<");
 		expect(celloThumbHtml).toContain("is-song-hit");
+	});
+
+	test("SONG_CATALOG mirrors SONG_EXAMPLES metadata, lazy-loads songs, and supports practice speed scaling", async () => {
+		expect(SONG_CATALOG.map((c) => c.id)).toEqual(
+			SONG_EXAMPLES.map((s) => s.id),
+		);
+		for (const entry of SONG_CATALOG) {
+			const match = SONG_EXAMPLES.find((s) => s.id === entry.id)!;
+			expect(entry.barCount).toBe(match.steps.length);
+			expect(entry.bpm).toBe(match.bpm);
+			expect(entry.keyLabel).toBe(match.keyLabel);
+		}
+
+		const bachLazy = await loadSongById("bach-cello-suite-1");
+		expect(bachLazy.steps).toHaveLength(42);
+		const slowBach = scaleSongExampleSpeed(bachLazy, 0.5);
+		expect(slowBach.bpm).toBe(Math.round(bachLazy.bpm * 0.5));
+		expect(flattenSongPlaybackSteps(slowBach).totalDurationMs).toBeCloseTo(
+			flattenSongPlaybackSteps(bachLazy).totalDurationMs * 2,
+			-1,
+		);
+
+		const html = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={[slowBach]}
+				playingSongId={null}
+				playbackSpeed={0.75}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onChangePlaybackSpeed={noop}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(html).toContain("practice speed");
+		expect(html).toContain("0.5x");
+		expect(html).toContain("0.75x");
+		expect(html).toContain("1.25x");
 	});
 });

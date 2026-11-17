@@ -3,7 +3,7 @@ import type {
 	CompactSongSpec,
 	NotationBarSpec,
 	SongNoteEvent,
-} from "./songExamples";
+} from "./songRuntime";
 
 const EIGHTH_MS = 330; // 9/8 compound triple at dotted-quarter = 61 BPM (990ms per beat)
 const SIXTEENTH_MS = EIGHTH_MS / 2;

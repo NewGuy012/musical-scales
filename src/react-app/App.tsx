@@ -61,6 +61,10 @@ import {
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
 import {
+	getCatalogStubSongsForInstrument,
+	loadSongById,
+} from "./theory/songCatalog";
+import {
 	FlattenedSongStep,
 	InstrumentTab,
 	SongChordStep,
@@ -69,8 +73,8 @@ import {
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
-	getSongsForInstrument,
-} from "./theory/songExamples";
+	scaleSongExampleSpeed,
+} from "./theory/songRuntime";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -218,6 +222,10 @@ export function App() {
 	const [selectedSongByInstrument, setSelectedSongByInstrument] = useState<
 		Partial<Record<InstrumentTab, string>>
 	>({});
+	const [loadedSongsById, setLoadedSongsById] = useState<
+		Record<string, SongExample>
+	>({});
+	const [songPlaybackSpeed, setSongPlaybackSpeed] = useState<number>(1);
 	const [activeGuitarRunMidi, setActiveGuitarRunMidi] = useState<number | null>(
 		null,
 	);
@@ -985,8 +993,25 @@ export function App() {
 	);
 
 	const songsForInstrument = useMemo(
-		() => getSongsForInstrument(instrumentView),
-		[instrumentView],
+		() =>
+			getCatalogStubSongsForInstrument(instrumentView).map((stub) => {
+				const loaded = loadedSongsById[stub.id];
+				return loaded ? scaleSongExampleSpeed(loaded, songPlaybackSpeed) : stub;
+			}),
+		[instrumentView, loadedSongsById, songPlaybackSpeed],
+	);
+
+	const ensureSongLoaded = useCallback(
+		async (songId: string): Promise<SongExample> => {
+			const cached = loadedSongsById[songId];
+			if (cached) return scaleSongExampleSpeed(cached, songPlaybackSpeed);
+			const loaded = await loadSongById(songId);
+			setLoadedSongsById((prev) =>
+				prev[songId] ? prev : { ...prev, [songId]: loaded },
+			);
+			return scaleSongExampleSpeed(loaded, songPlaybackSpeed);
+		},
+		[loadedSongsById, songPlaybackSpeed],
 	);
 
 	const applySongStepHighlight = useCallback(
@@ -1139,16 +1164,22 @@ export function App() {
 				setPlayingSongId(null);
 				return;
 			}
-			if (cuedSongId === song.id) {
-				startSongPlaybackFrom(song, songPositionMsRef.current);
-				return;
-			}
-			startSongPlaybackFrom(song, 0);
+			const launch = async () => {
+				const ready =
+					song.steps.length > 0 ? song : await ensureSongLoaded(song.id);
+				if (cuedSongId === ready.id) {
+					startSongPlaybackFrom(ready, songPositionMsRef.current);
+					return;
+				}
+				startSongPlaybackFrom(ready, 0);
+			};
+			void launch();
 		},
 		[
 			playingSongId,
 			cuedSongId,
 			cancelActivePlaybackEngine,
+			ensureSongLoaded,
 			startSongPlaybackFrom,
 		],
 	);
@@ -1322,6 +1353,21 @@ export function App() {
 		songsForInstrument[0]?.id ??
 		null;
 
+	useEffect(() => {
+		if (!selectedSongId || loadedSongsById[selectedSongId]) return;
+		let cancelled = false;
+		void loadSongById(selectedSongId).then((loaded) => {
+			if (!cancelled) {
+				setLoadedSongsById((prev) =>
+					prev[selectedSongId] ? prev : { ...prev, [selectedSongId]: loaded },
+				);
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [selectedSongId, loadedSongsById]);
+
 	const handleSelectSong = useCallback(
 		(nextSongId: string) => {
 			resetSongContext();
@@ -1331,6 +1377,44 @@ export function App() {
 			}));
 		},
 		[resetSongContext, instrumentView],
+	);
+
+	const handleChangePlaybackSpeed = useCallback(
+		(nextSpeed: number) => {
+			const clamped = Math.max(0.25, Math.min(2.5, nextSpeed));
+			if (Math.abs(clamped - songPlaybackSpeed) < 0.001) return;
+			const ratio = songPlaybackSpeed / clamped;
+			setSongPlaybackSpeed(clamped);
+
+			const activeId = playingSongId ?? cuedSongId;
+			if (!activeId) return;
+			const baseSong = loadedSongsById[activeId];
+			if (!baseSong) return;
+			const scaledSong = scaleSongExampleSpeed(baseSong, clamped);
+			const scaledPosMs = Math.max(0, songPositionMsRef.current * ratio);
+
+			if (playingSongId === activeId) {
+				startSongPlaybackFrom(scaledSong, scaledPosMs);
+			} else if (cuedSongId === activeId) {
+				const songAnalysis = analyzeKey(
+					scaledSong.keySlot,
+					scaledSong.keyMode,
+					preference,
+					slotOverrides,
+				);
+				syncSongStateAtTime(scaledSong, scaledPosMs, songAnalysis);
+			}
+		},
+		[
+			songPlaybackSpeed,
+			playingSongId,
+			cuedSongId,
+			loadedSongsById,
+			startSongPlaybackFrom,
+			preference,
+			slotOverrides,
+			syncSongStateAtTime,
+		],
 	);
 
 	const handleFlipEnharmonic = useCallback(() => {
@@ -2250,10 +2334,12 @@ export function App() {
 									playingSongId={playingSongId}
 									cuedSongId={cuedSongId}
 									songPositionMs={songPositionMs}
+									playbackSpeed={songPlaybackSpeed}
 									activeChordStepIndex={activeSongStepIndex}
 									activeNoteLabel={activeSongNoteLabel}
 									selectedPreviewStepId={selectedSongPreviewId}
 									onSelectSong={handleSelectSong}
+									onChangePlaybackSpeed={handleChangePlaybackSpeed}
 									onTogglePlaySong={handleTogglePlaySong}
 									onStopSong={handleStopSong}
 									onSeekSong={handleSeekSong}

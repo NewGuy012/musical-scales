@@ -4,7 +4,7 @@ import {
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
-} from "./songExamples";
+} from "./songRuntime";
 
 const QUARTER_MS = 660; // 4/4 Allegro moderato at quarter = 91 BPM (2640ms per bar)
 const EIGHTH_MS = QUARTER_MS / 2; // 330ms

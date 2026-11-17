@@ -11,7 +11,7 @@ import {
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
-} from "./songExamples";
+} from "./songRuntime";
 
 const STEP_16TH_MS = 152;
 const LEGATO_16TH_SEC = 0.25;

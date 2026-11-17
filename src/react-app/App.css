@@ -3320,10 +3320,17 @@
 .song-time-readout {
 	display: inline-flex;
 	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-end;
 	gap: 8px;
 	font-size: 0.74rem;
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
+}
+
+.song-speed-group .seg-btn {
+	padding: 2px 6px;
+	font-size: 0.68rem;
 }
 
 .song-bar-counter {

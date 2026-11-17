@@ -4,7 +4,7 @@ import {
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
-} from "./songExamples";
+} from "./songRuntime";
 
 const EIGHTH_MS = 125; // 2/2 Cut time at half = 120 BPM (250ms per quarter, 1000ms per bar)
 const QUARTER_MS = EIGHTH_MS * 2;

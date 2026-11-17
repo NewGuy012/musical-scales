@@ -4,7 +4,7 @@ import {
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
-} from "./songExamples";
+} from "./songRuntime";
 
 const STEP_QUARTER_MS = 750; // 80 BPM (Allegro moderato in 2/4)
 

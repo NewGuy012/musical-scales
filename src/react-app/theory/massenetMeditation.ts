@@ -12,7 +12,7 @@ import {
 	type NotationBarSpec,
 	type SongNoteEvent,
 	mapNotationBars,
-} from "./songExamples";
+} from "./songRuntime";
 
 const STEP_QUARTER_MS = 900; // ~66.7 BPM (Andante religioso)
 

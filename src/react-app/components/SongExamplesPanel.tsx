@@ -7,8 +7,10 @@ import {
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
-} from "../theory/songExamples";
+} from "../theory/songRuntime";
 import { IconChevronDown } from "./Icons";
+
+const PRACTICE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25] as const;
 
 export interface SongExamplesPanelProps {
 	songs: SongExample[];
@@ -16,10 +18,12 @@ export interface SongExamplesPanelProps {
 	playingSongId: string | null;
 	cuedSongId?: string | null;
 	songPositionMs?: number;
+	playbackSpeed?: number;
 	activeChordStepIndex: number | null;
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
 	onSelectSong?: (songId: string) => void;
+	onChangePlaybackSpeed?: (speed: number) => void;
 	onTogglePlaySong: (song: SongExample) => void;
 	onStopSong?: () => void;
 	onSeekSong?: (
@@ -40,6 +44,7 @@ type SongCardProps = Omit<
 	song: SongExample;
 	cuedSongId: string | null;
 	songPositionMs: number;
+	playbackSpeed: number;
 };
 
 function SongCard({
@@ -47,9 +52,11 @@ function SongCard({
 	playingSongId,
 	cuedSongId,
 	songPositionMs,
+	playbackSpeed,
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	onChangePlaybackSpeed,
 	onTogglePlaySong,
 	onStopSong,
 	onSeekSong,
@@ -184,7 +191,8 @@ function SongCard({
 			? "▶ Resume"
 			: "▶ Play Song";
 	const canStop = isCuedThis || displayMs > 0;
-	const isLongTimeline = song.steps.length > 12;
+	const totalBars = song.steps.length || song.barCount || 0;
+	const isLongTimeline = totalBars > 12;
 	const activeSection = findSongSectionForBar(song.studyGuide, activeBarIndex);
 
 	return (
@@ -203,7 +211,7 @@ function SongCard({
 						<span className="song-meta-chip">{song.keyLabel}</span>
 						<span className="song-meta-chip">{song.timeSignature}</span>
 						<span className="song-meta-chip">{song.bpm} BPM</span>
-						<span className="song-meta-chip">{song.steps.length} Bars</span>
+						<span className="song-meta-chip">{totalBars} Bars</span>
 						<span className="song-subtitle">{song.subtitle}</span>
 					</div>
 				</div>
@@ -422,11 +430,32 @@ function SongCard({
 
 				<div className="song-time-readout">
 					<span className="song-bar-counter">
-						Bar {activeBarIndex + 1}/{song.steps.length}
+						Bar {Math.min(activeBarIndex + 1, Math.max(1, totalBars))}/
+						{totalBars}
 					</span>
 					<span className="song-clock">
 						{formatSongTime(displayMs)} / {formatSongTime(totalDurationMs)}
 					</span>
+					{onChangePlaybackSpeed && (
+						<div
+							className="segmented-control song-speed-group"
+							role="group"
+							aria-label={`${song.title} practice speed`}
+						>
+							{PRACTICE_SPEED_OPTIONS.map((spd) => (
+								<button
+									key={spd}
+									type="button"
+									className={`seg-btn ${Math.abs(playbackSpeed - spd) < 0.01 ? "is-active" : ""}`}
+									aria-pressed={Math.abs(playbackSpeed - spd) < 0.01}
+									onClick={() => onChangePlaybackSpeed(spd)}
+									title={`Practice speed ${spd}x`}
+								>
+									{spd}x
+								</button>
+							))}
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -480,43 +509,49 @@ function SongCard({
 				role="group"
 				aria-label={`${song.title} chord progression bars`}
 			>
-				{song.steps.map((step, idx) => {
-					const isLiveActive = isCuedThis && activeBarIndex === idx;
-					const isSelectedPreview =
-						!isCuedThis && selectedPreviewStepId === step.id;
-					const isHighlighted = isLiveActive || isSelectedPreview;
-					const qualityClass =
-						step.quality === "minor"
-							? "is-minor"
-							: step.quality === "diminished"
-								? "is-dim"
-								: "is-major";
+				{song.steps.length === 0 ? (
+					<span className="song-subtitle">
+						{totalBars} bars · Loading performance bars…
+					</span>
+				) : (
+					song.steps.map((step, idx) => {
+						const isLiveActive = isCuedThis && activeBarIndex === idx;
+						const isSelectedPreview =
+							!isCuedThis && selectedPreviewStepId === step.id;
+						const isHighlighted = isLiveActive || isSelectedPreview;
+						const qualityClass =
+							step.quality === "minor"
+								? "is-minor"
+								: step.quality === "diminished"
+									? "is-dim"
+									: "is-major";
 
-					return (
-						<button
-							key={step.id}
-							ref={(el) => {
-								stepButtonRefs.current[idx] = el;
-							}}
-							type="button"
-							className={`song-step-btn ${qualityClass}${
-								isHighlighted ? " is-active" : ""
-							}`}
-							aria-pressed={isHighlighted}
-							onClick={() => onSelectSongChordStep(song, idx)}
-						>
-							<span className="song-step-top">
-								<span className="song-step-bar">{step.barLabel}</span>
-								<span className="song-step-roman">{step.roman}</span>
-							</span>
-							<span className="song-step-chord">{step.chordSymbol}</span>
-							<span className="song-step-notes">
-								{step.chordNotes.join(" · ")}
-							</span>
-							<span className="song-step-cue">{step.cue}</span>
-						</button>
-					);
-				})}
+						return (
+							<button
+								key={step.id}
+								ref={(el) => {
+									stepButtonRefs.current[idx] = el;
+								}}
+								type="button"
+								className={`song-step-btn ${qualityClass}${
+									isHighlighted ? " is-active" : ""
+								}`}
+								aria-pressed={isHighlighted}
+								onClick={() => onSelectSongChordStep(song, idx)}
+							>
+								<span className="song-step-top">
+									<span className="song-step-bar">{step.barLabel}</span>
+									<span className="song-step-roman">{step.roman}</span>
+								</span>
+								<span className="song-step-chord">{step.chordSymbol}</span>
+								<span className="song-step-notes">
+									{step.chordNotes.join(" · ")}
+								</span>
+								<span className="song-step-cue">{step.cue}</span>
+							</button>
+						);
+					})
+				)}
 			</div>
 		</article>
 	);
@@ -528,10 +563,12 @@ export function SongExamplesPanel({
 	playingSongId,
 	cuedSongId = null,
 	songPositionMs = 0,
+	playbackSpeed = 1,
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
 	onSelectSong,
+	onChangePlaybackSpeed,
 	onTogglePlaySong,
 	onStopSong,
 	onSeekSong,
@@ -575,7 +612,8 @@ export function SongExamplesPanel({
 							<option key={song.id} value={song.id}>
 								{idx + 1}. {song.title} —{" "}
 								{song.composerOrSource.split(" · ")[0]} ({song.keyLabel} ·{" "}
-								{song.timeSignature} · {song.steps.length} bars)
+								{song.timeSignature} · {song.steps.length || song.barCount || 0}{" "}
+								bars)
 							</option>
 						))}
 					</select>
@@ -592,9 +630,11 @@ export function SongExamplesPanel({
 				playingSongId={playingSongId}
 				cuedSongId={cuedSongId}
 				songPositionMs={songPositionMs}
+				playbackSpeed={playbackSpeed}
 				activeChordStepIndex={activeChordStepIndex}
 				activeNoteLabel={activeNoteLabel}
 				selectedPreviewStepId={selectedPreviewStepId}
+				onChangePlaybackSpeed={onChangePlaybackSpeed}
 				onTogglePlaySong={onTogglePlaySong}
 				onStopSong={onStopSong}
 				onSeekSong={onSeekSong}
