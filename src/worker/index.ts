@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono();
 
 app.use(
 	"*",
