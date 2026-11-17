@@ -1,6 +1,6 @@
 # Multi-Instrument Transcription Pipeline
 
-The offline ingestion pipeline converts authentic scores, tablatures, MIDI files, and YouTube audio/video into verified `CompactSongSpec` repertoire modules for **Piano**, **Guitar**, **Cello**, and **Violin**, while keeping the browser & Cloudflare Worker bundle free of heavy parser dependencies.
+The offline ingestion pipeline converts authentic scores, tablatures, MIDI files, and YouTube audio/video into normalized, tick-based [`SongDocumentV2`](../src/react-app/theory/songRuntime.ts) repertoire modules for **Piano**, **Guitar**, **Cello**, and **Violin**, while keeping the browser & Cloudflare Worker bundle free of heavy parser dependencies.
 
 ---
 
@@ -17,14 +17,14 @@ Tier 2 (Audio / YouTube)                                             │
    ┌─────────────────────────────────────────────────────────────────┘
    ▼
 ScoreTrackIR Compiler (scripts/transcription/scoreIr.ts)
-  ├─ Repeat & volta unrolling (1st/2nd endings)
-  ├─ Variable tempo map (BPM changes -> ms offsets & bar durations)
-  ├─ Grand-staff merging (RH + LH staves) & MIDI CC64 sustain pedal extension (piano)
+  ├─ Repeat & volta unrolling + form deduplication (repeated bar reuse)
+  ├─ Variable tempo map (tick-based tempoMap -> runtime ms conversion & practice speeds)
+  ├─ Grand-staff merging (RH + LH hand tags) & MIDI CC64 sustain pedal extension (piano)
   ├─ Viterbi ergonomic solver (scripts/transcription/ergonomicSolver.ts)
   │    └─ Preserves explicit TAB strings/frets or solves minimum-shift neck paths (guitar/cello/violin)
   ├─ Key & Roman numeral analyzer (scripts/transcription/harmonicAnalyzer.ts)
   │    └─ Krumhansl-Schmuckler key detection + weighted bar/half-bar harmony
-  └─ Emits CompactSongSpec (.ts module or .json) + optional 22.05 kHz WAV preview
+  └─ Emits SongDocumentV2 (.ts module or .json; --legacy for v1 CompactSongSpec) + optional 22.05 kHz WAV
 ```
 
 ---
@@ -93,5 +93,5 @@ Tips by instrument & recording style:
 - [`scripts/transcription/importers.ts`](../scripts/transcription/importers.ts): Parses Guitar Pro / MusicXML via `@coderline/alphatab` and Standard MIDI via `@tonejs/midi`, normalizing grand staves (RH + LH), MIDI CC64 sustain pedal intervals, custom tunings (reversed from high-to-low into low-to-high), capos, tie chains, dynamics, hammer-ons/pull-offs, slides, harmonics, palm mutes, let-ring sustains, repeat markers, and volta endings.
 - [`scripts/transcription/ergonomicSolver.ts`](../scripts/transcription/ergonomicSolver.ts): Uses dynamic programming (Viterbi) across playable left-hand fret/semitone positions (`MAX_SONG_GUITAR_FRET = 22`, `MAX_SONG_BOWED_SEMITONE = 24`) to minimize position jumps and string crossings when a stringed score lacks explicit tablature (no-op for piano).
 - [`scripts/transcription/harmonicAnalyzer.ts`](../scripts/transcription/harmonicAnalyzer.ts): Detects tonal center via Krumhansl-Schmuckler pitch-class correlation and infers bar or half-bar Roman numerals + slash/extended chord symbols.
-- [`scripts/transcription/scoreIr.ts`](../scripts/transcription/scoreIr.ts): Linearizes repeats, converts variable tempo tick timelines to millisecond `offsetMs` / `barDurationMs`, batches polyphonic voices, and formats strict-TypeScript `CompactSongSpec` modules.
-- [`scripts/import-song.ts`](../scripts/import-song.ts): Bun CLI runner supporting `--out` (`.ts`/`.json`), `--json`, `--list-tracks`, `--quantize`, and offline WAV preview rendering via `renderTimedSequenceOfflineSamples` + `encodeWavPcm16`.
+- [`scripts/transcription/scoreIr.ts`](../scripts/transcription/scoreIr.ts): Linearizes repeats, deduplicates repeated bars into `form`, emits tick-based `SongDocumentV2` (with normalized `chords` palette, `tempoMap`, and unified stop tuples, plus `--legacy` v1 `CompactSongSpec` support), and formats strict-TypeScript modules.
+- [`scripts/import-song.ts`](../scripts/import-song.ts): Bun CLI runner supporting `--out` (`.ts`/`.json`), `--json`, `--legacy`, `--list-tracks`, `--quantize`, and offline WAV preview rendering via `renderTimedSequenceOfflineSamples` + `encodeWavPcm16`.

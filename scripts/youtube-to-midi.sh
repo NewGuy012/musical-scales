@@ -6,7 +6,7 @@ usage() {
 Usage: scripts/youtube-to-midi.sh <youtube-url> [options]
 
 Downloads audio from YouTube, optionally separates instrument stems with Demucs,
-transcribes polyphonic MIDI via Spotify Basic Pitch, and imports into CompactSongSpec.
+transcribes polyphonic MIDI via Spotify Basic Pitch, and imports into SongDocumentV2.
 
 Options:
   --instrument <type>                 piano | guitar | cello | violin (default: guitar)
@@ -14,7 +14,7 @@ Options:
   --stem <piano|guitar|other|none>    Stem selection with htdemucs_6s (default: auto by instrument)
   --no-demucs                         Skip Demucs stem separation (faster for solo piano/guitar/cello)
   --quantize <n>                      Grid subdivision passed to import-song (default: 16)
-  --out <path>                        Write CompactSongSpec (.ts or .json) via import-song
+  --out <path>                        Write SongDocumentV2 (.ts or .json) via import-song
   --wav <path>                        Render verification WAV preview via import-song
   -h, --help                          Show this help
 
@@ -164,7 +164,7 @@ if [[ -z "$MIDI_FILE" ]]; then
 	exit 1
 fi
 
-echo "[4/4] Compiling CompactSongSpec via bun run import-song..."
+echo "[4/4] Compiling SongDocumentV2 via bun run import-song..."
 CMD=(bun run import-song --input "$MIDI_FILE" --instrument "$INSTRUMENT" --quantize "$QUANTIZE")
 if [[ -n "$TITLE" ]]; then
 	CMD+=(--title "$TITLE" --composer "YouTube Transcription")

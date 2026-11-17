@@ -85,17 +85,17 @@ bun dev       # open http://localhost:5173
 
 <br />
 
-| Command               | Description                                                                 |
-| :-------------------- | :-------------------------------------------------------------------------- |
-| `bun dev`             | Start Vite + Cloudflare Workers dev server                                  |
-| `bun test`            | Run unit, voicing, audio, pipeline, and UI tests plus `bun fmt --check`     |
-| `bun fmt`             | Format codebase with Bun                                                    |
-| `bun check -b`        | Typecheck app, Node, and Worker projects                                    |
-| `bun lint`            | Run typecheck and format verification                                       |
-| `bun run build`       | Build production client and worker bundles into `dist/`                     |
-| `bun run preview`     | Build and preview production bundle locally                                 |
-| `bun deploy`          | Deploy to Cloudflare Workers via Wrangler                                   |
-| `bun run import-song` | Import `.gp`/`.gpx`/`.musicxml`/`.mid` into `CompactSongSpec` + preview WAV |
+| Command               | Description                                                                |
+| :-------------------- | :------------------------------------------------------------------------- |
+| `bun dev`             | Start Vite + Cloudflare Workers dev server                                 |
+| `bun test`            | Run unit, voicing, audio, pipeline, and UI tests plus `bun fmt --check`    |
+| `bun fmt`             | Format codebase with Bun                                                   |
+| `bun check -b`        | Typecheck app, Node, and Worker projects                                   |
+| `bun lint`            | Run typecheck and format verification                                      |
+| `bun run build`       | Build production client and worker bundles into `dist/`                    |
+| `bun run preview`     | Build and preview production bundle locally                                |
+| `bun deploy`          | Deploy to Cloudflare Workers via Wrangler                                  |
+| `bun run import-song` | Import `.gp`/`.gpx`/`.musicxml`/`.mid` into `SongDocumentV2` + preview WAV |
 
 - See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, and data-flow diagrams.
 - See [`docs/transcription-pipeline.md`](./docs/transcription-pipeline.md) to import Guitar Pro tab, MusicXML scores, MIDI files, or YouTube audio (`yt-dlp` → `demucs` → `basic-pitch`) for Piano, Guitar, Violin, and Cello.

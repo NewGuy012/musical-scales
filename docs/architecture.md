@@ -59,10 +59,12 @@ musical-scales/
 │   │       ├── chromaticHarmony.ts   # Passing slides, symmetric dim7, secondary dominants, tritone subs
 │   │       ├── guitarFretboard.ts    # Tuning, 13 chord variations, CAGED voicings, pentatonic/passing guides
 │   │       ├── celloFingerboard.ts   # Bowed fifths voicing engine, Cello (C2–G2–D3–A3) & Violin (G3–D4–A4–E5) tunings
-│   │       ├── songExamples.ts       # CompactSongSpec hydrator, playback flattener & time lookup
+│   │       ├── songRuntime.ts        # SongDocumentV2 / CompactSongSpec hydrators, speed scaler & flattener
+│   │       ├── songCatalog.ts        # Lightweight repertoire metadata & dynamic import() lazy song loader
+│   │       ├── songExamples.ts       # Synchronous barrel re-exporting songRuntime + curated SONG_EXAMPLES
 │   │       ├── debussyClairDeLune.ts # Piano repertoire: Clair de lune (72 bars)
 │   │       ├── schubertMomentMusicaux3.ts # Piano repertoire: Schubert Moment Musicaux No. 3 (78 bars)
-│   │       ├── tommyAmazingGrace.ts  # Guitar repertoire: Amazing Grace arr. Tommy Emmanuel (34 bars)
+│   │       ├── tommyAmazingGrace.ts  # Guitar repertoire: Amazing Grace arr. Tommy Emmanuel (36 bars)
 │   │       ├── cannonballRag.ts      # Guitar repertoire: Merle Travis Cannonball Rag (75 bars)
 │   │       ├── massenetMeditation.ts # Violin repertoire: Massenet Méditation from Thaïs (71 bars)
 │   │       ├── bachCelloSuite1.ts    # Cello repertoire: Bach Cello Suite No. 1 Prelude (42 bars)
@@ -131,8 +133,9 @@ flowchart TD
   - Shares `getBowedFifthsVoicings()` and `getBowedVoicings()` across 4-string fifths-tuned instruments (`CELLO_TUNING`: `C2–G2–D3–A3`, `VIOLIN_TUNING`: `G3–D4–A4–E5`) over `MAX_BOWED_SEMITONE = 14` semitones.
   - Generates playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
-- **[`songExamples.ts`](../src/react-app/theory/songExamples.ts)** (+ repertoire leaf modules):
-  - Hydrates polyphonic pure data specs (`CompactSongSpec` via `hydrateSong()`, supporting `offsetMs`, `barDurationMs`, per-note `durationSec`/`velocity`/`technique`/`slideFromMidi`/`slurToNext`, `subBarChords`, custom `tuning`/`capo`, `MAX_SONG_GUITAR_FRET = 22`, and `MAX_SONG_BOWED_SEMITONE = 24`) from [`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) (_Clair de lune_ for Piano, 72 bars), [`schubertMomentMusicaux3.ts`](../src/react-app/theory/schubertMomentMusicaux3.ts) (_Moment Musicaux No. 3_ by Franz Schubert for Piano, 78 bars), [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) (_Amazing Grace_ arr. Tommy Emmanuel for Guitar, 36 bars), [`cannonballRag.ts`](../src/react-app/theory/cannonballRag.ts) (_Cannonball Rag_ by Merle Travis for Guitar, 58 bars), [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) (_Méditation (from Thaïs)_ by Jules Massenet for Violin, 71 bars), [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) (_Bach Cello Suite No. 1 Prelude_ for Cello, 42 bars), and [`haydnCelloConcerto2.ts`](../src/react-app/theory/haydnCelloConcerto2.ts) (_Cello Concerto No. 2 (I. Allegro moderato)_ by Joseph Haydn for Cello, 28 bars).
+- **[`songRuntime.ts`](../src/react-app/theory/songRuntime.ts)** & **[`songCatalog.ts`](../src/react-app/theory/songCatalog.ts)** (+ [`songExamples.ts`](../src/react-app/theory/songExamples.ts) synchronous test barrel):
+  - Hydrates both tick-based [`SongDocumentV2`](../src/react-app/theory/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) and legacy `CompactSongSpec` via `hydrateSong()`, plus supports practice speed scaling (`0.5x–1.25x`) via `scaleSongExampleSpeed()`.
+  - Code-splits all 7 repertoire pieces out of the main app entry chunk via `songCatalog.ts` dynamic `import()`, loading individual songs on demand ([`debussyClairDeLune.ts`](../src/react-app/theory/debussyClairDeLune.ts) 72 bars, [`schubertMomentMusicaux3.ts`](../src/react-app/theory/schubertMomentMusicaux3.ts) 78 bars, [`tommyAmazingGrace.ts`](../src/react-app/theory/tommyAmazingGrace.ts) 36 bars, [`cannonballRag.ts`](../src/react-app/theory/cannonballRag.ts) 58 bars, [`massenetMeditation.ts`](../src/react-app/theory/massenetMeditation.ts) 71 bars, [`bachCelloSuite1.ts`](../src/react-app/theory/bachCelloSuite1.ts) 42 bars, [`haydnCelloConcerto2.ts`](../src/react-app/theory/haydnCelloConcerto2.ts) 28 bars).
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 
 ---
