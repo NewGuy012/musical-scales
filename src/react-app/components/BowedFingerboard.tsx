@@ -4,6 +4,7 @@ import {
 	type BowedInstrument,
 	type BowedVoicing,
 	MAX_BOWED_SEMITONE,
+	MAX_SONG_BOWED_SEMITONE,
 } from "../theory/celloFingerboard";
 import {
 	type ChordQuality,
@@ -100,7 +101,14 @@ export function BowedFingerboard({
 	} = BOWED_PRESETS[instrument];
 	const instrumentSlug = instrument;
 	const tuning = BOWED_TUNINGS[instrument];
-	const maxSemitone = MAX_BOWED_SEMITONE;
+	const maxSongSemi =
+		activeSongStops && activeSongStops.length > 0
+			? Math.max(...activeSongStops.map((s) => s.semitone))
+			: 0;
+	const maxSemitone = Math.min(
+		MAX_SONG_BOWED_SEMITONE,
+		Math.max(MAX_BOWED_SEMITONE, maxSongSemi),
+	);
 	const [overlayMode, setOverlayMode] = useState<BowedOverlayMode>("voicing");
 	const [labelMode, setLabelMode] = useState<BowedLabelMode>("notes");
 	const [breakdownOpen, setBreakdownOpen] = useState<boolean>(false);

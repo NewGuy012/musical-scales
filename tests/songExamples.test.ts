@@ -1,16 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_BOWED_SEMITONE } from "../src/react-app/theory/celloFingerboard";
+import {
+	MAX_BOWED_SEMITONE,
+	MAX_SONG_BOWED_SEMITONE,
+} from "../src/react-app/theory/celloFingerboard";
 import {
 	GUITAR_HARMONIC_OFFSETS,
+	GUITAR_TUNING_PRESETS,
 	MAX_GUITAR_FRET,
+	MAX_SONG_GUITAR_FRET,
 	STANDARD_TUNING,
+	parseGuitarStops,
 } from "../src/react-app/theory/guitarFretboard";
 import {
 	SONG_EXAMPLES,
 	describeRomanFunction,
 	findSongSectionForBar,
 	flattenSongPlaybackSteps,
+	getSongBarStartTimes,
 	getSongsForInstrument,
+	hydrateSong,
 } from "../src/react-app/theory/songExamples";
 
 describe("songExamples", () => {
@@ -67,7 +75,7 @@ describe("songExamples", () => {
 					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
 					expect(stop.stringIndex).toBeLessThan(STANDARD_TUNING.length);
 					expect(stop.fret).toBeGreaterThanOrEqual(0);
-					expect(stop.fret).toBeLessThanOrEqual(MAX_GUITAR_FRET);
+					expect(stop.fret).toBeLessThanOrEqual(MAX_SONG_GUITAR_FRET);
 				}
 				for (const stop of [
 					...(ev.celloStops ?? []),
@@ -76,7 +84,7 @@ describe("songExamples", () => {
 					expect(stop.stringIndex).toBeGreaterThanOrEqual(0);
 					expect(stop.stringIndex).toBeLessThanOrEqual(3);
 					expect(stop.semitone).toBeGreaterThanOrEqual(0);
-					expect(stop.semitone).toBeLessThanOrEqual(MAX_BOWED_SEMITONE);
+					expect(stop.semitone).toBeLessThanOrEqual(MAX_SONG_BOWED_SEMITONE);
 					expect(stop.finger).toBeGreaterThanOrEqual(0);
 					expect(stop.finger).toBeLessThanOrEqual(4);
 				}
@@ -336,5 +344,151 @@ describe("Curated piano, guitar, violin, and cello arrangements", () => {
 				2640,
 			);
 		}
+		expect(MAX_GUITAR_FRET).toBe(15);
+		expect(MAX_BOWED_SEMITONE).toBe(14);
+	});
+
+	test("polyphonic timestamp flattening supports independent voice durations, rests, custom tunings, and sub-bar chords", () => {
+		const dropD = parseGuitarStops("0:0m+4:3r", GUITAR_TUNING_PRESETS.dropD, 2);
+		expect(dropD.midi).toEqual([40, 64]);
+		expect(dropD.guitarStops).toEqual([
+			{ stringIndex: 0, fret: 0, technique: "palmMute" },
+			{ stringIndex: 4, fret: 3, technique: "letRing" },
+		]);
+
+		const polySong = hydrateSong({
+			id: "poly-test",
+			idPrefix: "pt",
+			title: "Poly Test",
+			composerOrSource: "Test",
+			subtitle: "Polyphonic voices",
+			instruments: ["guitar"],
+			keySlot: 1,
+			keyMode: "major",
+			keyLabel: "G Major",
+			timeSignature: "4/4",
+			bpm: 120,
+			tuning: [...GUITAR_TUNING_PRESETS.dropD],
+			capo: 2,
+			theorySummary: "Test polyphonic spec",
+			bars: [
+				[
+					1,
+					"G",
+					"I",
+					"major",
+					"major",
+					["G", "B", "D"],
+					[43, 55, 59],
+					1,
+					"Bar 1 polyphonic bass + melody",
+					[
+						{
+							midi: [43],
+							offsetMs: 0,
+							durationSec: 0.25,
+							stepDurationMs: 500,
+							velocity: 0.55,
+							noteLabel: "G2 bass",
+							notes: [
+								{
+									midi: 43,
+									durationSec: 0.25,
+									velocity: 0.55,
+									technique: "palmMute",
+								},
+							],
+							guitarStops: [{ stringIndex: 0, fret: 5, technique: "palmMute" }],
+						},
+						{
+							midi: [67],
+							offsetMs: 0,
+							durationSec: 0.9,
+							stepDurationMs: 500,
+							velocity: 0.92,
+							noteLabel: "G4 melody",
+							notes: [
+								{
+									midi: 67,
+									durationSec: 0.9,
+									velocity: 0.92,
+									technique: "letRing",
+								},
+							],
+							guitarStops: [{ stringIndex: 5, fret: 3, technique: "letRing" }],
+						},
+						{
+							midi: [62],
+							offsetMs: 750,
+							durationSec: 0.4,
+							stepDurationMs: 250,
+							velocity: 0.85,
+							noteLabel: "D4 syncopation",
+						},
+					],
+					1,
+					{
+						barDurationMs: 1500,
+						subBarChords: [
+							{
+								offsetMs: 0,
+								chordSymbol: "G",
+								roman: "I",
+								quality: "major",
+								circleDegree: 1,
+								circleSlotIndex: 1,
+							},
+							{
+								offsetMs: 750,
+								chordSymbol: "D7",
+								roman: "V7",
+								quality: "major",
+								circleDegree: 5,
+								circleSlotIndex: 2,
+							},
+						],
+					},
+				],
+				[
+					2,
+					"G",
+					"I",
+					"major",
+					"major",
+					["G", "B", "D"],
+					[43, 55, 59],
+					1,
+					"Bar 2 after quarter rest",
+					[
+						{
+							midi: [55],
+							offsetMs: 250,
+							durationSec: 0.5,
+							stepDurationMs: 250,
+							noteLabel: "G3",
+						},
+					],
+					1,
+					{ barDurationMs: 1000 },
+				],
+			],
+		});
+
+		const barStarts = getSongBarStartTimes(polySong);
+		expect(barStarts).toEqual([0, 1500]);
+
+		const flat = flattenSongPlaybackSteps(polySong);
+		expect(flat.totalDurationMs).toBe(2500);
+		expect(flat.events).toHaveLength(3);
+		expect(flat.events[0].atMs).toBe(0);
+		expect(flat.events[0].midi).toEqual([43, 67]);
+		expect(flat.events[0].notes?.map((n) => n.technique)).toEqual([
+			"palmMute",
+			"letRing",
+		]);
+		expect(flat.events[0].subBarChord?.chordSymbol).toBe("G");
+		expect(flat.events[1].atMs).toBe(750);
+		expect(flat.events[1].subBarChord?.chordSymbol).toBe("D7");
+		expect(flat.events[2].atMs).toBe(1750);
 	});
 });

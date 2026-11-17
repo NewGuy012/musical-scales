@@ -438,5 +438,53 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(harmonicHtml).toContain("song-hit-halo");
 		expect(harmonicHtml).toContain("is-harmonic");
 		expect(harmonicHtml).toContain("song-hit-harmonic");
+
+		const extendedGuitarHtml = renderToStaticMarkup(
+			<GuitarFretboard
+				activeQuality="major"
+				chordNotes={["E", "G♯", "B"]}
+				chordKind="major"
+				voicings={voicings}
+				selectedVoicing={voicings[0] ?? null}
+				activeSongMidi={[83]}
+				activeSongStops={[{ stringIndex: 5, fret: 19 }]}
+				scalePitchClasses={[4, 6, 8, 9, 11, 1, 3]}
+				scaleNoteNames={eMajor.scaleNotes}
+				preferFlats={false}
+				onSelectVoicing={noop}
+				onStrumVoicing={noop}
+				onPlayFretNote={noop}
+			/>,
+		);
+		expect(extendedGuitarHtml).toContain(">19<");
+		expect(extendedGuitarHtml).toContain("is-song-hit");
+
+		const dMajor = analyzeKey(2, "major");
+		const celloThumbVoicings = getBowedVoicings(
+			"cello",
+			"D",
+			"major",
+			["D", "F♯", "A"],
+			false,
+		);
+		const celloThumbHtml = renderToStaticMarkup(
+			<BowedFingerboard
+				instrument="cello"
+				chordLabel="D (I)"
+				chordQuality="major"
+				chordKind="major"
+				chordNotes={["D", "F♯", "A"]}
+				scaleNotes={dMajor.scaleNotes}
+				preferFlats={false}
+				voicings={celloThumbVoicings}
+				activeVoicing={celloThumbVoicings[0] ?? null}
+				activeSongStops={[{ stringIndex: 3, semitone: 19, finger: 3 }]}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
+			/>,
+		);
+		expect(celloThumbHtml).toContain(">19<");
+		expect(celloThumbHtml).toContain("is-song-hit");
 	});
 });

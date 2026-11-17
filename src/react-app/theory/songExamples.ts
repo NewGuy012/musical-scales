@@ -20,17 +20,56 @@ export type { GuitarSongStop, GuitarStopTechnique };
 
 export type InstrumentTab = "piano" | "guitar" | "violin" | "cello";
 
+export type SongNoteTechnique =
+	| "normal"
+	| "harmonic"
+	| "hammer"
+	| "pull"
+	| "slide"
+	| "palmMute"
+	| "letRing"
+	| "staccato"
+	| "portamento"
+	| "pizzicato"
+	| "slur";
+
+export interface SongPerformanceNote {
+	midi: number;
+	durationSec: number;
+	velocity?: number;
+	technique?: SongNoteTechnique;
+	slideFromMidi?: number;
+	slurToNext?: boolean;
+}
+
+export interface SongSubBarChord {
+	offsetMs: number;
+	chordSymbol: string;
+	roman: string;
+	quality: ChordQuality;
+	guitarKind?: GuitarChordKind;
+	chordNotes?: string[];
+	circleDegree: number;
+	circleSlotIndex?: number;
+}
+
 export interface BowedSongStop {
 	stringIndex: number;
 	semitone: number;
 	finger: number;
-	technique?: "normal" | "harmonic" | "portamento";
+	technique?:
+		"normal" | "harmonic" | "portamento" | "staccato" | "pizzicato" | "slur";
 }
 
 export interface SongNoteEvent {
 	midi: number[];
 	durationSec: number;
 	stepDurationMs: number;
+	/** Explicit onset offset inside the bar (ms) for polyphonic voices and rests. */
+	offsetMs?: number;
+	/** Per-note durations, velocities, and techniques matching `midi` entries. */
+	notes?: SongPerformanceNote[];
+	velocity?: number;
 	noteLabel: string;
 	spreadSec?: number;
 	celloStops?: BowedSongStop[];
@@ -50,6 +89,8 @@ export interface SongChordStep {
 	circleDegree: number;
 	circleSlotIndex?: number;
 	cue: string;
+	barDurationMs?: number;
+	subBarChords?: SongSubBarChord[];
 	events: SongNoteEvent[];
 }
 
@@ -81,6 +122,8 @@ export interface SongExample {
 	keyLabel: string;
 	timeSignature: string;
 	bpm: number;
+	tuning?: number[];
+	capo?: number;
 	theorySummary: string;
 	studyGuide?: SongStudyGuide;
 	steps: SongChordStep[];
@@ -90,9 +133,12 @@ export interface FlattenedSongStep {
 	atMs: number;
 	durationSec: number;
 	midi: number[];
+	notes?: SongPerformanceNote[];
+	velocity?: number;
 	spreadSec?: number;
 	chordStepIndex: number;
 	chordStep: SongChordStep;
+	subBarChord?: SongSubBarChord;
 	noteLabel: string;
 	celloStops?: BowedSongStop[];
 	violinStops?: BowedSongStop[];
@@ -111,6 +157,10 @@ export type CompactSongBar = [
 	cue: string,
 	events: SongNoteEvent[],
 	circleSlotIndex?: number,
+	barMeta?: {
+		barDurationMs?: number;
+		subBarChords?: SongSubBarChord[];
+	},
 ];
 
 export interface CompactSongSpec extends Omit<SongExample, "steps"> {
@@ -157,7 +207,7 @@ export function mapNotationBars(
 	});
 }
 
-function hydrateSong({
+export function hydrateSong({
 	idPrefix,
 	bars,
 	...meta
@@ -177,6 +227,7 @@ function hydrateSong({
 				cue,
 				events,
 				circleSlotIndex,
+				barMeta,
 			]) => ({
 				id: `${idPrefix}-bar-${barNumber}`,
 				barLabel: `Bar ${barNumber}`,
@@ -189,6 +240,12 @@ function hydrateSong({
 				circleDegree,
 				...(circleSlotIndex !== undefined ? { circleSlotIndex } : {}),
 				cue,
+				...(barMeta?.barDurationMs !== undefined
+					? { barDurationMs: barMeta.barDurationMs }
+					: {}),
+				...(barMeta?.subBarChords !== undefined
+					? { subBarChords: barMeta.subBarChords }
+					: {}),
 				events,
 			}),
 		),
@@ -211,34 +268,167 @@ export function getSongsForInstrument(
 	return SONG_EXAMPLES.filter((song) => song.instruments.includes(instrument));
 }
 
+function resolveBarDurationMs(step: SongChordStep): number {
+	if (step.barDurationMs !== undefined) return step.barDurationMs;
+	const hasOffsets = step.events.some((evt) => evt.offsetMs !== undefined);
+	if (hasOffsets) {
+		return step.events.reduce(
+			(maxEnd, evt) =>
+				Math.max(maxEnd, (evt.offsetMs ?? 0) + evt.stepDurationMs),
+			0,
+		);
+	}
+	return step.events.reduce((sum, evt) => sum + evt.stepDurationMs, 0);
+}
+
+function resolveEventNotes(
+	evt: SongNoteEvent,
+): SongPerformanceNote[] | undefined {
+	if (evt.notes && evt.notes.length > 0) return evt.notes;
+	const stopList = evt.guitarStops ?? evt.celloStops ?? evt.violinStops;
+	const hasTechnique = Boolean(
+		stopList?.some((stop) => stop.technique && stop.technique !== "normal"),
+	);
+	if (evt.velocity === undefined && !hasTechnique) {
+		return undefined;
+	}
+	return evt.midi.map((midi, idx) => {
+		const technique = stopList?.[idx]?.technique;
+		return {
+			midi,
+			durationSec: evt.durationSec,
+			...(evt.velocity !== undefined ? { velocity: evt.velocity } : {}),
+			...(technique && technique !== "normal" ? { technique } : {}),
+		};
+	});
+}
+
+function resolveSubBarChord(
+	step: SongChordStep,
+	offsetMs: number,
+): SongSubBarChord | undefined {
+	const changes = step.subBarChords;
+	if (!changes || changes.length === 0) return undefined;
+	let matched = changes[0];
+	for (const change of changes) {
+		if (change.offsetMs <= offsetMs + 0.5) {
+			matched = change;
+		} else {
+			break;
+		}
+	}
+	return matched;
+}
+
+function materializeStepNotes(step: FlattenedSongStep): SongPerformanceNote[] {
+	if (step.notes && step.notes.length > 0) return step.notes;
+	return step.midi.map((midi) => ({
+		midi,
+		durationSec: step.durationSec,
+		...(step.velocity !== undefined ? { velocity: step.velocity } : {}),
+	}));
+}
+
 export function flattenSongPlaybackSteps(song: SongExample): {
 	events: FlattenedSongStep[];
 	totalDurationMs: number;
 } {
-	const events: FlattenedSongStep[] = [];
-	let currentMs = 0;
+	const rawEvents: FlattenedSongStep[] = [];
+	let barStartMs = 0;
+	let usedExplicitOffsets = false;
 
 	song.steps.forEach((chordStep, chordStepIndex) => {
+		let seqOffsetMs = 0;
 		for (const evt of chordStep.events) {
-			events.push({
-				atMs: currentMs,
+			if (evt.offsetMs !== undefined) usedExplicitOffsets = true;
+			if (evt.midi.length === 0) {
+				seqOffsetMs += evt.stepDurationMs;
+				continue;
+			}
+			const offsetMs = evt.offsetMs ?? seqOffsetMs;
+			const atMs = barStartMs + offsetMs;
+			const notes = resolveEventNotes(evt);
+			const subBarChord = resolveSubBarChord(chordStep, offsetMs);
+			rawEvents.push({
+				atMs,
 				durationSec: evt.durationSec,
 				midi: evt.midi,
+				...(notes ? { notes } : {}),
+				...(evt.velocity !== undefined ? { velocity: evt.velocity } : {}),
 				spreadSec: evt.spreadSec,
 				chordStepIndex,
 				chordStep,
+				...(subBarChord ? { subBarChord } : {}),
 				noteLabel: evt.noteLabel,
 				celloStops: evt.celloStops,
 				violinStops: evt.violinStops,
 				guitarStops: evt.guitarStops,
 			});
-			currentMs += evt.stepDurationMs;
+			seqOffsetMs += evt.stepDurationMs;
 		}
+		barStartMs += resolveBarDurationMs(chordStep);
 	});
 
+	if (!usedExplicitOffsets || rawEvents.length <= 1) {
+		return {
+			events: rawEvents,
+			totalDurationMs: barStartMs,
+		};
+	}
+
+	rawEvents.sort((a, b) => a.atMs - b.atMs);
+	const merged: FlattenedSongStep[] = [];
+	for (const next of rawEvents) {
+		const prev = merged[merged.length - 1];
+		if (prev && Math.abs(next.atMs - prev.atMs) <= 0.5) {
+			const combinedNotes = [
+				...materializeStepNotes(prev),
+				...materializeStepNotes(next),
+			];
+			const mergedLabel =
+				prev.noteLabel === next.noteLabel
+					? prev.noteLabel
+					: `${prev.noteLabel} · ${next.noteLabel}`;
+			merged[merged.length - 1] = {
+				...prev,
+				durationSec: Math.max(prev.durationSec, next.durationSec),
+				midi: [...prev.midi, ...next.midi],
+				notes: combinedNotes,
+				spreadSec: prev.spreadSec ?? next.spreadSec ?? 0,
+				noteLabel: mergedLabel,
+				...(prev.guitarStops || next.guitarStops
+					? {
+							guitarStops: [
+								...(prev.guitarStops ?? []),
+								...(next.guitarStops ?? []),
+							],
+						}
+					: {}),
+				...(prev.celloStops || next.celloStops
+					? {
+							celloStops: [
+								...(prev.celloStops ?? []),
+								...(next.celloStops ?? []),
+							],
+						}
+					: {}),
+				...(prev.violinStops || next.violinStops
+					? {
+							violinStops: [
+								...(prev.violinStops ?? []),
+								...(next.violinStops ?? []),
+							],
+						}
+					: {}),
+			};
+		} else {
+			merged.push(next);
+		}
+	}
+
 	return {
-		events,
-		totalDurationMs: currentMs,
+		events: merged,
+		totalDurationMs: barStartMs,
 	};
 }
 
@@ -248,9 +438,7 @@ export function getSongBarStartTimes(song: SongExample): number[] {
 
 	for (const step of song.steps) {
 		starts.push(currentMs);
-		for (const evt of step.events) {
-			currentMs += evt.stepDurationMs;
-		}
+		currentMs += resolveBarDurationMs(step);
 	}
 
 	return starts;

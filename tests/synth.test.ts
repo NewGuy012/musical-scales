@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+	encodeWavPcm16,
 	getDefaultChordSpread,
 	midiToFrequency,
 	playChordNotes,
 	playSingleNote,
+	renderTimedSequenceOfflineSamples,
 	stopAllAudio,
 	synthesizeGuitarPluckSamples,
 } from "../src/react-app/audio/synth";
@@ -116,5 +118,59 @@ describe("instrument synthesis engine", () => {
 			).not.toThrow();
 		}
 		expect(() => stopAllAudio()).not.toThrow();
+	});
+
+	test("offline sequence renderer produces valid WAV output and distinguishes palmMute vs sustained notes", () => {
+		const sampleRate = 22050;
+		const mutedSamples = renderTimedSequenceOfflineSamples(
+			[
+				{
+					atMs: 0,
+					midi: [40],
+					durationSec: 0.6,
+					notes: [
+						{
+							midi: 40,
+							durationSec: 0.6,
+							velocity: 0.55,
+							technique: "palmMute",
+						},
+					],
+				},
+			],
+			{ preset: "guitar", sampleRate, totalDurationMs: 1000 },
+		);
+		const ringSamples = renderTimedSequenceOfflineSamples(
+			[
+				{
+					atMs: 0,
+					midi: [40],
+					durationSec: 0.6,
+					notes: [
+						{
+							midi: 40,
+							durationSec: 0.6,
+							velocity: 0.95,
+							technique: "letRing",
+						},
+					],
+				},
+			],
+			{ preset: "guitar", sampleRate, totalDurationMs: 1000 },
+		);
+
+		const rmsTail = (arr: Float32Array) => {
+			let sum = 0;
+			const start = Math.floor(0.45 * sampleRate);
+			const end = Math.floor(0.9 * sampleRate);
+			for (let i = start; i < end; i++) sum += arr[i] * arr[i];
+			return Math.sqrt(sum / (end - start));
+		};
+		expect(rmsTail(ringSamples)).toBeGreaterThan(rmsTail(mutedSamples) * 3);
+
+		const wav = encodeWavPcm16(ringSamples, sampleRate);
+		expect(String.fromCharCode(...wav.slice(0, 4))).toBe("RIFF");
+		expect(String.fromCharCode(...wav.slice(8, 12))).toBe("WAVE");
+		expect(wav.byteLength).toBe(44 + ringSamples.length * 2);
 	});
 });

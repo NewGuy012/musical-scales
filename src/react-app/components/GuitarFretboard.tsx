@@ -12,6 +12,7 @@ import {
 	GuitarChordKind,
 	GuitarVoicing,
 	MAX_GUITAR_FRET,
+	MAX_SONG_GUITAR_FRET,
 	PentatonicScope,
 	STANDARD_TUNING,
 	buildGuitarScalePassGuide,
@@ -34,6 +35,8 @@ interface GuitarFretboardProps {
 	activeSongMidi?: number[] | null;
 	activeSongStops?: GuitarSongStop[] | null;
 	activeRunMidi?: number | null;
+	tuningMidi?: number[] | null;
+	capo?: number;
 	scalePitchClasses: number[];
 	scaleNoteNames: string[];
 	keyRootName?: string;
@@ -45,8 +48,7 @@ interface GuitarFretboardProps {
 	onPlayNoteSequence?: (midiNotes: number[], stepMs?: number) => void;
 }
 
-const SINGLE_INLAY_FRETS = new Set([3, 5, 7, 9, 15]);
-const FRET_NUMBERS = Array.from({ length: MAX_GUITAR_FRET }, (_, i) => i + 1);
+const SINGLE_INLAY_FRETS = new Set([3, 5, 7, 9, 15, 17, 19, 21]);
 const VISUAL_ROWS = [5, 4, 3, 2, 1, 0] as const;
 
 type DotKind =
@@ -124,6 +126,8 @@ export function GuitarFretboard({
 	activeSongMidi = null,
 	activeSongStops = null,
 	activeRunMidi = null,
+	tuningMidi = null,
+	capo = 0,
 	scalePitchClasses,
 	scaleNoteNames,
 	keyRootName,
@@ -196,6 +200,18 @@ export function GuitarFretboard({
 		}
 	}
 
+	const maxSongFret =
+		activeSongStops && activeSongStops.length > 0
+			? Math.max(...activeSongStops.map((s) => s.fret))
+			: 0;
+	const displayMaxFret = Math.min(
+		MAX_SONG_GUITAR_FRET,
+		Math.max(MAX_GUITAR_FRET, maxSongFret),
+	);
+	const fretNumbers = Array.from({ length: displayMaxFret }, (_, i) => i + 1);
+	const getEffectiveOpenMidi = (stringIdx: number) =>
+		(tuningMidi?.[stringIdx] ?? STANDARD_TUNING[stringIdx].openMidi) + capo;
+
 	const songHitKeys = new Set<string>();
 	const harmonicKeys = new Set<string>();
 	const combinedSongMidi =
@@ -211,7 +227,7 @@ export function GuitarFretboard({
 				stop.stringIndex >= 0 &&
 				stop.stringIndex < STANDARD_TUNING.length &&
 				stop.fret >= 0 &&
-				stop.fret <= MAX_GUITAR_FRET
+				stop.fret <= displayMaxFret
 			) {
 				const key = `${stop.stringIndex}-${stop.fret}`;
 				songHitKeys.add(key);
@@ -234,8 +250,8 @@ export function GuitarFretboard({
 			if (!matchedVoiced) {
 				let bestCell: { stringIdx: number; fret: number } | null = null;
 				for (let sIdx = 0; sIdx < STANDARD_TUNING.length; sIdx++) {
-					const fret = midi - STANDARD_TUNING[sIdx].openMidi;
-					if (fret >= 0 && fret <= MAX_GUITAR_FRET) {
+					const fret = midi - getEffectiveOpenMidi(sIdx);
+					if (fret >= 0 && fret <= displayMaxFret) {
 						if (!bestCell || fret < bestCell.fret) {
 							bestCell = { stringIdx: sIdx, fret };
 						}
@@ -261,10 +277,10 @@ export function GuitarFretboard({
 		guide.passingPhrases[0];
 
 	const nutX = 64;
-	const fretWidth = 48;
+	const fretWidth = displayMaxFret > MAX_GUITAR_FRET ? 38 : 48;
 	const topY = 22;
 	const stringGap = 24;
-	const totalWidth = 812;
+	const totalWidth = nutX + displayMaxFret * fretWidth + 28;
 	const totalHeight = 178;
 	const bottomY = topY + 5 * stringGap;
 
@@ -390,13 +406,13 @@ export function GuitarFretboard({
 					<rect
 						x={nutX}
 						y={topY - 12}
-						width={MAX_GUITAR_FRET * fretWidth}
+						width={displayMaxFret * fretWidth}
 						height={bottomY - topY + 24}
 						rx={6}
 						className="fretboard-neck"
 					/>
 
-					{FRET_NUMBERS.map((fret) => {
+					{fretNumbers.map((fret) => {
 						const cx = nutX + (fret - 0.5) * fretWidth;
 						if (fret === 12) {
 							return (
@@ -437,7 +453,7 @@ export function GuitarFretboard({
 						y2={bottomY + 12}
 						className="fret-nut"
 					/>
-					{FRET_NUMBERS.map((fret) => {
+					{fretNumbers.map((fret) => {
 						const x = nutX + fret * fretWidth;
 						return (
 							<line
@@ -459,7 +475,7 @@ export function GuitarFretboard({
 					>
 						0
 					</text>
-					{FRET_NUMBERS.map((fret) => (
+					{fretNumbers.map((fret) => (
 						<text
 							key={`fnum-${fret}`}
 							x={nutX + (fret - 0.5) * fretWidth}
@@ -482,6 +498,8 @@ export function GuitarFretboard({
 						const voicedFret = selectedVoicing
 							? selectedVoicing.frets[stringIdx]
 							: -99;
+						const effectiveOpenMidi = getEffectiveOpenMidi(stringIdx);
+						const effectiveOpenPc = mod12(effectiveOpenMidi);
 
 						return (
 							<g key={`str-${info.stringNumber}`}>
@@ -512,17 +530,17 @@ export function GuitarFretboard({
 								<line
 									x1={nutX}
 									y1={y}
-									x2={nutX + MAX_GUITAR_FRET * fretWidth}
+									x2={nutX + displayMaxFret * fretWidth}
 									y2={y}
 									strokeWidth={strokeW}
 									className="guitar-string-line"
 								/>
 
-								{Array.from({ length: MAX_GUITAR_FRET + 1 }, (_, fret) => {
+								{Array.from({ length: displayMaxFret + 1 }, (_, fret) => {
 									const cx =
 										fret === 0 ? nutX - 18 : nutX + (fret - 0.5) * fretWidth;
-									const midi = info.openMidi + fret;
-									const pc = mod12(info.openPc + fret);
+									const midi = effectiveOpenMidi + fret;
+									const pc = mod12(effectiveOpenPc + fret);
 									const isVoicedHere =
 										selectedVoicing !== null && voicedFret === fret;
 									const isChordTone = chordPcSet.has(pc);

@@ -356,25 +356,47 @@ function getGuitarPluckBuffer(
 	return buffer;
 }
 
+function clampVelocity(velocity?: number): number {
+	if (velocity === undefined || !Number.isFinite(velocity)) return 0.8;
+	return Math.max(0.05, Math.min(1, velocity));
+}
+
+function scaleGainByVelocity(baseGain: number, velocity?: number): number {
+	if (velocity === undefined) return baseGain;
+	const v = clampVelocity(velocity);
+	return baseGain * (0.25 + 0.94 * v);
+}
+
+interface VoiceDetail {
+	velocity?: number;
+	technique?: string;
+	slideFromMidi?: number;
+	slurToNext?: boolean;
+}
+
 function schedulePianoVoice(
 	engine: AudioEngine,
 	midi: number,
 	startTime: number,
 	duration: number,
 	peakGain: number,
+	detail?: VoiceDetail,
 ) {
 	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
 	const pitchNorm = Math.max(0, Math.min(1, (midi - 21) / 87));
+	const vel = clampVelocity(detail?.velocity);
+	const scaledGain = scaleGainByVelocity(peakGain, detail?.velocity);
+	const brightScale = 0.72 + 0.45 * vel;
 
 	const stringFilter = createFilter(
 		ctx,
 		"lowpass",
-		Math.min(5800, Math.max(950, freq * (9.5 - pitchNorm * 4))),
+		Math.min(6400, Math.max(950, freq * (9.5 - pitchNorm * 4) * brightScale)),
 		0.7,
 	);
 	stringFilter.frequency.exponentialRampToValueAtTime(
-		Math.min(3200, Math.max(550, freq * 4.6)),
+		Math.min(3400, Math.max(550, freq * 4.6 * brightScale)),
 		startTime + 0.075,
 	);
 	stringFilter.frequency.exponentialRampToValueAtTime(
@@ -383,15 +405,22 @@ function schedulePianoVoice(
 	);
 
 	const boardResonance = createFilter(ctx, "peaking", 230, 1.1, 2.4);
-	const release = 0.65 - pitchNorm * 0.24;
+	const baseRelease = 0.65 - pitchNorm * 0.24;
+	const release =
+		detail?.technique === "staccato"
+			? Math.min(0.18, baseRelease)
+			: baseRelease;
 	const stopTime = startTime + duration + release;
 
 	const noteGain = ctx.createGain();
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(peakGain * 1.12, startTime + 0.005);
-	noteGain.gain.exponentialRampToValueAtTime(peakGain * 0.68, startTime + 0.08);
+	noteGain.gain.linearRampToValueAtTime(scaledGain * 1.12, startTime + 0.005);
 	noteGain.gain.exponentialRampToValueAtTime(
-		peakGain * 0.36,
+		scaledGain * 0.68,
+		startTime + 0.08,
+	);
+	noteGain.gain.exponentialRampToValueAtTime(
+		scaledGain * 0.36,
 		startTime + Math.max(0.14, duration * 0.72),
 	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
@@ -429,7 +458,7 @@ function schedulePianoVoice(
 	);
 	const hammerGain = ctx.createGain();
 	hammerGain.gain.setValueAtTime(0.0001, startTime);
-	hammerGain.gain.linearRampToValueAtTime(peakGain * 0.12, startTime + 0.003);
+	hammerGain.gain.linearRampToValueAtTime(scaledGain * 0.12, startTime + 0.003);
 	hammerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.025);
 
 	chainNodes(hammerSrc, hammerFilter, hammerGain, boardResonance);
@@ -446,64 +475,114 @@ function scheduleGuitarVoice(
 	startTime: number,
 	duration: number,
 	peakGain: number,
+	detail?: VoiceDetail,
 ) {
 	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
-	const release = 1.15;
-	const stopTime = startTime + duration + release;
+	const tech = detail?.technique ?? "normal";
+	const vel = clampVelocity(detail?.velocity);
+	const scaledGain = scaleGainByVelocity(peakGain, detail?.velocity);
+
+	const isMuted = tech === "palmMute";
+	const isStaccato = tech === "staccato";
+	const isHarmonic = tech === "harmonic";
+	const isLegatoPluck =
+		tech === "hammer" ||
+		tech === "pull" ||
+		tech === "slur" ||
+		detail?.slurToNext;
+
+	const effectiveDuration = isMuted
+		? Math.min(duration, 0.16)
+		: isStaccato
+			? Math.min(duration, 0.18)
+			: duration;
+	const release = isMuted
+		? 0.09
+		: isStaccato
+			? 0.12
+			: isHarmonic
+				? Math.min(1.15, Math.max(0.45, effectiveDuration * 0.85))
+				: tech === "letRing"
+					? Math.min(1.15, Math.max(0.45, effectiveDuration * 0.65))
+					: isLegatoPluck
+						? Math.min(0.48, Math.max(0.14, effectiveDuration * 0.5))
+						: Math.min(0.52, Math.max(0.16, effectiveDuration * 0.45));
+	const stopTime = startTime + effectiveDuration + release;
 
 	const src = ctx.createBufferSource();
 	src.buffer = getGuitarPluckBuffer(
 		ctx,
 		freq,
-		Math.max(duration + release, 2.2),
+		Math.max(effectiveDuration + release, 2.2),
 	);
+
+	if (
+		(tech === "slide" || tech === "portamento") &&
+		detail?.slideFromMidi !== undefined &&
+		isValidMidi(detail.slideFromMidi) &&
+		detail.slideFromMidi !== midi
+	) {
+		const startRatio = Math.max(
+			0.5,
+			Math.min(2.0, Math.pow(2, (detail.slideFromMidi - midi) / 12)),
+		);
+		src.playbackRate.setValueAtTime(startRatio, startTime);
+		src.playbackRate.exponentialRampToValueAtTime(
+			1.0,
+			startTime + Math.min(0.075, Math.max(0.025, effectiveDuration * 0.45)),
+		);
+	}
 
 	// Acoustic dreadnought/concert body voicing: broad air + spruce warmth, gentle mid clarity
 	const bodyHPF = createFilter(ctx, "highpass", 68, 0.7);
-	const airWarmth = createFilter(ctx, "peaking", 108, 1.05, 2.4);
+	const airWarmth = createFilter(
+		ctx,
+		"peaking",
+		108,
+		1.05,
+		isMuted ? 3.2 : 2.4,
+	);
 	const topWood = createFilter(ctx, "peaking", 235, 0.95, 2.1);
 	const boxCleanup = createFilter(ctx, "peaking", 450, 0.85, -2.4);
-	const woodPresence = createFilter(ctx, "peaking", 1420, 0.75, 1.2);
-	const bodyLPF = createFilter(
+	const woodPresence = createFilter(
 		ctx,
-		"lowpass",
-		Math.min(3900, Math.max(2100, freq * 8.5)),
-		0.6,
+		"peaking",
+		1420,
+		0.75,
+		isMuted ? -1.5 : 1.2,
 	);
+
+	const initialLPF = isMuted
+		? Math.min(1450, Math.max(680, freq * 3.8))
+		: isHarmonic
+			? Math.min(4800, Math.max(2400, freq * 9.5))
+			: Math.min(4100, Math.max(2000, freq * (7.2 + vel * 2.2)));
+	const settleLPF = isMuted
+		? Math.min(720, Math.max(360, freq * 2.2))
+		: isHarmonic
+			? Math.min(2800, Math.max(1300, freq * 5.0))
+			: Math.min(1950, Math.max(900, freq * 3.8));
+	const bodyLPF = createFilter(ctx, "lowpass", initialLPF, 0.6);
 	bodyLPF.frequency.exponentialRampToValueAtTime(
-		Math.min(1850, Math.max(950, freq * 3.8)),
-		startTime + Math.min(0.42, duration * 0.65),
+		settleLPF,
+		startTime + Math.min(0.42, Math.max(0.06, effectiveDuration * 0.65)),
 	);
 
 	const noteGain = ctx.createGain();
-	const ksGain = peakGain * 1.42;
+	const ksGain = scaledGain * (isHarmonic ? 1.22 : isMuted ? 1.15 : 1.42);
+	const attackSec = isHarmonic ? 0.008 : isLegatoPluck ? 0.006 : 0.0035;
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(ksGain, startTime + 0.0035);
+	noteGain.gain.linearRampToValueAtTime(ksGain, startTime + attackSec);
 	noteGain.gain.exponentialRampToValueAtTime(
-		ksGain * 0.72,
-		startTime + Math.min(0.28, Math.max(0.05, duration * 0.45)),
+		ksGain * (isMuted ? 0.42 : 0.72),
+		startTime + Math.min(0.28, Math.max(0.035, effectiveDuration * 0.45)),
 	);
 	noteGain.gain.exponentialRampToValueAtTime(
-		ksGain * 0.42,
-		startTime + Math.max(0.08, duration),
+		ksGain * (isMuted ? 0.14 : 0.42),
+		startTime + Math.max(0.06, effectiveDuration),
 	);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
-
-	// Subtle woody finger/pick contact transient
-	const pluckSrc = ctx.createBufferSource();
-	pluckSrc.buffer = noiseBuffer;
-	const pluckFilter = createFilter(
-		ctx,
-		"bandpass",
-		Math.min(1150, Math.max(480, freq * 3.4)),
-		1.4,
-	);
-	const pluckGain = ctx.createGain();
-	pluckGain.gain.setValueAtTime(0.0001, startTime);
-	pluckGain.gain.linearRampToValueAtTime(peakGain * 0.055, startTime + 0.002);
-	pluckGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.015);
-	chainNodes(pluckSrc, pluckFilter, pluckGain, topWood);
 
 	chainNodes(
 		src,
@@ -520,9 +599,27 @@ function scheduleGuitarVoice(
 
 	src.start(startTime);
 	src.stop(stopTime + 0.03);
-	pluckSrc.start(startTime, ((midi * 19) % 100) * 0.002, 0.02);
-	pluckSrc.stop(startTime + 0.025);
-	registerAuxSource(pluckSrc);
+
+	// Subtle woody finger/pick contact transient (omitted on harmonics and hammer/pull-offs)
+	if (!isHarmonic && !isLegatoPluck) {
+		const pluckSrc = ctx.createBufferSource();
+		pluckSrc.buffer = noiseBuffer;
+		const pluckFilter = createFilter(
+			ctx,
+			"bandpass",
+			Math.min(1150, Math.max(480, freq * 3.4)),
+			1.4,
+		);
+		const pluckGain = ctx.createGain();
+		const transientGain = scaledGain * (isMuted ? 0.075 : 0.055);
+		pluckGain.gain.setValueAtTime(0.0001, startTime);
+		pluckGain.gain.linearRampToValueAtTime(transientGain, startTime + 0.002);
+		pluckGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.015);
+		chainNodes(pluckSrc, pluckFilter, pluckGain, topWood);
+		pluckSrc.start(startTime, ((midi * 19) % 100) * 0.002, 0.02);
+		pluckSrc.stop(startTime + 0.025);
+		registerAuxSource(pluckSrc);
+	}
 }
 
 interface BowedVoiceProfile {
@@ -617,21 +714,44 @@ function scheduleBowedVoice(
 	duration: number,
 	peakGain: number,
 	profile: BowedVoiceProfile,
+	detail?: VoiceDetail,
 ) {
 	const { ctx, master, noiseBuffer } = engine;
 	const freq = midiToFrequency(midi);
-	const isShort = duration <= 0.42;
-	const attack = isShort
-		? Math.max(profile.attackShortFloor, duration * profile.attackShortRatio)
-		: profile.attackSustained;
-	const release = isShort ? profile.releaseShort : profile.releaseSustained;
+	const tech = detail?.technique ?? "normal";
+	const vel = clampVelocity(detail?.velocity);
+	const scaledBaseGain = scaleGainByVelocity(peakGain, detail?.velocity);
+	const isPizz = tech === "pizzicato";
+	const isStaccato = tech === "staccato";
+	const isHarmonic = tech === "harmonic";
+	const isSlurred = tech === "slur" || Boolean(detail?.slurToNext);
+
+	const isShort = duration <= 0.42 || isPizz || isStaccato;
+	const attack = isPizz
+		? 0.006
+		: isSlurred
+			? Math.min(0.016, Math.max(0.008, duration * 0.08))
+			: isShort
+				? Math.max(
+						profile.attackShortFloor,
+						duration * profile.attackShortRatio,
+					)
+				: profile.attackSustained;
+	const release = isPizz
+		? 0.14
+		: isStaccato
+			? 0.12
+			: isShort
+				? profile.releaseShort
+				: profile.releaseSustained;
 	const stopTime = startTime + duration + release;
 
+	const brightScale = 0.72 + 0.45 * vel;
 	const bowLPF = createFilter(ctx, "lowpass", Math.max(360, freq * 2.4), 0.75);
 	bowLPF.frequency.exponentialRampToValueAtTime(
 		Math.min(
 			profile.bowPeakCap,
-			Math.max(profile.bowPeakMin, freq * profile.bowPeakMult),
+			Math.max(profile.bowPeakMin, freq * profile.bowPeakMult * brightScale),
 		),
 		startTime + attack + 0.04,
 	);
@@ -653,31 +773,69 @@ function scheduleBowedVoice(
 		startTime + Math.min(profile.vibratoDelayMax, duration * 0.35),
 	);
 	vibratoDepth.gain.linearRampToValueAtTime(
-		isShort ? profile.vibratoDepthShort : profile.vibratoDepthSustained,
+		isPizz || isHarmonic
+			? 0
+			: isShort
+				? profile.vibratoDepthShort
+				: profile.vibratoDepthSustained,
 		startTime + Math.min(0.42, Math.max(0.2, duration * 0.72)),
 	);
 	vibratoLfo.connect(vibratoDepth);
 
-	const scaledPeak = peakGain * profile.gainScale;
+	const scaledPeak = scaledBaseGain * profile.gainScale;
 	const noteGain = ctx.createGain();
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(scaledPeak * 0.88, startTime + attack);
-	noteGain.gain.linearRampToValueAtTime(
-		scaledPeak * 0.94,
-		startTime + Math.max(attack + 0.04, duration * 0.82),
-	);
+	if (isPizz) {
+		noteGain.gain.linearRampToValueAtTime(
+			scaledPeak * 1.05,
+			startTime + attack,
+		);
+		noteGain.gain.exponentialRampToValueAtTime(
+			scaledPeak * 0.25,
+			startTime + Math.max(0.06, duration * 0.65),
+		);
+	} else {
+		noteGain.gain.linearRampToValueAtTime(
+			scaledPeak * 0.88,
+			startTime + attack,
+		);
+		noteGain.gain.linearRampToValueAtTime(
+			scaledPeak * 0.94,
+			startTime + Math.max(attack + 0.04, duration * 0.82),
+		);
+	}
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
-	(
-		[
-			["sawtooth", profile.sawGain],
-			["triangle", profile.triGain],
-		] as const
-	).forEach(([type, gainVal], idx) => {
+	const oscSpecs: readonly [OscillatorType, number][] = isHarmonic
+		? [
+				["triangle", profile.triGain * 1.35],
+				["sine", profile.sawGain * 0.6],
+			]
+		: [
+				["sawtooth", profile.sawGain],
+				["triangle", profile.triGain],
+			];
+	const glideStartFreq =
+		(tech === "portamento" || tech === "slide") &&
+		detail?.slideFromMidi !== undefined &&
+		isValidMidi(detail.slideFromMidi) &&
+		detail.slideFromMidi !== midi
+			? midiToFrequency(detail.slideFromMidi)
+			: null;
+
+	oscSpecs.forEach(([type, gainVal], idx) => {
 		const osc = ctx.createOscillator();
 		const g = ctx.createGain();
 		osc.type = type;
-		osc.frequency.setValueAtTime(freq, startTime);
+		if (glideStartFreq !== null) {
+			osc.frequency.setValueAtTime(glideStartFreq, startTime);
+			osc.frequency.exponentialRampToValueAtTime(
+				freq,
+				startTime + Math.min(0.08, Math.max(0.03, duration * 0.45)),
+			);
+		} else {
+			osc.frequency.setValueAtTime(freq, startTime);
+		}
 		g.gain.setValueAtTime(gainVal, startTime);
 		vibratoDepth.connect(osc.detune);
 		chainNodes(osc, g, bowLPF);
@@ -687,38 +845,44 @@ function scheduleBowedVoice(
 		else registerAuxSource(osc);
 	});
 
-	const bowNoise = ctx.createBufferSource();
-	bowNoise.buffer = noiseBuffer;
-	const bowBandpass = createFilter(
-		ctx,
-		"bandpass",
-		Math.min(
-			profile.bowBandpassMax,
-			Math.max(profile.bowBandpassMin, freq * 5),
-		),
-		2.2,
-	);
-	const bowNoiseGain = ctx.createGain();
-	const noiseDur = isShort ? 0.04 : 0.075;
-	bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
-	bowNoiseGain.gain.linearRampToValueAtTime(
-		scaledPeak * 0.055,
-		startTime + noiseDur * 0.35,
-	);
-	bowNoiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + noiseDur);
-	chainNodes(bowNoise, bowBandpass, bowNoiseGain, bowLPF);
-
 	const formantFilters = profile.formants.map(([fFreq, q, gainDb]) =>
 		createFilter(ctx, "peaking", fFreq, q, gainDb),
 	);
 	chainNodes(bowLPF, ...formantFilters, noteGain, master);
 
 	vibratoLfo.start(startTime);
-	bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
 	vibratoLfo.stop(stopTime + 0.04);
-	bowNoise.stop(startTime + noiseDur + 0.02);
 	registerAuxSource(vibratoLfo);
-	registerAuxSource(bowNoise);
+
+	if (!isHarmonic && !isPizz) {
+		const bowNoise = ctx.createBufferSource();
+		bowNoise.buffer = noiseBuffer;
+		const bowBandpass = createFilter(
+			ctx,
+			"bandpass",
+			Math.min(
+				profile.bowBandpassMax,
+				Math.max(profile.bowBandpassMin, freq * 5),
+			),
+			2.2,
+		);
+		const bowNoiseGain = ctx.createGain();
+		const noiseDur = isShort ? 0.04 : 0.075;
+		const noiseAmp = scaledPeak * (isSlurred ? 0.018 : 0.055);
+		bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
+		bowNoiseGain.gain.linearRampToValueAtTime(
+			noiseAmp,
+			startTime + noiseDur * 0.35,
+		);
+		bowNoiseGain.gain.exponentialRampToValueAtTime(
+			0.0001,
+			startTime + noiseDur,
+		);
+		chainNodes(bowNoise, bowBandpass, bowNoiseGain, bowLPF);
+		bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
+		bowNoise.stop(startTime + noiseDur + 0.02);
+		registerAuxSource(bowNoise);
+	}
 }
 
 function schedulePadVoice(
@@ -727,9 +891,11 @@ function schedulePadVoice(
 	startTime: number,
 	duration: number,
 	peakGain: number,
+	detail?: VoiceDetail,
 ) {
 	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
+	const scaledGain = scaleGainByVelocity(peakGain, detail?.velocity);
 	const filter = createFilter(
 		ctx,
 		"lowpass",
@@ -740,8 +906,8 @@ function schedulePadVoice(
 	const stopTime = startTime + duration + 0.85;
 
 	noteGain.gain.setValueAtTime(0.0001, startTime);
-	noteGain.gain.linearRampToValueAtTime(peakGain * 0.8, startTime + 0.08);
-	noteGain.gain.setValueAtTime(peakGain * 0.72, startTime + duration);
+	noteGain.gain.linearRampToValueAtTime(scaledGain * 0.8, startTime + 0.08);
+	noteGain.gain.setValueAtTime(scaledGain * 0.72, startTime + duration);
 	noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
 	(
@@ -771,13 +937,14 @@ function scheduleVoice(
 	duration: number,
 	peakGain: number,
 	preset: InstrumentVoice,
+	detail?: VoiceDetail,
 ) {
 	switch (preset) {
 		case "piano":
-			schedulePianoVoice(engine, midi, startTime, duration, peakGain);
+			schedulePianoVoice(engine, midi, startTime, duration, peakGain, detail);
 			break;
 		case "guitar":
-			scheduleGuitarVoice(engine, midi, startTime, duration, peakGain);
+			scheduleGuitarVoice(engine, midi, startTime, duration, peakGain, detail);
 			break;
 		case "violin":
 			scheduleBowedVoice(
@@ -787,6 +954,7 @@ function scheduleVoice(
 				duration,
 				peakGain,
 				BOWED_VOICE_PROFILES.violin,
+				detail,
 			);
 			break;
 		case "cello":
@@ -797,10 +965,11 @@ function scheduleVoice(
 				duration,
 				peakGain,
 				BOWED_VOICE_PROFILES.cello,
+				detail,
 			);
 			break;
 		case "pad":
-			schedulePadVoice(engine, midi, startTime, duration, peakGain);
+			schedulePadVoice(engine, midi, startTime, duration, peakGain, detail);
 			break;
 	}
 }
@@ -817,11 +986,46 @@ function scheduleChordAtCtxTime(
 	preset: InstrumentVoice,
 	arpeggiate: boolean,
 	spreadSec?: number,
+	stepNotes?: TimedNoteDetail[],
+	stepVelocity?: number,
 ): void {
+	if (stepNotes && stepNotes.length > 0) {
+		const validDetails = stepNotes.filter((n) => isValidMidi(n.midi));
+		if (validDetails.length === 0) return;
+		const perNoteGain =
+			validDetails.length === 1
+				? 0.24
+				: Math.min(0.22, 0.54 / validDetails.length);
+		const spread =
+			spreadSec ??
+			(validDetails.length === 1
+				? 0
+				: getDefaultChordSpread(preset, arpeggiate));
+		validDetails.forEach((detail, idx) => {
+			scheduleVoice(
+				engine,
+				detail.midi,
+				atCtxTime + idx * spread,
+				detail.durationSec,
+				perNoteGain,
+				preset,
+				{
+					velocity: detail.velocity ?? stepVelocity,
+					technique: detail.technique,
+					slideFromMidi: detail.slideFromMidi,
+					slurToNext: detail.slurToNext,
+				},
+			);
+		});
+		return;
+	}
+
 	const validNotes = midiNotes.filter(isValidMidi);
 	if (validNotes.length === 0) return;
 	if (validNotes.length === 1) {
-		scheduleVoice(engine, validNotes[0], atCtxTime, durationSec, 0.24, preset);
+		scheduleVoice(engine, validNotes[0], atCtxTime, durationSec, 0.24, preset, {
+			velocity: stepVelocity,
+		});
 		return;
 	}
 	const perNoteGain = Math.min(0.22, 0.54 / validNotes.length);
@@ -834,6 +1038,7 @@ function scheduleChordAtCtxTime(
 			durationSec,
 			perNoteGain,
 			preset,
+			{ velocity: stepVelocity },
 		);
 	});
 }
@@ -885,11 +1090,22 @@ export function playChordNotes(
 	);
 }
 
+export interface TimedNoteDetail {
+	midi: number;
+	durationSec: number;
+	velocity?: number;
+	technique?: string;
+	slideFromMidi?: number;
+	slurToNext?: boolean;
+}
+
 export interface TimedSequenceStep {
 	midi: number[];
 	atMs: number;
 	durationSec: number;
 	spreadSec?: number;
+	velocity?: number;
+	notes?: TimedNoteDetail[];
 }
 
 export function playStepSequence(
@@ -1056,6 +1272,8 @@ export function playTimedSequence(
 				preset,
 				arpeggiate,
 				step.spreadSec,
+				step.notes,
+				step.velocity,
 			);
 			nextAudioIdx++;
 		}
@@ -1124,4 +1342,163 @@ export function playTimedSequence(
 	}, 0);
 
 	return cancel;
+}
+
+/**
+ * Pure TypeScript offline DSP renderer for song verification and WAV previews.
+ * Uses the Karplus-Strong guitar model for guitar presets and warm additive envelopes
+ * for bowed/piano presets so imported scores can be auditioned without a browser AudioContext.
+ */
+export function renderTimedSequenceOfflineSamples(
+	steps: TimedSequenceStep[],
+	options: {
+		preset?: InstrumentVoice;
+		sampleRate?: number;
+		totalDurationMs?: number;
+	} = {},
+): Float32Array {
+	const { preset = "guitar", sampleRate = 22050, totalDurationMs } = options;
+	const endMs =
+		totalDurationMs ??
+		steps.reduce(
+			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
+			0,
+		);
+	const totalSec = Math.max(0.1, endMs / 1000 + 0.6);
+	const out = new Float32Array(Math.ceil(totalSec * sampleRate));
+	const pluckCache = new Map<string, Float32Array>();
+
+	for (const step of steps) {
+		const notes: TimedNoteDetail[] =
+			step.notes && step.notes.length > 0
+				? step.notes
+				: step.midi.map((midi) => ({
+						midi,
+						durationSec: step.durationSec,
+						velocity: step.velocity,
+					}));
+		const validNotes = notes.filter((n) => isValidMidi(n.midi));
+		if (validNotes.length === 0) continue;
+
+		const baseGain =
+			validNotes.length === 1 ? 0.28 : Math.min(0.24, 0.56 / validNotes.length);
+		const spread =
+			step.spreadSec ??
+			(validNotes.length === 1 ? 0 : getDefaultChordSpread(preset, false));
+
+		validNotes.forEach((detail, idx) => {
+			const startSec = step.atMs / 1000 + idx * spread;
+			const startSample = Math.max(0, Math.floor(startSec * sampleRate));
+			const tech = detail.technique ?? "normal";
+			const isMuted = tech === "palmMute" || tech === "staccato";
+			const noteDur = isMuted
+				? Math.min(detail.durationSec, 0.16)
+				: detail.durationSec;
+			const releaseSec =
+				preset === "guitar"
+					? isMuted
+						? 0.09
+						: tech === "harmonic" || tech === "letRing"
+							? Math.min(1.0, Math.max(0.4, noteDur * 0.7))
+							: Math.min(0.45, Math.max(0.14, noteDur * 0.4))
+					: 0.22;
+			const renderDur = Math.max(0.08, noteDur + releaseSec);
+			const numSamples = Math.min(
+				out.length - startSample,
+				Math.floor(renderDur * sampleRate),
+			);
+			if (numSamples <= 0) return;
+
+			const amp = scaleGainByVelocity(baseGain, detail.velocity);
+			const freq = midiToFrequency(detail.midi);
+			const attackSamples = Math.max(
+				1,
+				Math.floor((preset === "guitar" ? 0.004 : 0.025) * sampleRate),
+			);
+			const releaseSamples = Math.max(1, Math.floor(releaseSec * sampleRate));
+			const releaseStart = Math.max(attackSamples, numSamples - releaseSamples);
+
+			if (preset === "guitar") {
+				const qDur = Math.ceil(renderDur * 4) / 4;
+				const cacheKey = `${Math.round(freq * 10)}:${qDur}`;
+				let buf = pluckCache.get(cacheKey);
+				if (!buf) {
+					buf = synthesizeGuitarPluckSamples(freq, sampleRate, qDur);
+					pluckCache.set(cacheKey, buf);
+				}
+				let lp = 0;
+				const lpAlpha = isMuted ? 0.25 : 0.68;
+				for (let i = 0; i < numSamples && i < buf.length; i++) {
+					lp = lp + lpAlpha * (buf[i] - lp);
+					let env = 1;
+					if (i < attackSamples) env = i / attackSamples;
+					else if (i >= releaseStart) {
+						env = (numSamples - i) / Math.max(1, numSamples - releaseStart);
+					}
+					out[startSample + i] += lp * amp * env;
+				}
+			} else {
+				const twoPi = 2 * Math.PI;
+				const h2 = preset === "cello" || preset === "violin" ? 0.45 : 0.3;
+				const h3 = preset === "cello" || preset === "violin" ? 0.22 : 0.12;
+				for (let i = 0; i < numSamples; i++) {
+					const t = i / sampleRate;
+					let env = 1;
+					if (i < attackSamples) env = i / attackSamples;
+					else if (i >= releaseStart) {
+						env = (numSamples - i) / Math.max(1, numSamples - releaseStart);
+					}
+					const wave =
+						0.7 * Math.sin(twoPi * freq * t) +
+						h2 * Math.sin(twoPi * freq * 2 * t) +
+						h3 * Math.sin(twoPi * freq * 3 * t);
+					out[startSample + i] += wave * amp * 0.65 * env;
+				}
+			}
+		});
+	}
+
+	// Soft limiter to prevent harsh clipping on dense chords
+	for (let i = 0; i < out.length; i++) {
+		const x = out[i];
+		if (x > 0.98 || x < -0.98) {
+			out[i] = Math.tanh(x);
+		}
+	}
+	return out;
+}
+
+/**
+ * Encodes mono [-1, 1] Float32 PCM audio samples into a standard 16-bit WAV buffer.
+ */
+export function encodeWavPcm16(
+	samples: Float32Array,
+	sampleRate = 22050,
+): Uint8Array {
+	const dataBytes = samples.length * 2;
+	const buffer = new ArrayBuffer(44 + dataBytes);
+	const view = new DataView(buffer);
+	const writeStr = (offset: number, str: string) => {
+		for (let i = 0; i < str.length; i++) {
+			view.setUint8(offset + i, str.charCodeAt(i));
+		}
+	};
+	writeStr(0, "RIFF");
+	view.setUint32(4, 36 + dataBytes, true);
+	writeStr(8, "WAVE");
+	writeStr(12, "fmt ");
+	view.setUint32(16, 16, true);
+	view.setUint16(20, 1, true); // PCM
+	view.setUint16(22, 1, true); // mono
+	view.setUint32(24, sampleRate, true);
+	view.setUint32(28, sampleRate * 2, true);
+	view.setUint16(32, 2, true);
+	view.setUint16(34, 16, true);
+	writeStr(36, "data");
+	view.setUint32(40, dataBytes, true);
+	for (let i = 0; i < samples.length; i++) {
+		const s = Math.max(-1, Math.min(1, samples[i]));
+		view.setInt16(44 + i * 2, s < 0 ? s * 32768 : s * 32767, true);
+	}
+	return new Uint8Array(buffer);
 }

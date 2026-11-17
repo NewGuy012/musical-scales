@@ -19,7 +19,15 @@ export type FretboardOverlayMode =
 export type PentatonicKind = "major" | "minor" | "diminished";
 export type PentatonicScope = "auto" | "key" | "chord";
 
-export type GuitarStopTechnique = "normal" | "harmonic" | "hammer" | "slide";
+export type GuitarStopTechnique =
+	| "normal"
+	| "harmonic"
+	| "hammer"
+	| "pull"
+	| "slide"
+	| "palmMute"
+	| "letRing"
+	| "staccato";
 
 export interface GuitarSongStop {
 	stringIndex: number;
@@ -197,11 +205,27 @@ export const STANDARD_TUNING: GuitarStringInfo[] = [
 ];
 
 export const MAX_GUITAR_FRET = 15;
+export const MAX_SONG_GUITAR_FRET = 22;
+export const DEFAULT_GUITAR_TUNING_MIDI: readonly number[] =
+	STANDARD_TUNING.map((s) => s.openMidi);
+
+export const GUITAR_TUNING_PRESETS: Record<string, readonly number[]> = {
+	standard: [40, 45, 50, 55, 59, 64],
+	dropD: [38, 45, 50, 55, 59, 64],
+	dadgad: [38, 45, 50, 55, 57, 62],
+	openG: [38, 43, 50, 55, 59, 62],
+	openD: [38, 45, 50, 54, 57, 62],
+	halfStepDown: [39, 44, 49, 54, 58, 63],
+};
 
 const GUITAR_TECH_MAP: Record<string, GuitarStopTechnique> = {
 	h: "harmonic",
 	p: "hammer",
+	u: "pull",
 	s: "slide",
+	m: "palmMute",
+	r: "letRing",
+	t: "staccato",
 };
 
 export const GUITAR_HARMONIC_OFFSETS: Record<number, number> = {
@@ -210,13 +234,18 @@ export const GUITAR_HARMONIC_OFFSETS: Record<number, number> = {
 	5: 24,
 };
 
-export function parseGuitarStops(stopTokens: string): {
+export function parseGuitarStops(
+	stopTokens: string,
+	tuningMidi: readonly number[] = DEFAULT_GUITAR_TUNING_MIDI,
+	capo = 0,
+): {
 	guitarStops: GuitarSongStop[];
 	midi: number[];
 } {
 	const guitarStops = stopTokens
 		.trim()
 		.split(/[\s+]+/)
+		.filter(Boolean)
 		.map((tok): GuitarSongStop => {
 			const [strRaw, rest] = tok.split(":");
 			const tech = GUITAR_TECH_MAP[rest.slice(-1)];
@@ -228,9 +257,11 @@ export function parseGuitarStops(stopTokens: string): {
 			};
 		});
 	const midi = guitarStops.map(({ stringIndex, fret, technique }) => {
-		const openMidi = STANDARD_TUNING[stringIndex].openMidi;
+		const openMidi =
+			tuningMidi[stringIndex] ?? STANDARD_TUNING[stringIndex].openMidi;
 		return (
 			openMidi +
+			capo +
 			(technique === "harmonic"
 				? (GUITAR_HARMONIC_OFFSETS[fret] ?? fret)
 				: fret)

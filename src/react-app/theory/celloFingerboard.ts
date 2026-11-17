@@ -36,6 +36,7 @@ export interface BowedVoicing {
 }
 
 export const MAX_BOWED_SEMITONE = 14;
+export const MAX_SONG_BOWED_SEMITONE = 24;
 
 // Perfect-fifths tunings: Cello C2-G2-D3-A3, Violin G3-D4-A4-E5
 export const CELLO_TUNING: BowedStringInfo[] = [

@@ -65,6 +65,7 @@ import {
 	InstrumentTab,
 	SongChordStep,
 	SongExample,
+	SongSubBarChord,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
@@ -989,34 +990,47 @@ export function App() {
 	);
 
 	const applySongStepHighlight = useCallback(
-		(songAnalysis: KeyAnalysis, step: SongChordStep) => {
-			const candidateChord = songAnalysis.chords[step.circleDegree - 1] ?? null;
+		(
+			songAnalysis: KeyAnalysis,
+			step: SongChordStep,
+			subBarChord?: SongSubBarChord,
+		) => {
+			const effectiveSymbol = subBarChord?.chordSymbol ?? step.chordSymbol;
+			const effectiveRoman = subBarChord?.roman ?? step.roman;
+			const effectiveQuality = subBarChord?.quality ?? step.quality;
+			const effectiveKind = subBarChord?.guitarKind ?? step.guitarKind;
+			const effectiveNotes = subBarChord?.chordNotes ?? step.chordNotes;
+			const effectiveDegree = subBarChord?.circleDegree ?? step.circleDegree;
+			const effectiveSlotIndex =
+				subBarChord?.circleSlotIndex ?? step.circleSlotIndex;
+
+			const candidateChord = songAnalysis.chords[effectiveDegree - 1] ?? null;
 			const isDiatonicCardMatch =
 				candidateChord !== null &&
-				candidateChord.quality === step.quality &&
-				(step.circleSlotIndex === undefined ||
-					candidateChord.circleIndex === step.circleSlotIndex) &&
+				candidateChord.quality === effectiveQuality &&
+				(effectiveSlotIndex === undefined ||
+					candidateChord.circleIndex === effectiveSlotIndex) &&
 				noteToPitchClass(candidateChord.triadNotes[0] ?? "") ===
-					noteToPitchClass(step.chordNotes[0] ?? "");
+					noteToPitchClass(effectiveNotes[0] ?? "");
 
 			const wheelHighlight: WheelChordHighlight | null = isDiatonicCardMatch
 				? candidateChord
-				: candidateChord && step.circleSlotIndex !== undefined
+				: candidateChord && effectiveSlotIndex !== undefined
 					? {
-							circleIndex: step.circleSlotIndex,
-							quality: step.quality,
-							roman: step.roman,
-							symbol: step.chordSymbol,
+							circleIndex: effectiveSlotIndex,
+							quality: effectiveQuality,
+							roman: effectiveRoman,
+							symbol: effectiveSymbol,
 						}
 					: candidateChord;
 
 			setAuditionOverride({
 				id: isDiatonicCardMatch ? getChordCardId(candidateChord) : step.id,
-				label: `${step.chordSymbol} (${step.roman})`,
-				quality: step.quality,
-				guitarKind: step.guitarKind,
+				label: `${effectiveSymbol} (${effectiveRoman})`,
+				quality: effectiveQuality,
+				guitarKind: effectiveKind,
 				midi: step.displayMidi,
-				notes: step.chordNotes,
+				notes: effectiveNotes,
 				diatonicChord: null,
 				wheelHighlight,
 			});
@@ -1038,7 +1052,11 @@ export function App() {
 				setActiveSongStepIndex(event.chordStepIndex);
 				setActiveSongNoteLabel(event.noteLabel);
 				setActiveSongEvent(event);
-				applySongStepHighlight(songAnalysis, event.chordStep);
+				applySongStepHighlight(
+					songAnalysis,
+					event.chordStep,
+					event.subBarChord,
+				);
 			}
 			return clampedMs;
 		},
@@ -1085,7 +1103,7 @@ export function App() {
 					setActiveSongStepIndex(ev.chordStepIndex);
 					setActiveSongNoteLabel(ev.noteLabel);
 					setActiveSongEvent(ev);
-					applySongStepHighlight(songAnalysis, ev.chordStep);
+					applySongStepHighlight(songAnalysis, ev.chordStep, ev.subBarChord);
 				},
 				onProgress: (elapsedMs) => {
 					if (
@@ -1426,6 +1444,12 @@ export function App() {
 	const activeQualityBadgeClass = getPianoBadgeClass(activeVoicing.quality);
 	const isSongActive = playingSongId !== null || cuedSongId !== null;
 	const liveSongEvent = isSongActive ? activeSongEvent : null;
+	const activeSongForInstrument =
+		isSongActive || selectedSongPreviewId !== null
+			? (songsForInstrument.find(
+					(s) => s.id === (playingSongId ?? cuedSongId ?? selectedSongId),
+				) ?? null)
+			: null;
 	const isVariationActive = Boolean(activeVoicing.id?.startsWith("var-"));
 	const showVariations = variationsOpen || isVariationActive;
 	const hasCustomSettings = preference !== "standard" || soundMode === "pad";
@@ -1757,6 +1781,8 @@ export function App() {
 									activeSongMidi={liveSongEvent?.midi ?? null}
 									activeSongStops={liveSongEvent?.guitarStops ?? null}
 									activeRunMidi={activeGuitarRunMidi}
+									tuningMidi={activeSongForInstrument?.tuning ?? null}
+									capo={activeSongForInstrument?.capo ?? 0}
 									scalePitchClasses={scalePitchClasses}
 									scaleNoteNames={analysis.scaleNotes}
 									keyRootName={analysis.scaleNotes[0]}
