@@ -76,17 +76,6 @@
 	gap: 2px;
 }
 
-.audio-control-group {
-	padding-left: 7px;
-}
-
-.control-prefix-icon {
-	display: inline-flex;
-	align-items: center;
-	color: var(--text-muted);
-	margin-right: 3px;
-}
-
 .seg-btn {
 	border: none;
 	background: transparent;
@@ -290,111 +279,6 @@
 	background: var(--color-fifth-soft);
 }
 
-/* Table of Contents / Section Navigation Bar */
-.toc-bar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 10px;
-	padding: 8px 12px;
-	margin-bottom: 16px;
-	border-radius: 13px;
-	background: var(--bg-card);
-	border: 1px solid var(--border-hairline);
-	box-shadow: var(--shadow-card);
-}
-
-.toc-label {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-	font-size: 0.7rem;
-	font-weight: 750;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	color: var(--text-muted);
-	padding-right: 4px;
-	white-space: nowrap;
-}
-
-.toc-items {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px;
-	flex: 1 1 auto;
-}
-
-.toc-link {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 4px 10px;
-	border-radius: 9px;
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-hairline);
-	color: var(--text-secondary);
-	font-size: 0.75rem;
-	font-weight: 650;
-	text-decoration: none;
-	white-space: nowrap;
-	transition:
-		border-color 140ms ease,
-		color 140ms ease,
-		background-color 140ms ease;
-}
-
-.toc-link:hover {
-	color: var(--text-primary);
-	border-color: var(--border-strong);
-}
-
-.toc-num {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 17px;
-	height: 17px;
-	border-radius: 5px;
-	background: var(--bg-subtle);
-	border: 1px solid var(--border-hairline);
-	font-size: 0.65rem;
-	font-weight: 750;
-	line-height: 1;
-	color: var(--text-muted);
-	font-variant-numeric: tabular-nums;
-	flex-shrink: 0;
-}
-
-.toc-link-songs > svg {
-	color: var(--color-fifth);
-	flex-shrink: 0;
-}
-
-.toc-link-songs.is-live {
-	border-color: var(--color-fifth);
-}
-
-.toc-link-songs .tab-live-dot {
-	margin-left: 0;
-}
-
-.toc-count-pill {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 16px;
-	height: 16px;
-	font-size: 0.64rem;
-	font-weight: 750;
-	line-height: 1;
-	padding: 0 5px;
-	border-radius: 999px;
-	background: var(--bg-card);
-	color: var(--text-primary);
-	border: 1px solid var(--border-hairline);
-}
-
 /* Unified Section Headers */
 .section-header {
 	display: flex;
@@ -517,14 +401,6 @@
 		box-shadow 220ms ease;
 }
 
-.wheel-shell.is-toc-targeted,
-.panel-card.is-toc-targeted {
-	border-color: var(--color-fifth);
-	box-shadow:
-		0 0 0 1px var(--color-fifth),
-		var(--shadow-card);
-}
-
 /* Main Split Layout */
 .studio-layout {
 	display: grid;
@@ -574,7 +450,7 @@
 	gap: 5px;
 }
 
-.legend-dot {
+.wheel-legend .legend-dot {
 	width: 7px;
 	height: 7px;
 	border-radius: 999px;
@@ -1422,24 +1298,6 @@
 	transform: rotate(180deg);
 }
 
-.chord-groups {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 12px;
-}
-
-.chord-group {
-	display: flex;
-	flex-direction: column;
-	gap: 7px;
-}
-
-.chord-group-header {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-}
-
 .group-dot {
 	width: 7px;
 	height: 7px;
@@ -1452,24 +1310,6 @@
 
 .group-dot-minor {
 	background: var(--color-minor);
-}
-
-.group-title {
-	font-size: 0.82rem;
-	font-weight: 700;
-}
-
-.group-count {
-	margin-left: auto;
-	font-size: 0.72rem;
-	font-weight: 600;
-	color: var(--text-muted);
-}
-
-.chord-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 7px;
 }
 
 .chord-card {
@@ -1580,11 +1420,6 @@
 
 .extra-chord-pill:hover {
 	border-color: var(--border-strong);
-}
-
-.extra-dim.is-selected {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
 }
 
 .extra-harmonic.is-selected {
@@ -2524,14 +2359,6 @@
 .cello-breakdown-wrap {
 	flex-direction: column;
 	align-items: stretch;
-	gap: 8px;
-}
-
-.cello-breakdown-header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
 	gap: 8px;
 }
 
@@ -4084,7 +3911,6 @@
 	.diatonic-chords-grid {
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
-	.chord-groups,
 	.song-guide-brief,
 	.guitar-scale-guide,
 	.sec-dom-grid,
@@ -4102,9 +3928,6 @@
 	.root-pair-box {
 		margin-left: 0;
 	}
-	.toc-bar {
-		padding: 8px 10px;
-	}
 	.piano-legend-hint {
 		margin-left: 0;
 	}
@@ -4114,9 +3937,6 @@
 	.rel-grid,
 	.chromatic-phrases-row {
 		grid-template-columns: 1fr;
-	}
-	.chord-grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.scale-notes-row {
 		gap: 4px;

@@ -3,14 +3,14 @@ export type AccidentalPreference = "standard" | "sharps" | "flats";
 export type ChordQuality = "major" | "minor" | "diminished";
 export type EnharmonicSide = "sharp" | "flat";
 
-export interface KeyVariant {
+interface KeyVariant {
 	majorRoot: string;
 	minorRoot: string;
 	accidentalsCount: number; // positive = sharps, negative = flats, 0 = natural
 	side: EnharmonicSide | "neutral";
 }
 
-export interface CircleSlot {
+interface CircleSlot {
 	index: number; // 0..11 clockwise starting at C (12 o'clock)
 	primary: KeyVariant;
 	enharmonic?: KeyVariant;
@@ -31,7 +31,7 @@ export interface DiatonicChord {
 	functionLabel: string;
 }
 
-export interface KeyNeighborInfo {
+interface KeyNeighborInfo {
 	direction: "fourth" | "fifth";
 	slotIndex: number;
 	mode: KeyMode;
@@ -62,7 +62,7 @@ export interface ChordProgression {
 	degrees: number[]; // 1-based degrees; -5 indicates Harmonic Minor V
 }
 
-export interface TonicChordPair {
+interface TonicChordPair {
 	major: {
 		symbol: string;
 		notes: [string, string, string];
@@ -185,8 +185,8 @@ const ACCIDENTAL_BY_OFFSET: Record<number, string> = {
 	2: "𝄪",
 };
 
-export const SHARP_ORDER = ["F♯", "C♯", "G♯", "D♯", "A♯", "E♯", "B♯"] as const;
-export const FLAT_ORDER = ["B♭", "E♭", "A♭", "D♭", "G♭", "C♭", "F♭"] as const;
+const SHARP_ORDER = ["F♯", "C♯", "G♯", "D♯", "A♯", "E♯", "B♯"] as const;
+const FLAT_ORDER = ["B♭", "E♭", "A♭", "D♭", "G♭", "C♭", "F♭"] as const;
 
 // Circle offsets from tonic slot for scale degrees 1..7
 const CIRCLE_DEGREE_OFFSETS = [0, 11, 1, 11, 1, 0, 5] as const;
@@ -598,24 +598,7 @@ export function noteToPitchClass(note: string): number {
 	return mod12(NATURAL_PC[key] + noteOffset(note));
 }
 
-export function parsePitchToMidi(token: string): {
-	midi: number;
-	pitchName: string;
-} {
-	const match = /^([A-G][#♯b♭𝄪𝄫]*)(-?\d+)$/.exec(token.trim());
-	if (!match) {
-		throw new Error(`Invalid pitch token: ${token}`);
-	}
-	const [, rawNote, octaveStr] = match;
-	const octave = Number(octaveStr);
-	const acc = rawNote.slice(1).replace(/#/g, "♯").replace(/b/g, "♭");
-	return {
-		midi: (octave + 1) * 12 + NATURAL_PC[rawNote[0]] + noteOffset(rawNote),
-		pitchName: `${rawNote[0]}${acc}${octave}`,
-	};
-}
-
-export function formatKeyIdentity(root: string, mode: KeyMode) {
+function formatKeyIdentity(root: string, mode: KeyMode) {
 	return {
 		root,
 		shortName: mode === "major" ? root : `${root}m`,
@@ -689,13 +672,13 @@ export function ascendingNotesToMidi(
 	return result;
 }
 
-export function formatChordSymbol(root: string, quality: ChordQuality): string {
+function formatChordSymbol(root: string, quality: ChordQuality): string {
 	if (quality === "major") return root;
 	if (quality === "minor") return `${root}m`;
 	return `${root}°`;
 }
 
-export function formatKeySignatureLabel(accidentalsCount: number): string {
+function formatKeySignatureLabel(accidentalsCount: number): string {
 	if (accidentalsCount === 0) return "0 sharps / 0 flats";
 	const abs = Math.abs(accidentalsCount);
 	const unit = accidentalsCount > 0 ? "sharp" : "flat";
@@ -707,7 +690,7 @@ export function formatShortSignature(accidentalsCount: number): string {
 	return `${Math.abs(accidentalsCount)}${accidentalsCount > 0 ? "♯" : "♭"}`;
 }
 
-export function getSignatureAccidentals(accidentalsCount: number): string[] {
+function getSignatureAccidentals(accidentalsCount: number): string[] {
 	if (accidentalsCount === 0) return [];
 	return (accidentalsCount > 0 ? SHARP_ORDER : FLAT_ORDER).slice(
 		0,

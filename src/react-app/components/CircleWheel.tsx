@@ -30,7 +30,6 @@ interface CircleWheelProps {
 	highlightedChord: WheelChordHighlight | null;
 	highlightedNotes?: string[] | null;
 	rotateToSelected: boolean;
-	isTargeted?: boolean;
 	isCollapsed?: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
 	onPlayTonic: () => void;
@@ -89,7 +88,6 @@ export function CircleWheel({
 	highlightedChord,
 	highlightedNotes = null,
 	rotateToSelected,
-	isTargeted = false,
 	isCollapsed = false,
 	onSelectKey,
 	onPlayTonic,
@@ -179,9 +177,7 @@ export function CircleWheel({
 	return (
 		<section
 			id="section-circle"
-			className={`wheel-shell${isTargeted ? " is-toc-targeted" : ""}${
-				isCollapsed ? " is-collapsed" : ""
-			}`}
+			className={`wheel-shell${isCollapsed ? " is-collapsed" : ""}`}
 			aria-labelledby="circle-heading"
 		>
 			<SectionHeader

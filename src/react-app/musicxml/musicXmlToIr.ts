@@ -1066,7 +1066,6 @@ function buildTrackIrFromPart(
 				// Articulations & Technical notation
 				let technique: SongNoteTechnique | undefined;
 				let slideFromMidi: number | undefined;
-				let slurToNext: boolean | undefined;
 				let stringIndex: number | undefined;
 				let fret: number | undefined;
 				let finger: number | undefined;
@@ -1120,20 +1119,15 @@ function buildTrackIrFromPart(
 						technique = "harmonic";
 					}
 					for (const ho of findChildren(technical, "hammer-on")) {
-						if (ho.attrs.type === "start") slurToNext = true;
 						if (ho.attrs.type === "stop" && !technique) technique = "hammer";
 					}
 					for (const po of findChildren(technical, "pull-off")) {
-						if (po.attrs.type === "start") slurToNext = true;
 						if (po.attrs.type === "stop" && !technique) technique = "pull";
 					}
 				}
 
 				if (notations) {
 					const slurs = findChildren(notations, "slur");
-					for (const sl of slurs) {
-						if (sl.attrs.type === "start") slurToNext = true;
-					}
 
 					const slides = [
 						...findChildren(notations, "slide"),
@@ -1197,7 +1191,6 @@ function buildTrackIrFromPart(
 					offsetTicks: snapOffset(onsetTicks),
 					durationTicks: effectiveDur,
 					velocity,
-					voiceIndex: (staffNum - 1) * 8 + (voiceNum - 1),
 					...(instrument === "piano" && staffCount >= 2
 						? { hand: staffNum === 1 ? ("rh" as const) : ("lh" as const) }
 						: {}),
@@ -1206,7 +1199,6 @@ function buildTrackIrFromPart(
 					...(finger !== undefined ? { finger } : {}),
 					...(technique ? { technique } : {}),
 					...(slideFromMidi !== undefined ? { slideFromMidi } : {}),
-					...(slurToNext ? { slurToNext } : {}),
 				};
 
 				barNotes.push(noteIr);

@@ -37,7 +37,6 @@ export interface SongPerformanceNote {
 	velocity?: number;
 	technique?: SongNoteTechnique;
 	slideFromMidi?: number;
-	slurToNext?: boolean;
 	hand?: SongHand;
 }
 

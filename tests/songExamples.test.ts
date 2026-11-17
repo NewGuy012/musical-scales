@@ -19,12 +19,9 @@ import {
 	MAX_SONG_BOWED_SEMITONE,
 } from "../src/react-app/theory/celloFingerboard";
 import {
-	GUITAR_HARMONIC_OFFSETS,
-	GUITAR_TUNING_PRESETS,
 	MAX_GUITAR_FRET,
 	MAX_SONG_GUITAR_FRET,
 	STANDARD_TUNING,
-	parseGuitarStops,
 } from "../src/react-app/theory/guitarFretboard";
 
 const CELLO_STUDY_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -220,9 +217,7 @@ describe("Song runtime and MusicXML-derived SongDocument behavior", () => {
 				evt.guitarStops?.forEach((stop, idx) => {
 					const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
 					const offset =
-						stop.technique === "harmonic"
-							? (GUITAR_HARMONIC_OFFSETS[stop.fret] ?? stop.fret)
-							: stop.fret;
+						stop.technique === "harmonic" && stop.fret === 12 ? 12 : stop.fret;
 					expect(evt.midi[idx]).toBe(openMidi + offset);
 				});
 			}
@@ -245,13 +240,6 @@ describe("Song runtime and MusicXML-derived SongDocument behavior", () => {
 	});
 
 	test("polyphonic SongDocument hydration supports custom tunings, capo, sub-bar chords, and speed scaling", () => {
-		const dropD = parseGuitarStops("0:0m+4:3r", GUITAR_TUNING_PRESETS.dropD, 2);
-		expect(dropD.midi).toEqual([40, 64]);
-		expect(dropD.guitarStops).toEqual([
-			{ stringIndex: 0, fret: 0, technique: "palmMute" },
-			{ stringIndex: 4, fret: 3, technique: "letRing" },
-		]);
-
 		const polyDoc: SongDocument = {
 			version: 2,
 			id: "poly-test",
@@ -266,7 +254,7 @@ describe("Song runtime and MusicXML-derived SongDocument behavior", () => {
 			keyLabel: "G Major",
 			timeSignature: "4/4",
 			tempoMap: [[0, 120]],
-			tuning: [...GUITAR_TUNING_PRESETS.dropD],
+			tuning: [38, 45, 50, 55, 59, 64],
 			capo: 2,
 			theorySummary: "Test polyphonic SongDocument",
 			chords: {

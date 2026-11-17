@@ -16,7 +16,7 @@ import {
 export type FretboardOverlayMode =
 	"voicing" | "chordTones" | "pentatonic" | "scale";
 
-export type PentatonicKind = "major" | "minor" | "diminished";
+type PentatonicKind = "major" | "minor" | "diminished";
 export type PentatonicScope = "auto" | "key" | "chord";
 
 export type GuitarStopTechnique =
@@ -50,7 +50,7 @@ export type GuitarChordKind =
 	| "sus4"
 	| "sus2";
 
-export interface ChordVariationSpec {
+interface ChordVariationSpec {
 	kind: GuitarChordKind;
 	label: string;
 	suffix: string;
@@ -166,16 +166,16 @@ export const CHORD_VARIATION_SPECS: readonly ChordVariationSpec[] = [
 	},
 ];
 
-export type FretTuple = [number, number, number, number, number, number];
+type FretTuple = [number, number, number, number, number, number];
 
-export interface GuitarStringInfo {
+interface GuitarStringInfo {
 	stringNumber: 6 | 5 | 4 | 3 | 2 | 1; // 6 = low E, 1 = high e
 	label: string;
 	openMidi: number;
 	openPc: number;
 }
 
-export interface GuitarVoicingNote {
+interface GuitarVoicingNote {
 	stringIndex: number; // 0 (low E) .. 5 (high e)
 	fret: number; // -1 = muted, 0 = open, 1..15 = fretted
 	midi: number | null;
@@ -208,67 +208,6 @@ export const MAX_GUITAR_FRET = 15;
 export const MAX_SONG_GUITAR_FRET = 22;
 export const DEFAULT_GUITAR_TUNING_MIDI: readonly number[] =
 	STANDARD_TUNING.map((s) => s.openMidi);
-
-export const GUITAR_TUNING_PRESETS: Record<string, readonly number[]> = {
-	standard: [40, 45, 50, 55, 59, 64],
-	dropD: [38, 45, 50, 55, 59, 64],
-	dadgad: [38, 45, 50, 55, 57, 62],
-	openG: [38, 43, 50, 55, 59, 62],
-	openD: [38, 45, 50, 54, 57, 62],
-	halfStepDown: [39, 44, 49, 54, 58, 63],
-};
-
-const GUITAR_TECH_MAP: Record<string, GuitarStopTechnique> = {
-	h: "harmonic",
-	p: "hammer",
-	u: "pull",
-	s: "slide",
-	m: "palmMute",
-	r: "letRing",
-	t: "staccato",
-};
-
-export const GUITAR_HARMONIC_OFFSETS: Record<number, number> = {
-	12: 12,
-	7: 19,
-	5: 24,
-};
-
-export function parseGuitarStops(
-	stopTokens: string,
-	tuningMidi: readonly number[] = DEFAULT_GUITAR_TUNING_MIDI,
-	capo = 0,
-): {
-	guitarStops: GuitarSongStop[];
-	midi: number[];
-} {
-	const guitarStops = stopTokens
-		.trim()
-		.split(/[\s+]+/)
-		.filter(Boolean)
-		.map((tok): GuitarSongStop => {
-			const [strRaw, rest] = tok.split(":");
-			const tech = GUITAR_TECH_MAP[rest.slice(-1)];
-			const fret = Number(tech ? rest.slice(0, -1) : rest);
-			return {
-				stringIndex: Number(strRaw),
-				fret,
-				...(tech ? { technique: tech } : {}),
-			};
-		});
-	const midi = guitarStops.map(({ stringIndex, fret, technique }) => {
-		const openMidi =
-			tuningMidi[stringIndex] ?? STANDARD_TUNING[stringIndex].openMidi;
-		return (
-			openMidi +
-			capo +
-			(technique === "harmonic"
-				? (GUITAR_HARMONIC_OFFSETS[fret] ?? fret)
-				: fret)
-		);
-	});
-	return { guitarStops, midi };
-}
 
 export const CHORD_INTERVAL_MAP: Record<
 	GuitarChordKind,
@@ -893,14 +832,14 @@ const CHROMATIC_DEGREES_FLAT = [
 	"7",
 ] as const;
 
-export interface ChromaticPassingTone {
+interface ChromaticPassingTone {
 	pc: number;
 	noteName: string;
 	intervalLabel: string;
 	role: string;
 }
 
-export interface ChromaticPassingPhrase {
+interface ChromaticPassingPhrase {
 	id: string;
 	label: string;
 	tag: string;
@@ -910,7 +849,7 @@ export interface ChromaticPassingPhrase {
 	tip: string;
 }
 
-export interface GuitarScalePassGuide {
+interface GuitarScalePassGuide {
 	pentatonicRoot: string;
 	pentatonicRootPc: number;
 	pentatonicKind: PentatonicKind;

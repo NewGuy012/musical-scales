@@ -371,7 +371,6 @@ interface VoiceDetail {
 	velocity?: number;
 	technique?: string;
 	slideFromMidi?: number;
-	slurToNext?: boolean;
 }
 
 function schedulePianoVoice(
@@ -486,11 +485,7 @@ function scheduleGuitarVoice(
 	const isMuted = tech === "palmMute";
 	const isStaccato = tech === "staccato";
 	const isHarmonic = tech === "harmonic";
-	const isLegatoPluck =
-		tech === "hammer" ||
-		tech === "pull" ||
-		tech === "slur" ||
-		detail?.slurToNext;
+	const isLegatoPluck = tech === "hammer" || tech === "pull" || tech === "slur";
 
 	const effectiveDuration = isMuted
 		? Math.min(duration, 0.16)
@@ -724,7 +719,7 @@ function scheduleBowedVoice(
 	const isPizz = tech === "pizzicato";
 	const isStaccato = tech === "staccato";
 	const isHarmonic = tech === "harmonic";
-	const isSlurred = tech === "slur" || Boolean(detail?.slurToNext);
+	const isSlurred = tech === "slur";
 
 	const isShort = duration <= 0.42 || isPizz || isStaccato;
 	const attack = isPizz
@@ -1013,7 +1008,6 @@ function scheduleChordAtCtxTime(
 					velocity: detail.velocity ?? stepVelocity,
 					technique: detail.technique,
 					slideFromMidi: detail.slideFromMidi,
-					slurToNext: detail.slurToNext,
 				},
 			);
 		});
@@ -1096,7 +1090,6 @@ export interface TimedNoteDetail {
 	velocity?: number;
 	technique?: string;
 	slideFromMidi?: number;
-	slurToNext?: boolean;
 }
 
 export interface TimedSequenceStep {

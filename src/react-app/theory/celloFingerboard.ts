@@ -6,16 +6,16 @@ import {
 } from "./guitarFretboard";
 
 export type BowedInstrument = "cello" | "violin";
-export type BowedSemitoneTuple = [number, number, number, number];
+type BowedSemitoneTuple = [number, number, number, number];
 
-export interface BowedStringInfo {
+interface BowedStringInfo {
 	stringNumber: 4 | 3 | 2 | 1; // 4 = lowest string, 1 = highest string
 	label: string;
 	openMidi: number;
 	openPc: number;
 }
 
-export interface BowedVoicingNote {
+interface BowedVoicingNote {
 	stringIndex: number; // 0 (lowest string) .. 3 (highest string)
 	semitone: number; // -1 = unplayed, 0 = open, 1..14 = fingered
 	finger: number | null; // 0 = open, 1..4 = left-hand finger, null = unplayed
@@ -60,33 +60,6 @@ export const BOWED_TUNINGS: Record<
 	cello: CELLO_TUNING,
 	violin: VIOLIN_TUNING,
 };
-
-export const BOWED_STRING_ROMAN = ["IV", "III", "II", "I"] as const;
-
-// Natural harmonics above open string sounding pitch -> touch node semitone.
-export const BOWED_HARMONIC_TOUCH_SEMITONES: Record<number, number> = {
-	12: 12,
-	19: 7,
-	24: 5,
-};
-
-export function resolveBowedStringIndex(
-	tuning: readonly BowedStringInfo[],
-	stringOverride: string | undefined,
-	midi: number,
-): number {
-	if (stringOverride) {
-		const idx = tuning.findIndex((s) => s.label === stringOverride);
-		if (idx === -1) {
-			throw new Error(`Unknown string override: ${stringOverride}`);
-		}
-		return idx;
-	}
-	for (let i = tuning.length - 1; i >= 0; i--) {
-		if (midi >= tuning[i].openMidi) return i;
-	}
-	return 0;
-}
 
 function getPositionLabel(minNonZero: number, hasOpen: boolean): string {
 	if (minNonZero === 0) return "Open";
@@ -164,7 +137,7 @@ function buildBowedVoicing(
  * Generates idiomatic closed-frame chord voicings for any 4-string instrument
  * tuned in ascending Perfect Fifths (e.g. Cello C2-G2-D3-A3 or Violin G3-D4-A4-E5).
  */
-export function getBowedFifthsVoicings(
+function getBowedFifthsVoicings(
 	tuning: readonly BowedStringInfo[],
 	maxSemitone: number,
 	rootNote: string,

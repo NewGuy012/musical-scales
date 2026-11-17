@@ -7,8 +7,6 @@ import {
 } from "../src/react-app/audio/synth";
 import {
 	type ScoreBarIR,
-	type ScoreTrackIR,
-	buildTempoConverter,
 	compileMusicXml,
 	compileScoreTrackToSongDocument,
 	detectKeyFromEvents,
@@ -36,10 +34,7 @@ import {
 	CELLO_TUNING,
 	MAX_SONG_BOWED_SEMITONE,
 } from "../src/react-app/theory/celloFingerboard";
-import {
-	GUITAR_TUNING_PRESETS,
-	MAX_SONG_GUITAR_FRET,
-} from "../src/react-app/theory/guitarFretboard";
+import { MAX_SONG_GUITAR_FRET } from "../src/react-app/theory/guitarFretboard";
 
 async function deflateRaw(input: Uint8Array): Promise<Uint8Array> {
 	const cs = new CompressionStream("deflate-raw");
@@ -187,7 +182,7 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		expect(songDoc.bars[0].notes[0][2]).toBe(69);
 	});
 
-	test("linearizeRepeatedBars and buildTempoConverter unroll repeats and tempo shifts cleanly", () => {
+	test("linearizeRepeatedBars and hydrateSong unroll repeats and tempo shifts cleanly", () => {
 		const bars: ScoreBarIR[] = [
 			{
 				barNumber: 1,
@@ -216,14 +211,36 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		const unrolled = linearizeRepeatedBars(bars);
 		expect(unrolled.map((b) => b.barNumber)).toEqual([1, 2, 1, 3]);
 
-		const { tickToMs, initialBpm } = buildTempoConverter(480, [
-			{ atTick: 0, bpm: 120 },
-			{ atTick: 960, bpm: 60 },
-		]);
-		expect(initialBpm).toBe(120);
-		expect(tickToMs(0)).toBe(0);
-		expect(tickToMs(960)).toBeCloseTo(1000, 4);
-		expect(tickToMs(1440)).toBeCloseTo(2000, 4);
+		const doc = compileScoreTrackToSongDocument({
+			id: "tempo-shift",
+			title: "Tempo Shift",
+			composerOrSource: "Test",
+			instrument: "cello",
+			ticksPerQuarter: 480,
+			tempoEvents: [
+				{ atTick: 0, bpm: 120 },
+				{ atTick: 1920, bpm: 60 },
+			],
+			bars: [
+				{
+					barNumber: 1,
+					durationTicks: 1920,
+					notes: [
+						{ midi: 48, offsetTicks: 0, durationTicks: 480, velocity: 0.8 },
+					],
+				},
+				{
+					barNumber: 2,
+					durationTicks: 1920,
+					notes: [
+						{ midi: 50, offsetTicks: 0, durationTicks: 480, velocity: 0.8 },
+					],
+				},
+			],
+		});
+		const hydrated = hydrateSong(doc);
+		expect(getSongBarStartTimes(hydrated)).toEqual([0, 2000]);
+		expect(hydrated.steps[1].barDurationMs).toBe(4000);
 	});
 
 	test("Viterbi guitar and cello solvers respect Drop-D + capo and thumb position", () => {
@@ -247,7 +264,7 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		const dropDCapo2 = solveInstrumentStops(
 			[{ notes: [{ midi: 40 }, { midi: 59 }] }],
 			"guitar",
-			GUITAR_TUNING_PRESETS.dropD,
+			[38, 45, 50, 55, 59, 64],
 			2,
 		);
 		expect(dropDCapo2[0][0]).toEqual({ stringIndex: 0, fret: 0 });

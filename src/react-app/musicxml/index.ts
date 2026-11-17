@@ -16,7 +16,6 @@ export {
 } from "./musicXmlToIr";
 export { isMxlBuffer, readMusicXmlTextFromBytes } from "./mxlUnpack";
 export {
-	buildTempoConverter,
 	compileScoreTrackToSongDocument,
 	formatSongDocumentModule,
 	linearizeRepeatedBars,

@@ -37,13 +37,11 @@ export interface ScoreNoteIR {
 	offsetTicks: number;
 	durationTicks: number;
 	velocity: number;
-	voiceIndex?: number;
 	stringIndex?: number;
 	fret?: number;
 	finger?: number;
 	technique?: SongNoteTechnique;
 	slideFromMidi?: number;
-	slurToNext?: boolean;
 	hand?: SongHand;
 }
 
@@ -133,55 +131,6 @@ export function linearizeRepeatedBars(
 		i++;
 	}
 	return out;
-}
-
-interface TempoSegment {
-	atTick: number;
-	atMs: number;
-	msPerTick: number;
-}
-
-export function buildTempoConverter(
-	ticksPerQuarter: number,
-	tempoEvents: readonly ScoreTempoEvent[],
-): {
-	tickToMs: (tick: number) => number;
-	initialBpm: number;
-} {
-	const sorted = [...tempoEvents]
-		.filter((t) => Number.isFinite(t.bpm) && t.bpm > 0)
-		.sort((a, b) => a.atTick - b.atTick);
-
-	if (sorted.length === 0) {
-		sorted.push({ atTick: 0, bpm: 120 });
-	} else if (sorted[0].atTick > 0) {
-		sorted.unshift({ atTick: 0, bpm: sorted[0].bpm });
-	}
-
-	const segments: TempoSegment[] = [];
-	let curMs = 0;
-	for (let i = 0; i < sorted.length; i++) {
-		const ev = sorted[i];
-		if (i > 0) {
-			const prev = segments[i - 1];
-			curMs = prev.atMs + (ev.atTick - prev.atTick) * prev.msPerTick;
-		}
-		const msPerTick = 60000 / (ev.bpm * ticksPerQuarter);
-		segments.push({ atTick: ev.atTick, atMs: curMs, msPerTick });
-	}
-
-	const tickToMs = (tick: number): number => {
-		let seg = segments[0];
-		for (let i = 1; i < segments.length; i++) {
-			if (segments[i].atTick <= tick) seg = segments[i];
-			else break;
-		}
-		return (
-			Math.round((seg.atMs + (tick - seg.atTick) * seg.msPerTick) * 1000) / 1000
-		);
-	};
-
-	return { tickToMs, initialBpm: Math.round(sorted[0].bpm) };
 }
 
 function defaultBarTicks(

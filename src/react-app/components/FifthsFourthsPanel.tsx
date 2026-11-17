@@ -5,7 +5,6 @@ import { SectionHeader } from "./SectionHeader";
 interface FifthsFourthsPanelProps {
 	analysis: KeyAnalysis;
 	walkingDirection: "fourth" | "fifth" | null;
-	isTargeted?: boolean;
 	isCollapsed?: boolean;
 	onSelectKey: (slotIndex: number, mode: KeyMode) => void;
 	onAuditionRelationship: (direction: "fourth" | "fifth") => void;
@@ -16,7 +15,6 @@ interface FifthsFourthsPanelProps {
 export function FifthsFourthsPanel({
 	analysis,
 	walkingDirection,
-	isTargeted = false,
 	isCollapsed = false,
 	onSelectKey,
 	onAuditionRelationship,
@@ -101,9 +99,7 @@ export function FifthsFourthsPanel({
 	return (
 		<section
 			id="section-neighbors"
-			className={`panel-card neighbors-panel${isTargeted ? " is-toc-targeted" : ""}${
-				isCollapsed ? " is-collapsed" : ""
-			}`}
+			className={`panel-card neighbors-panel${isCollapsed ? " is-collapsed" : ""}`}
 			aria-labelledby="rel-heading"
 		>
 			<SectionHeader
