@@ -155,24 +155,12 @@ type WorkspaceTab = "chords" | "color";
 
 const INSTRUMENT_META: Record<
 	InstrumentTab,
-	{ label: string; repertoire: string; tuning: string }
+	{ label: string; tuning: string }
 > = {
-	piano: { label: "Piano", repertoire: "Piano Repertoire", tuning: "C4–B5" },
-	guitar: {
-		label: "Guitar",
-		repertoire: "Guitar Repertoire",
-		tuning: "E A D G B e",
-	},
-	violin: {
-		label: "Violin",
-		repertoire: "Violin Repertoire",
-		tuning: "G3–D4–A4–E5",
-	},
-	cello: {
-		label: "Cello",
-		repertoire: "Cello Repertoire",
-		tuning: "C2–G2–D3–A3",
-	},
+	piano: { label: "Piano", tuning: "C4–B5" },
+	guitar: { label: "Guitar", tuning: "E A D G B e" },
+	violin: { label: "Violin", tuning: "G3–D4–A4–E5" },
+	cello: { label: "Cello", tuning: "C2–G2–D3–A3" },
 };
 
 const useIsomorphicLayoutEffect =
@@ -2612,7 +2600,6 @@ export function App() {
 					<MusicTeacherSection
 						instrumentView={instrumentView}
 						instrumentLabel={INSTRUMENT_META[instrumentView].label}
-						repertoireLabel={INSTRUMENT_META[instrumentView].repertoire}
 						instrumentTabList={
 							<InstrumentTabList
 								activeTab={instrumentView}

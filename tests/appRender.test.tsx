@@ -97,12 +97,12 @@ describe("Musical Scales UI rendering", () => {
 
 		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state
 		expect(html).toContain('id="panel-instrument" class="instrument-panel"');
-		expect(html).toContain('id="subsection-learn-real-songs"');
 		expect(html).toContain("songs-instrument-bar");
 		expect(html).toContain('id="songs-tab-piano"');
-		expect(html).toContain("Piano Repertoire");
 		expect(html).toContain("Synced with Piano above");
-		expect(html).toContain("No Piano MusicXML scores ingested yet");
+		expect(html).toContain("No Piano scores yet");
+		expect(html).not.toContain("Load MusicXML File");
+		expect(html).not.toContain("Piano Repertoire");
 	});
 
 	test("renders MusicTeacherSection collapsed, error alert, and multi-part picker states", () => {
@@ -110,7 +110,6 @@ describe("Musical Scales UI rendering", () => {
 			<MusicTeacherSection
 				instrumentView="guitar"
 				instrumentLabel="Guitar"
-				repertoireLabel="Guitar Repertoire"
 				instrumentTabList={<div data-tabs="1" />}
 				songs={[]}
 				otherInstrumentsWithSongs={[]}

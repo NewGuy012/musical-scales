@@ -9,7 +9,7 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 } from "../songs/songRuntime";
-import { IconChevronDown, IconUpload, IconX, getQualityClass } from "./Icons";
+import { IconChevronDown, IconX, getQualityClass } from "./Icons";
 
 const PRACTICE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25] as const;
 
@@ -36,7 +36,6 @@ export interface SongExamplesPanelProps {
 		instrument: InstrumentTab,
 		anchorEl?: HTMLElement | null,
 	) => void;
-	onRequestImportMusicXml?: () => void;
 	onRemoveLocalPreview?: (songId: string) => void;
 	onChangePlaybackSpeed?: (speed: number) => void;
 	onTogglePlaySong: (song: SongExample) => void;
@@ -60,7 +59,6 @@ type SongCardProps = Omit<
 	| "activeInstrumentLabel"
 	| "otherInstrumentsWithSongs"
 	| "onSelectInstrument"
-	| "onRequestImportMusicXml"
 > & {
 	song: SongExample;
 	cuedSongId: string | null;
@@ -605,7 +603,6 @@ export function SongExamplesPanel({
 	selectedPreviewStepId,
 	onSelectSong,
 	onSelectInstrument,
-	onRequestImportMusicXml,
 	onRemoveLocalPreview,
 	onChangePlaybackSpeed,
 	onTogglePlaySong,
@@ -624,48 +621,30 @@ export function SongExamplesPanel({
 	if (songs.length === 0) {
 		return (
 			<div className="songs-empty-state" aria-label="No MusicXML songs loaded">
-				<div className="songs-empty-copy">
-					<p className="songs-empty-title">
-						No {activeInstrumentLabel} MusicXML scores ingested yet
-					</p>
-					<p className="songs-empty-desc">
-						Drop a <code>.musicxml</code>, <code>.xml</code>, or{" "}
-						<code>.mxl</code> file here to preview it immediately, or place
-						MusicXML files in <code>songs/musicxml/</code> and run{" "}
-						<code>bun run ingest-songs</code> (synced with{" "}
-						<code>songs/songs.txt</code>).
-					</p>
-				</div>
-
-				<div className="songs-empty-actions">
-					{onRequestImportMusicXml && (
-						<button
-							type="button"
-							className="pill-action-btn"
-							onClick={onRequestImportMusicXml}
-						>
-							<IconUpload size={13} />
-							<span>Load MusicXML File</span>
-						</button>
-					)}
-					{otherInstrumentsWithSongs.length > 0 && onSelectInstrument && (
-						<div className="songs-empty-switch">
-							<span className="songs-empty-switch-label">Loaded in:</span>
-							{otherInstrumentsWithSongs.map((item) => (
-								<button
-									key={item.instrument}
-									type="button"
-									className="chip-btn chip-btn-compact"
-									onClick={(e) =>
-										onSelectInstrument(item.instrument, e.currentTarget)
-									}
-								>
-									{item.label} ({item.count})
-								</button>
-							))}
-						</div>
-					)}
-				</div>
+				<p className="songs-empty-title">
+					No {activeInstrumentLabel} scores yet
+				</p>
+				<p className="songs-empty-desc">
+					Drop a .musicxml, .xml, or .mxl file here, or use Import MusicXML
+					above.
+				</p>
+				{otherInstrumentsWithSongs.length > 0 && onSelectInstrument && (
+					<div className="songs-empty-switch">
+						<span className="songs-empty-switch-label">Loaded in:</span>
+						{otherInstrumentsWithSongs.map((item) => (
+							<button
+								key={item.instrument}
+								type="button"
+								className="chip-btn chip-btn-compact"
+								onClick={(e) =>
+									onSelectInstrument(item.instrument, e.currentTarget)
+								}
+							>
+								{item.label} ({item.count})
+							</button>
+						))}
+					</div>
+				)}
 			</div>
 		);
 	}

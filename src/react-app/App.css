@@ -3145,37 +3145,11 @@
 .teacher-subsection {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 12px;
 }
 
-.teacher-subsection-head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-}
-
-.teacher-subsection-titles {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
-.teacher-subsection-title {
-	margin: 0;
-	font-size: 0.88rem;
-	font-weight: 760;
-	letter-spacing: -0.01em;
-	color: var(--text-primary);
-}
-
-.teacher-subsection-desc {
-	margin: 0;
-	font-size: 0.72rem;
-	line-height: 1.38;
-	color: var(--text-muted);
+.songs-instrument-bar {
+	margin-bottom: 0;
 }
 
 .teacher-import-controls {
@@ -3244,22 +3218,22 @@
 
 .songs-empty-state {
 	display: flex;
-	flex-wrap: wrap;
+	flex-direction: column;
 	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 14px 16px;
+	text-align: center;
+	gap: 6px;
+	padding: 20px 16px;
 	border-radius: 12px;
 	border: 1px dashed var(--border-strong);
 	background: var(--bg-elevated);
+	transition:
+		border-color 140ms ease,
+		background-color 140ms ease;
 }
 
-.songs-empty-copy {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	flex: 1 1 320px;
-	min-width: 0;
+.music-teacher-card.is-drag-over .songs-empty-state {
+	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
 }
 
 .songs-empty-title {
@@ -3276,27 +3250,13 @@
 	color: var(--text-secondary);
 }
 
-.songs-empty-desc code {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-	font-size: 0.71rem;
-	padding: 1px 5px;
-	border-radius: 5px;
-	background: var(--bg-subtle);
-	border: 1px solid var(--border-hairline);
-}
-
-.songs-empty-actions {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-}
-
 .songs-empty-switch {
 	display: inline-flex;
 	flex-wrap: wrap;
 	align-items: center;
+	justify-content: center;
 	gap: 5px;
+	margin-top: 4px;
 }
 
 .songs-empty-switch-label {

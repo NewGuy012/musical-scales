@@ -19,7 +19,6 @@ export interface PendingMusicXmlPartChoice {
 export interface MusicTeacherSectionProps {
 	instrumentView: InstrumentTab;
 	instrumentLabel: string;
-	repertoireLabel: string;
 	instrumentTabList: ReactNode;
 	songs: SongExample[];
 	otherInstrumentsWithSongs: OtherInstrumentSongCount[];
@@ -75,7 +74,6 @@ const INSTRUMENT_OPTIONS: ReadonlyArray<{ id: InstrumentTab; label: string }> =
 export function MusicTeacherSection({
 	instrumentView,
 	instrumentLabel,
-	repertoireLabel,
 	instrumentTabList,
 	songs,
 	otherInstrumentsWithSongs,
@@ -187,23 +185,9 @@ export function MusicTeacherSection({
 				className="section-body"
 				hidden={isCollapsed}
 			>
-				<section
-					className="teacher-subsection"
-					aria-labelledby="subsection-learn-real-songs"
-				>
-					<div className="teacher-subsection-head">
-						<div className="teacher-subsection-titles">
-							<h3
-								id="subsection-learn-real-songs"
-								className="teacher-subsection-title"
-							>
-								Learn with Real Songs
-							</h3>
-							<p className="teacher-subsection-desc">
-								Study bar-by-bar harmony, fingerings, and tempo-scaled
-								arrangements from MusicXML scores.
-							</p>
-						</div>
+				<div className="teacher-subsection">
+					<div className="instrument-tabs-bar songs-instrument-bar">
+						{instrumentTabList}
 
 						<div className="teacher-import-controls">
 							<input
@@ -323,13 +307,6 @@ export function MusicTeacherSection({
 						</div>
 					)}
 
-					<div className="instrument-tabs-bar songs-instrument-bar">
-						{instrumentTabList}
-						<span className="instrument-tab-meta">
-							{repertoireLabel} · Synced with {instrumentLabel} above
-						</span>
-					</div>
-
 					<div
 						id="panel-real-songs"
 						role="tabpanel"
@@ -349,7 +326,6 @@ export function MusicTeacherSection({
 							selectedPreviewStepId={selectedPreviewStepId}
 							onSelectSong={onSelectSong}
 							onSelectInstrument={onSelectInstrument}
-							onRequestImportMusicXml={openFilePicker}
 							onRemoveLocalPreview={onRemoveLocalPreview}
 							onChangePlaybackSpeed={onChangePlaybackSpeed}
 							onTogglePlaySong={onTogglePlaySong}
@@ -361,7 +337,7 @@ export function MusicTeacherSection({
 							onSelectSongChordStep={onSelectSongChordStep}
 						/>
 					</div>
-				</section>
+				</div>
 			</div>
 		</section>
 	);

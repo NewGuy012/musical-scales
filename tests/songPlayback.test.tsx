@@ -110,15 +110,14 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
 				selectedPreviewStepId={null}
-				onRequestImportMusicXml={noop}
 				onSelectInstrument={noop}
 				onTogglePlaySong={noop}
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(emptyHtml).toContain("No Guitar MusicXML scores ingested yet");
-		expect(emptyHtml).toContain("Load MusicXML File");
-		expect(emptyHtml).toContain("songs/songs.txt");
+		expect(emptyHtml).toContain("No Guitar scores yet");
+		expect(emptyHtml).toContain(".musicxml, .xml, or .mxl");
+		expect(emptyHtml).not.toContain("Load MusicXML File");
 		expect(emptyHtml).toContain("Piano (2)");
 
 		const { songDoc } = await compileMusicXml(
