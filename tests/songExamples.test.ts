@@ -317,6 +317,26 @@ describe("Song runtime and MusicXML-derived SongDocument behavior", () => {
 		const halfSpeed = scaleSongExampleSpeed(song, 0.5);
 		expect(halfSpeed.bpm).toBe(60);
 		expect(flattenSongPlaybackSteps(halfSpeed).totalDurationMs).toBe(5000);
+
+		// Mixed stops on the same onset align each tuple stop with its matching note technique
+		const mixedStopSong = hydrateSong({
+			...polyDoc,
+			id: "mixed-stop-alignment",
+			bars: [
+				{
+					barTicks: 480,
+					harmony: [[0, "G"]],
+					cue: "Mixed stops",
+					notes: [
+						[0, 480, 40, 80, "normal"],
+						[0, 480, 76, 80, "harmonic", [0, 12]],
+					],
+				},
+			],
+		});
+		expect(mixedStopSong.steps[0].events[0].guitarStops).toEqual([
+			{ stringIndex: 0, fret: 12, technique: "harmonic" },
+		]);
 	});
 
 	test("catalog stub helper and instrument range constants remain consistent", () => {

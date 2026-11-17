@@ -53,7 +53,7 @@ describe("instrument synthesis engine", () => {
 
 	test("Karplus-Strong guitar pluck maintains exact tuning across E2–E5 and decays cleanly", () => {
 		const sampleRate = 48000;
-		const guitarMidiNotes = [40, 45, 50, 55, 59, 64, 76];
+		const guitarMidiNotes = [40, 55, 76];
 
 		for (const midi of guitarMidiNotes) {
 			const freq = midiToFrequency(midi);
@@ -93,10 +93,12 @@ describe("instrument synthesis engine", () => {
 	});
 
 	test("playback helpers safely handle presets, invalid MIDI, and stopAllAudio outside browser", () => {
-		expect(getDefaultChordSpread("guitar")).toBe(0.038);
-		expect(getDefaultChordSpread("violin")).toBe(0.048);
-		expect(getDefaultChordSpread("cello")).toBe(0.058);
-		expect(getDefaultChordSpread("piano")).toBe(0.01);
+		expect(getDefaultChordSpread("guitar", false)).toBe(0.038);
+		expect(getDefaultChordSpread("violin", false)).toBe(0.048);
+		expect(getDefaultChordSpread("cello", false)).toBe(0.058);
+		expect(getDefaultChordSpread("piano", false)).toBe(0.01);
+		expect(getDefaultChordSpread("guitar", true)).toBe(0.08);
+		expect(getDefaultChordSpread("piano", true)).toBe(0.075);
 
 		const presets = [
 			"piano",

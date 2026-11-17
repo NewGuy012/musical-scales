@@ -30,7 +30,6 @@ musical-scales/
 │   ├── songs.txt                     # Plain-text song registry ([PENDING] backlog & [INGESTED] songs)
 │   └── musicxml/                     # Drop .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
-│   ├── bun-undici-preload.cjs        # Vite/Wrangler preload helper under Bun
 │   └── ingest-songs.ts               # CLI MusicXML folder sync, single-file import & WAV preview
 ├── src/
 │   ├── react-app/
@@ -52,9 +51,9 @@ musical-scales/
 │   │   │   ├── MusicTeacherSection.tsx # Collapsible "Music Teacher" card ("Learn with Real Songs" + upload)
 │   │   │   ├── SongExamplesPanel.tsx # Bar-by-bar player, transport scrubber, study guides & empty state
 │   │   │   ├── SectionHeader.tsx     # Shared collapsible card header
-│   │   │   └── Icons.tsx             # Inline SVG icons shared across panels
+│   │   │   └── Icons.tsx             # Inline SVG icons and shared UI quality/keyboard helpers
 │   │   ├── musicxml/                 # Lazy-loaded isomorphic MusicXML engine (browser + Bun CLI)
-│   │   │   ├── index.ts              # Public exports: inspectMusicXml(), compileMusicXml()
+│   │   │   ├── index.ts              # Public exports: parseMusicXmlDocument(), inspectMusicXml(), compileMusicXml()
 │   │   │   ├── xmlParser.ts          # Dependency-free XML parser (BOM, DOCTYPE, CDATA, entities)
 │   │   │   ├── mxlUnpack.ts          # Compressed .mxl ZIP reader (Web Streams DecompressionStream)
 │   │   │   ├── musicXmlToIr.ts       # score-partwise / score-timewise -> ScoreTrackIR adapter
@@ -84,7 +83,7 @@ musical-scales/
 
 ```mermaid
 flowchart TD
-    State["App.tsx (Slot, Mode, InstrumentTab, WorkspaceTab, ActiveVoicing, LocalPreviewSongs)"]
+    State["App.tsx (Key, Mode, InstrumentTab, ActiveSequence, SongPlayback, LocalPreviewSongs)"]
     Theory["circleOfFifths.ts — analyzeKey()"]
     ColorTheory["chromaticHarmony.ts — analyzeColorHarmony()"]
     Voicings["guitarFretboard.ts / celloFingerboard.ts"]
@@ -183,16 +182,16 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 ### Ingestion Modules (`src/react-app/musicxml/`)
 
-- **[`xmlParser.ts`](../src/react-app/musicxml/xmlParser.ts)**: Strict, dependency-free XML parser supporting UTF-8/UTF-16 BOMs, `<!DOCTYPE>` internal subsets, comments, `CDATA`, and XML/numeric entities across both Bun and browser environments.
-- **[`mxlUnpack.ts`](../src/react-app/musicxml/mxlUnpack.ts)**: Reads `.mxl` ZIP central directory headers and inflates DEFLATE entries via standard Web Streams `DecompressionStream("deflate-raw")`, resolving `META-INF/container.xml`.
-- **[`musicXmlToIr.ts`](../src/react-app/musicxml/musicXmlToIr.ts)**: Converts `score-partwise` (and `score-timewise`) parts into canonical `ScoreTrackIR`, providing `inspectMusicXml()` and `compileMusicXml()`.
+- **[`xmlParser.ts`](../src/react-app/musicxml/xmlParser.ts)**: Bounded (`MAX_XML_DEPTH = 64`, `MAX_XML_CHARS = 16 MB`), dependency-free XML parser supporting UTF-8/UTF-16 BOMs, `<!DOCTYPE>` internal subsets, comments, `CDATA`, null-prototype attribute maps, and valid Unicode code-point checks on numeric/named entities.
+- **[`mxlUnpack.ts`](../src/react-app/musicxml/mxlUnpack.ts)**: Reads `.mxl` ZIP central directory headers with entry-count (`128`), entry-path safety (`..` / absolute path rejection), and streaming `DecompressionStream("deflate-raw")` size caps (`16 MB`), extracting only `META-INF/container.xml` and the target root score.
+- **[`musicXmlToIr.ts`](../src/react-app/musicxml/musicXmlToIr.ts)**: Converts `score-partwise` (and `score-timewise`) parts into canonical `ScoreTrackIR`, providing `parseMusicXmlDocument()`, `inspectMusicXml()`, and single-pass `compileMusicXml()` over buffer or AST inputs.
 - **[`ergonomicSolver.ts`](../src/react-app/musicxml/ergonomicSolver.ts)**: Uses Viterbi dynamic programming across playable left-hand fret/semitone positions (`MAX_SONG_GUITAR_FRET = 22`, `MAX_SONG_BOWED_SEMITONE = 24`) to minimize position jumps and string crossings when a stringed MusicXML part omits explicit `<technical>` stops.
 - **[`harmonicAnalyzer.ts`](../src/react-app/musicxml/harmonicAnalyzer.ts)**: Detects tonal center via Krumhansl-Schmuckler pitch-class correlation and infers or resolves bar/sub-bar Roman numerals and slash/extended chord symbols.
 - **[`scoreCompiler.ts`](../src/react-app/musicxml/scoreCompiler.ts)**: Linearizes repeats & voltas, aligns bar-local tempo changes, deduplicates identical bars into `form`, and compiles normalized tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) modules.
 
 ### CLI Ingestion Workflow (`scripts/ingest-songs.ts`)
 
-1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run:
+1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run (`slugifyId` and filesystem containment enforce writes stay within `songs/musicxml/` and `src/react-app/songs/generated/`):
 
    ```bash
    bun run ingest-songs
@@ -222,7 +221,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
 ### 4. UI & State Management (`src/react-app/`)
 
 - **[`App.tsx`](../src/react-app/App.tsx)**:
-  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony workspace tab (`chords`, `color`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), active chord/song state (`ActiveVoicing`, `WheelChordHighlight`), and in-browser MusicXML preview state (`localPreviewSongs`, multi-part selection).
+  - Single source of truth (`useState`) for key selection (`selectedSlot`, `mode`, `preference`, `slotOverrides`), harmony workspace tab (`chords`, `color`), instrument dock (`piano`, `guitar`, `violin`, `cello`), seventh-chord toggle (`voicingMode`), theme (`dark`/`light`), sound mode (`auto`, `pad`, `muted`), consolidated transient `activeSequence` / `songPlayback` / `openPopover` states, and single-parse in-browser MusicXML preview state (`10 MB` file limit, async playback request cancellation).
   - Right column stacks:
     1. **Interactive Instruments Dock** (`#section-instruments`)
     2. **Music Teacher** (`#section-music-teacher`, collapsible) → **Learn with Real Songs** subsection (`MusicTeacherSection.tsx` + `SongExamplesPanel.tsx`), keeping the instrument visualizer above and Circle of Fifths wheel beside it synced live during song playback
@@ -237,6 +236,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
 - **[`src/worker/index.ts`](../src/worker/index.ts)** uses Hono's `secureHeaders` middleware to attach `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-Permitted-Cross-Domain-Policies: none`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
 - All `/api/*` and unknown routes return `Cache-Control: no-store` with JSON `405` (with `Allow: GET, HEAD` for non-`GET`/`HEAD` on `/api/*`) or `404` responses.
 - **[`public/_headers`](../public/_headers)** applies matching `HSTS`, `COOP`/`CORP`, framing, `X-Permitted-Cross-Domain-Policies`, and app `Content-Security-Policy` headers to static client assets served by Cloudflare.
+- **Parser & Tooling Safety**: Browser MusicXML uploads are capped at `10 MB`, `.mxl`/XML parsing enforces entry/depth/byte caps and null-prototype attribute/table lookups (`Object.hasOwn`), generated TS export identifiers are regex-validated, and CLI file outputs check path containment.
 
 ---
 
@@ -248,5 +248,5 @@ Run via `bun test`:
 - **[`chromaticHarmony.test.ts`](../tests/chromaticHarmony.test.ts)**: Validates chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions across all 12 Circle slots in Major and Minor modes.
 - **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits (guitar, cello, and violin), plus guitar pentatonic/passing guides.
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, and safe handling of invalid MIDI inputs.
-- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing, compressed `.mxl` roundtrips, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, offline WAV synthesis, and `songs/songs.txt` registry synchronization.
-- **[`songExamples.test.ts`](../tests/songExamples.test.ts)**, **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration across all 4 instruments, transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, and `Music Teacher -> Learn with Real Songs` section layout.
+- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs and numeric entity bounds), compressed `.mxl` roundtrips and traversal rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, offline WAV synthesis, and `songs/songs.txt` registry synchronization.
+- **[`songExamples.test.ts`](../tests/songExamples.test.ts)**, **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including mixed-stop onset alignment) across all 4 instruments, transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, and `Music Teacher -> Learn with Real Songs` section layout.

@@ -132,15 +132,16 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
   <!ENTITY copy "&#xA9;">
 ]>
 <!-- sample comment -->
-<score-partwise version="3.1">
-  <work><work-title><![CDATA[Prelude & Fugue]]> &#x266F;1</work-title></work>
+<score-partwise version="3.1" __proto__="polluted">
+  <work><work-title><![CDATA[Prelude & Fugue]]> &#x266F;1 &#x110000;&#0;</work-title></work>
 </score-partwise>`;
 
 		const root = parseXml(xml);
 		expect(root.tag).toBe("score-partwise");
+		expect(Object.getPrototypeOf(root.attrs)).toBeNull();
 		expect(root.attrs.version).toBe("3.1");
 		const title = root.children[0]?.children[0]?.text.trim();
-		expect(title).toBe("Prelude & Fugue ♯1");
+		expect(title).toBe("Prelude & Fugue ♯1 &#x110000;&#0;");
 	});
 
 	test("readMusicXmlTextFromBytes extracts compressed .mxl via META-INF/container.xml", async () => {
@@ -180,6 +181,15 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		expect(songDoc.title).toBe("Compressed MXL Piece");
 		expect(songDoc.instruments).toEqual(["violin"]);
 		expect(songDoc.bars[0].notes[0][2]).toBe(69);
+
+		const traversalMxl = await buildTestMxlArchive([
+			{
+				name: "META-INF/container.xml",
+				content: `<container><rootfiles><rootfile full-path="../secret.xml"/></rootfiles></container>`,
+			},
+			{ name: "../secret.xml", content: innerScore },
+		]);
+		await expect(readMusicXmlTextFromBytes(traversalMxl)).rejects.toThrow();
 	});
 
 	test("linearizeRepeatedBars and hydrateSong unroll repeats and tempo shifts cleanly", () => {

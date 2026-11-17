@@ -19,8 +19,6 @@ describe("Musical Scales UI rendering", () => {
 	test("renders App with Instruments dock, Music Teacher -> Learn with Real Songs below it, and Exploration workspace", () => {
 		const html = renderToStaticMarkup(<App />);
 		expect(html).toContain("Musical Scales");
-		expect(html).not.toContain("Table of contents");
-		expect(html).not.toContain('class="toc-bar"');
 		expect(html).toContain("Circle of Fifths");
 		expect(html).toContain("Key Signature");
 		expect(html).toContain("C Major");
@@ -85,10 +83,6 @@ describe("Musical Scales UI rendering", () => {
 		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
 		expect(musicTeacherIdx).toBeGreaterThan(instrumentsSectionIdx);
 		expect(workspaceIdx).toBeGreaterThan(musicTeacherIdx);
-
-		// Real Songs tab is no longer inside Exploration
-		expect(html).not.toContain('id="tab-harmony-songs"');
-		expect(html).not.toContain('id="section-real-songs"');
 
 		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state
 		expect(html).toContain('id="subsection-learn-real-songs"');

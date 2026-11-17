@@ -86,14 +86,14 @@ bun dev       # open http://localhost:5173
 
 | Command                | Description                                                                            |
 | :--------------------- | :------------------------------------------------------------------------------------- |
-| `bun dev`              | Start Vite + Cloudflare Workers dev server                                             |
-| `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests plus `bun fmt --check`                |
+| `bun dev`              | Start the Vite client development server                                               |
+| `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests                                       |
 | `bun fmt`              | Format codebase with Bun                                                               |
 | `bun check -b`         | Typecheck app, Node, and Worker projects                                               |
 | `bun lint`             | Run typecheck and format verification                                                  |
-| `bun run build`        | Build production client and worker bundles into `dist/`                                |
+| `bun run build`        | Typecheck and build client bundle into `dist/client/`                                  |
 | `bun run preview`      | Build and preview production bundle locally                                            |
-| `bun deploy`           | Deploy to Cloudflare Workers via Wrangler                                              |
+| `bun deploy`           | Deploy client bundle and Hono Worker to Cloudflare Workers via Wrangler                |
 | `bun run ingest-songs` | Compile `songs/musicxml/` into lazy `SongDocument` chunks &amp; sync `songs/songs.txt` |
 
 - See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, data-flow diagrams, and the complete MusicXML ingestion specification.
