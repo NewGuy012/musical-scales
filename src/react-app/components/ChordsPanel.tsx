@@ -1,8 +1,10 @@
+import { useState } from "react";
 import {
 	DiatonicChord,
 	KeyAnalysis,
 	getChordCardId,
 } from "../theory/circleOfFifths";
+import { IconChevronDown } from "./Icons";
 
 export type ChordVoicingMode = "triad" | "seventh";
 
@@ -21,11 +23,20 @@ export function ChordsPanel({
 	onSelectChord,
 	onPlayRootPairChord,
 }: ChordsPanelProps) {
+	const [extrasOpen, setExtrasOpen] = useState(false);
 	const isSeventh = voicingMode === "seventh";
 	const getSymbol = (c: DiatonicChord) =>
 		isSeventh ? c.seventhSymbol : c.symbol;
 	const getNotes = (c: DiatonicChord) =>
 		isSeventh ? c.seventhNotes : c.triadNotes;
+
+	const harmonicVId = analysis.harmonicMinorV
+		? getChordCardId(analysis.harmonicMinorV, "-harmonic")
+		: null;
+	const isExtraChordActive =
+		(harmonicVId !== null && activeChordId === harmonicVId) ||
+		(activeChordId !== null && activeChordId.startsWith("tonic-pair-"));
+	const showExtras = extrasOpen || isExtraChordActive;
 
 	const renderChordCard = (chord: DiatonicChord, extraSuffix = "") => {
 		const id = getChordCardId(chord, extraSuffix);
@@ -77,36 +88,59 @@ export function ChordsPanel({
 		);
 	};
 
-	const groups = [
-		{ title: "Major Chords", dot: "major", chords: analysis.majorChords },
-		{ title: "Minor Chords", dot: "minor", chords: analysis.minorChords },
-	] as const;
-
 	return (
-		<>
-			<div className="chord-groups">
-				{groups.map(({ title, dot, chords }) => (
-					<div key={dot} className="chord-group">
-						<div className="chord-group-header">
-							<span className={`group-dot group-dot-${dot}`} />
-							<h4 className="group-title">{title}</h4>
-							<span className="group-count">
-								{chords.map((c) => c.roman).join(" · ")}
-							</span>
-						</div>
-						<div className="chord-grid">
-							{chords.map((chord) => renderChordCard(chord))}
-						</div>
-					</div>
-				))}
+		<div className="chords-panel-wrap">
+			<div
+				className="diatonic-chords-grid"
+				role="group"
+				aria-label={`Diatonic chords in ${analysis.shortName}`}
+			>
+				{analysis.chords.map((chord) => renderChordCard(chord))}
 			</div>
 
-			<div className="chords-extras-row">
-				{renderExtraPill(
-					analysis.diminishedChord,
-					`Dim (${analysis.diminishedChord.roman})`,
-					"extra-dim",
-				)}
+			<div className="chords-footer-bar">
+				<div className="chord-quality-legend" aria-label="Chord quality groups">
+					<span className="quality-legend-item">
+						<span className="group-dot group-dot-major" />
+						<span>
+							Major Chords (
+							{analysis.majorChords.map((c) => c.roman).join(" · ")})
+						</span>
+					</span>
+					<span className="quality-legend-item">
+						<span className="group-dot group-dot-minor" />
+						<span>
+							Minor Chords (
+							{analysis.minorChords.map((c) => c.roman).join(" · ")})
+						</span>
+					</span>
+					<span className="quality-legend-item">
+						<span className="group-dot group-dot-dim" />
+						<span>Dim ({analysis.diminishedChord.roman})</span>
+					</span>
+				</div>
+
+				<button
+					type="button"
+					className={`drawer-toggle-btn ${showExtras ? "is-open" : ""}`}
+					aria-expanded={showExtras}
+					aria-controls="chords-extras-drawer"
+					onClick={() => setExtrasOpen((open) => !open)}
+				>
+					<span>
+						{analysis.harmonicMinorV
+							? `Harmonic V & Parallel ${analysis.root}`
+							: `Parallel ${analysis.root} (Major / Minor)`}
+					</span>
+					<IconChevronDown size={12} />
+				</button>
+			</div>
+
+			<div
+				id="chords-extras-drawer"
+				className="chords-extras-row"
+				hidden={!showExtras}
+			>
 				{analysis.harmonicMinorV &&
 					renderExtraPill(
 						analysis.harmonicMinorV,
@@ -140,6 +174,6 @@ export function ChordsPanel({
 					</div>
 				</div>
 			</div>
-		</>
+		</div>
 	);
 }

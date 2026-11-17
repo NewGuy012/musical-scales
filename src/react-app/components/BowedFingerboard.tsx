@@ -18,7 +18,7 @@ import {
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { BowedSongStop } from "../theory/songExamples";
-import { IconPlay } from "./Icons";
+import { IconChevronDown, IconPlay } from "./Icons";
 
 export type BowedOverlayMode = "voicing" | "all-tones" | "scale";
 export type BowedLabelMode = "notes" | "intervals" | "fingers";
@@ -103,6 +103,7 @@ export function BowedFingerboard({
 	const maxSemitone = MAX_BOWED_SEMITONE;
 	const [overlayMode, setOverlayMode] = useState<BowedOverlayMode>("voicing");
 	const [labelMode, setLabelMode] = useState<BowedLabelMode>("notes");
+	const [breakdownOpen, setBreakdownOpen] = useState<boolean>(false);
 
 	const semitones = Array.from({ length: maxSemitone + 1 }, (_, idx) => idx);
 	const semiStep = (NECK_RIGHT - NUT_X) / maxSemitone;
@@ -543,48 +544,63 @@ export function BowedFingerboard({
 			</div>
 
 			{activeVoicing && (
-				<div className="voicing-breakdown cello-breakdown-wrap">
-					<div className="cello-breakdown-header">
-						<span className="breakdown-label">Strings IV → I</span>
+				<>
+					<div className="fretboard-footer-bar">
 						<span className="cello-breakdown-hint">
-							Fingers 1–4 span a 4-semitone LH frame
+							Fingers 1–4 span a 4-semitone LH frame ({frameSummary})
 						</span>
+						<button
+							type="button"
+							className={`drawer-toggle-btn ${breakdownOpen ? "is-open" : ""}`}
+							aria-expanded={breakdownOpen}
+							aria-controls={`${instrumentSlug}-breakdown-drawer`}
+							onClick={() => setBreakdownOpen((open) => !open)}
+						>
+							<span>Strings IV → I Breakdown</span>
+							<IconChevronDown size={12} />
+						</button>
 					</div>
-					<div className="cello-breakdown-strings">
-						{activeVoicing.notes.map((vn) => {
-							const isRoot = vn.pc !== null && vn.pc === rootPc;
-							return (
-								<div
-									key={`bd-${vn.stringIndex}`}
-									className={`breakdown-cell${
-										vn.semitone === -1 ? " is-muted" : ""
-									}${isRoot ? " is-root" : ""}`}
-								>
-									<span className="bd-str">
-										{stringSubscripts[vn.stringIndex]}
-									</span>
-									{vn.semitone === -1 ? (
-										<>
-											<span className="bd-fret">×</span>
-											<span className="bd-meta">Skip</span>
-										</>
-									) : (
-										<>
-											<span className="bd-fret">
-												{vn.semitone === 0
-													? "Open · 0"
-													: `Semi ${vn.semitone} · F${vn.finger}`}
-											</span>
-											<span className="bd-meta">
-												{vn.noteName} ({vn.intervalLabel})
-											</span>
-										</>
-									)}
-								</div>
-							);
-						})}
+					<div
+						id={`${instrumentSlug}-breakdown-drawer`}
+						className="voicing-breakdown cello-breakdown-wrap"
+						hidden={!breakdownOpen}
+					>
+						<div className="cello-breakdown-strings">
+							{activeVoicing.notes.map((vn) => {
+								const isRoot = vn.pc !== null && vn.pc === rootPc;
+								return (
+									<div
+										key={`bd-${vn.stringIndex}`}
+										className={`breakdown-cell${
+											vn.semitone === -1 ? " is-muted" : ""
+										}${isRoot ? " is-root" : ""}`}
+									>
+										<span className="bd-str">
+											{stringSubscripts[vn.stringIndex]}
+										</span>
+										{vn.semitone === -1 ? (
+											<>
+												<span className="bd-fret">×</span>
+												<span className="bd-meta">Skip</span>
+											</>
+										) : (
+											<>
+												<span className="bd-fret">
+													{vn.semitone === 0
+														? "Open · 0"
+														: `Semi ${vn.semitone} · F${vn.finger}`}
+												</span>
+												<span className="bd-meta">
+													{vn.noteName} ({vn.intervalLabel})
+												</span>
+											</>
+										)}
+									</div>
+								);
+							})}
+						</div>
 					</div>
-				</div>
+				</>
 			)}
 		</div>
 	);

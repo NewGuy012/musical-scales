@@ -20,7 +20,7 @@ import {
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
 import type { GuitarSongStop } from "../theory/songExamples";
-import { IconPlay } from "./Icons";
+import { IconChevronDown, IconPlay } from "./Icons";
 
 export type FretboardOverlayMode = GuitarFretboardOverlayMode;
 export type FretboardLabelMode = "notes" | "intervals";
@@ -142,6 +142,7 @@ export function GuitarFretboard({
 	const [pentatonicScope, setPentatonicScope] =
 		useState<PentatonicScope>("auto");
 	const [selectedPhraseId, setSelectedPhraseId] = useState<string | null>(null);
+	const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
 
 	const qualityClass = getGuitarQualityClass(activeQuality);
 	const rootNote = chordNotes[0] ?? "C";
@@ -667,237 +668,256 @@ export function GuitarFretboard({
 				</svg>
 			</div>
 
-			<div className="fretboard-legend" aria-label="Fretboard marker legend">
-				<span className="legend-chip">
-					<span className={`legend-dot is-primary ${qualityClass}`} />
-					<span>Chord tone</span>
-				</span>
-				{overlayMode === "voicing" && (
+			<div className="fretboard-footer-bar">
+				<div className="fretboard-legend" aria-label="Fretboard marker legend">
 					<span className="legend-chip">
-						<span className={`legend-dot is-ghost ${qualityClass}`} />
-						<span>Other chord octave</span>
+						<span className={`legend-dot is-primary ${qualityClass}`} />
+						<span>Chord tone</span>
 					</span>
-				)}
-				{overlayMode === "pentatonic" && (
-					<span className="legend-chip">
-						<span className="legend-dot is-pentatonic" />
-						<span>Pentatonic ({guide.formula})</span>
-					</span>
-				)}
-				{overlayMode === "scale" && (
-					<span className="legend-chip">
-						<span className="legend-dot is-scale" />
-						<span>Diatonic scale</span>
-					</span>
-				)}
-				{showChromaticPassing && (
-					<span className="legend-chip">
-						<span className="legend-dot is-chromatic" />
-						<span>
-							Chromatic passing (
-							{overlayMode === "voicing" ? "around grip" : "1-fret bridges"})
+					{overlayMode === "voicing" && (
+						<span className="legend-chip">
+							<span className={`legend-dot is-ghost ${qualityClass}`} />
+							<span>Other chord octave</span>
 						</span>
-					</span>
-				)}
+					)}
+					{overlayMode === "pentatonic" && (
+						<span className="legend-chip">
+							<span className="legend-dot is-pentatonic" />
+							<span>Pentatonic ({guide.formula})</span>
+						</span>
+					)}
+					{overlayMode === "scale" && (
+						<span className="legend-chip">
+							<span className="legend-dot is-scale" />
+							<span>Diatonic scale</span>
+						</span>
+					)}
+					{showChromaticPassing && (
+						<span className="legend-chip">
+							<span className="legend-dot is-chromatic" />
+							<span>
+								Chromatic passing (
+								{overlayMode === "voicing" ? "around grip" : "1-fret bridges"})
+							</span>
+						</span>
+					)}
+				</div>
+
+				<button
+					type="button"
+					className={`drawer-toggle-btn ${detailsOpen ? "is-open" : ""}`}
+					aria-expanded={detailsOpen}
+					aria-controls="guitar-details-drawer"
+					onClick={() => setDetailsOpen((open) => !open)}
+				>
+					<span>Guide &amp; String Breakdown</span>
+					<IconChevronDown size={12} />
+				</button>
 			</div>
 
-			{selectedVoicing && (
-				<div className="voicing-breakdown">
-					<span className="breakdown-label">Strings (6 → 1):</span>
-					<div className="breakdown-strings">
-						{selectedVoicing.notes.map((n, idx) => {
-							const info = STANDARD_TUNING[idx];
-							const isMuted = n.fret < 0;
-							return (
-								<button
-									key={info.stringNumber}
-									type="button"
-									disabled={isMuted}
-									className={`breakdown-cell ${isMuted ? "is-muted" : ""} ${
-										n.intervalLabel === "R" ? "is-root" : ""
-									}`}
-									onClick={() => {
-										if (n.midi !== null) onPlayFretNote(n.midi);
-									}}
-									title={
-										isMuted
-											? `String ${info.stringNumber} (${info.label}) muted`
-											: `Play ${n.noteName} (fret ${n.fret})`
-									}
-								>
-									<span className="bd-str">{info.label}</span>
-									<span className="bd-fret">{isMuted ? "×" : n.fret}</span>
-									<span className="bd-meta">
-										{isMuted ? "—" : `${n.noteName} · ${n.intervalLabel}`}
-									</span>
-								</button>
-							);
-						})}
-					</div>
-				</div>
-			)}
-
 			<div
-				className="guitar-scale-guide"
-				aria-label="Pentatonic scale and chromatic passing notes guide"
+				id="guitar-details-drawer"
+				className="guitar-details-drawer"
+				hidden={!detailsOpen}
 			>
-				<section className="guitar-guide-card">
-					<div className="guitar-guide-head">
-						<div className="guitar-guide-title-row">
-							<span className="guitar-guide-kicker is-pent">Pentatonic</span>
-							<strong className="guitar-guide-title">
-								{guide.pentatonicName}
-							</strong>
-							<span className="guitar-guide-formula">{guide.formula}</span>
-						</div>
-
-						<div className="guitar-guide-actions">
-							{guide.hasDistinctChordPentatonic && (
-								<div
-									className="segmented-control segmented-xs"
-									role="group"
-									aria-label="Pentatonic scale basis"
-								>
+				{selectedVoicing && (
+					<div className="voicing-breakdown">
+						<span className="breakdown-label">Strings (6 → 1):</span>
+						<div className="breakdown-strings">
+							{selectedVoicing.notes.map((n, idx) => {
+								const info = STANDARD_TUNING[idx];
+								const isMuted = n.fret < 0;
+								return (
 									<button
+										key={info.stringNumber}
 										type="button"
-										className={`seg-btn ${guide.activeScope === "key" ? "is-active" : ""}`}
-										onClick={() => setPentatonicScope("key")}
-										title={guide.keyPentatonicName}
+										disabled={isMuted}
+										className={`breakdown-cell ${isMuted ? "is-muted" : ""} ${
+											n.intervalLabel === "R" ? "is-root" : ""
+										}`}
+										onClick={() => {
+											if (n.midi !== null) onPlayFretNote(n.midi);
+										}}
+										title={
+											isMuted
+												? `String ${info.stringNumber} (${info.label}) muted`
+												: `Play ${n.noteName} (fret ${n.fret})`
+										}
 									>
-										Key
+										<span className="bd-str">{info.label}</span>
+										<span className="bd-fret">{isMuted ? "×" : n.fret}</span>
+										<span className="bd-meta">
+											{isMuted ? "—" : `${n.noteName} · ${n.intervalLabel}`}
+										</span>
 									</button>
-									<button
-										type="button"
-										className={`seg-btn ${guide.activeScope === "chord" ? "is-active" : ""}`}
-										onClick={() => setPentatonicScope("chord")}
-										title={guide.chordPentatonicName}
-									>
-										Chord
-									</button>
-								</div>
-							)}
-							<button
-								type="button"
-								className={`guitar-mini-btn ${
-									overlayMode === "pentatonic" ? "is-active" : ""
-								}`}
-								onClick={() =>
-									setOverlayMode((m) =>
-										m === "pentatonic" ? "voicing" : "pentatonic",
-									)
-								}
-								title="Toggle Pentatonic notes on the guitar fretboard"
-							>
-								{overlayMode === "pentatonic" ? "On Neck ✓" : "View on Neck"}
-							</button>
-							<button
-								type="button"
-								className="guitar-mini-btn is-play"
-								onClick={() => playSequence(guide.pentatonicMidi, 220)}
-								title={`Play ${guide.pentatonicName} ascending on guitar`}
-							>
-								<IconPlay size={10} />
-								<span>Hear</span>
-							</button>
+								);
+							})}
 						</div>
 					</div>
+				)}
 
-					<div className="guitar-pent-notes">
-						{guide.pentatonicNotes.map((note, idx) => {
-							const isChordTone = chordPcSet.has(guide.pentatonicPcs[idx]);
-							return (
+				<div
+					className="guitar-scale-guide"
+					aria-label="Pentatonic scale and chromatic passing notes guide"
+				>
+					<section className="guitar-guide-card">
+						<div className="guitar-guide-head">
+							<div className="guitar-guide-title-row">
+								<span className="guitar-guide-kicker is-pent">Pentatonic</span>
+								<strong className="guitar-guide-title">
+									{guide.pentatonicName}
+								</strong>
+								<span className="guitar-guide-formula">{guide.formula}</span>
+							</div>
+
+							<div className="guitar-guide-actions">
+								{guide.hasDistinctChordPentatonic && (
+									<div
+										className="segmented-control segmented-xs"
+										role="group"
+										aria-label="Pentatonic scale basis"
+									>
+										<button
+											type="button"
+											className={`seg-btn ${guide.activeScope === "key" ? "is-active" : ""}`}
+											onClick={() => setPentatonicScope("key")}
+											title={guide.keyPentatonicName}
+										>
+											Key
+										</button>
+										<button
+											type="button"
+											className={`seg-btn ${guide.activeScope === "chord" ? "is-active" : ""}`}
+											onClick={() => setPentatonicScope("chord")}
+											title={guide.chordPentatonicName}
+										>
+											Chord
+										</button>
+									</div>
+								)}
 								<button
-									key={`${note}-${guide.degrees[idx]}`}
 									type="button"
-									className={`guitar-pent-pill ${
-										isChordTone ? "is-chord-tone" : ""
+									className={`guitar-mini-btn ${
+										overlayMode === "pentatonic" ? "is-active" : ""
 									}`}
 									onClick={() =>
-										onPlayFretNote(guide.pentatonicMidi[idx] ?? 48)
+										setOverlayMode((m) =>
+											m === "pentatonic" ? "voicing" : "pentatonic",
+										)
 									}
-									title={`Play ${note} (${guide.degrees[idx]} of ${guide.pentatonicName})`}
+									title="Toggle Pentatonic notes on the guitar fretboard"
 								>
-									<span className="pent-deg">{guide.degrees[idx]}</span>
-									<span className="pent-note">{note}</span>
+									{overlayMode === "pentatonic" ? "On Neck ✓" : "View on Neck"}
 								</button>
-							);
-						})}
-					</div>
-
-					<p className="guitar-guide-desc">
-						<strong>Relative twin:</strong> {guide.relativeTwinName}.{" "}
-						{guide.omittedSummary}
-					</p>
-					<p className="guitar-guide-meta">
-						<strong>Neck pocket:</strong> {guide.cagedBoxTip}
-					</p>
-				</section>
-
-				<section className="guitar-guide-card">
-					<div className="guitar-guide-head">
-						<div className="guitar-guide-title-row">
-							<span className="guitar-guide-kicker is-pass">Chromatic</span>
-							<strong className="guitar-guide-title">Passing Notes</strong>
-							<span className="guitar-guide-formula">1-fret bridges</span>
-						</div>
-
-						<div className="guitar-guide-actions">
-							<button
-								type="button"
-								className={`guitar-mini-btn ${
-									showChromaticPassing ? "is-active" : ""
-								}`}
-								aria-pressed={showChromaticPassing}
-								onClick={() => setShowChromaticPassing((prev) => !prev)}
-								title="Highlight chromatic passing frets on the guitar neck"
-							>
-								{showChromaticPassing ? "On Neck ✓" : "Show on Neck"}
-							</button>
-						</div>
-					</div>
-
-					<p className="guitar-guide-desc">
-						Dashed frets lie halfway inside pentatonic &amp; scale gaps — step
-						through them on weak beats and resolve onto a nearby chord tone.
-					</p>
-
-					<div
-						className="chromatic-phrases-row"
-						role="group"
-						aria-label="Playable chromatic passing examples"
-					>
-						{guide.passingPhrases.map((phrase) => {
-							const isSelected = activePhrase?.id === phrase.id;
-							return (
 								<button
-									key={phrase.id}
 									type="button"
-									className={`chromatic-phrase-btn ${
-										isSelected ? "is-selected" : ""
-									}`}
-									onClick={() => {
-										setSelectedPhraseId(phrase.id);
-										playSequence(phrase.midi, 230);
-									}}
-									title={`Play ${phrase.label}: ${phrase.notes.join(" → ")}`}
+									className="guitar-mini-btn is-play"
+									onClick={() => playSequence(guide.pentatonicMidi, 220)}
+									title={`Play ${guide.pentatonicName} ascending on guitar`}
 								>
-									<span className="cp-top">
-										<IconPlay size={9} />
-										<span className="cp-label">{phrase.label}</span>
-									</span>
-									<span className="cp-notes">{phrase.notes.join(" → ")}</span>
-									<span className="cp-tag">{phrase.tag}</span>
+									<IconPlay size={10} />
+									<span>Hear</span>
 								</button>
-							);
-						})}
-					</div>
+							</div>
+						</div>
 
-					{activePhrase && (
-						<p className="guitar-guide-meta">
-							<strong>Tip ({activePhrase.label}):</strong> {activePhrase.tip}
+						<div className="guitar-pent-notes">
+							{guide.pentatonicNotes.map((note, idx) => {
+								const isChordTone = chordPcSet.has(guide.pentatonicPcs[idx]);
+								return (
+									<button
+										key={`${note}-${guide.degrees[idx]}`}
+										type="button"
+										className={`guitar-pent-pill ${
+											isChordTone ? "is-chord-tone" : ""
+										}`}
+										onClick={() =>
+											onPlayFretNote(guide.pentatonicMidi[idx] ?? 48)
+										}
+										title={`Play ${note} (${guide.degrees[idx]} of ${guide.pentatonicName})`}
+									>
+										<span className="pent-deg">{guide.degrees[idx]}</span>
+										<span className="pent-note">{note}</span>
+									</button>
+								);
+							})}
+						</div>
+
+						<p className="guitar-guide-desc">
+							<strong>Relative twin:</strong> {guide.relativeTwinName}.{" "}
+							{guide.omittedSummary}
 						</p>
-					)}
-				</section>
+						<p className="guitar-guide-meta">
+							<strong>Neck pocket:</strong> {guide.cagedBoxTip}
+						</p>
+					</section>
+
+					<section className="guitar-guide-card">
+						<div className="guitar-guide-head">
+							<div className="guitar-guide-title-row">
+								<span className="guitar-guide-kicker is-pass">Chromatic</span>
+								<strong className="guitar-guide-title">Passing Notes</strong>
+								<span className="guitar-guide-formula">1-fret bridges</span>
+							</div>
+
+							<div className="guitar-guide-actions">
+								<button
+									type="button"
+									className={`guitar-mini-btn ${
+										showChromaticPassing ? "is-active" : ""
+									}`}
+									aria-pressed={showChromaticPassing}
+									onClick={() => setShowChromaticPassing((prev) => !prev)}
+									title="Highlight chromatic passing frets on the guitar neck"
+								>
+									{showChromaticPassing ? "On Neck ✓" : "Show on Neck"}
+								</button>
+							</div>
+						</div>
+
+						<p className="guitar-guide-desc">
+							Dashed frets lie halfway inside pentatonic &amp; scale gaps — step
+							through them on weak beats and resolve onto a nearby chord tone.
+						</p>
+
+						<div
+							className="chromatic-phrases-row"
+							role="group"
+							aria-label="Playable chromatic passing examples"
+						>
+							{guide.passingPhrases.map((phrase) => {
+								const isSelected = activePhrase?.id === phrase.id;
+								return (
+									<button
+										key={phrase.id}
+										type="button"
+										className={`chromatic-phrase-btn ${
+											isSelected ? "is-selected" : ""
+										}`}
+										onClick={() => {
+											setSelectedPhraseId(phrase.id);
+											playSequence(phrase.midi, 230);
+										}}
+										title={`Play ${phrase.label}: ${phrase.notes.join(" → ")}`}
+									>
+										<span className="cp-top">
+											<IconPlay size={9} />
+											<span className="cp-label">{phrase.label}</span>
+										</span>
+										<span className="cp-notes">{phrase.notes.join(" → ")}</span>
+										<span className="cp-tag">{phrase.tag}</span>
+									</button>
+								);
+							})}
+						</div>
+
+						{activePhrase && (
+							<p className="guitar-guide-meta">
+								<strong>Tip ({activePhrase.label}):</strong> {activePhrase.tip}
+							</p>
+						)}
+					</section>
+				</div>
 			</div>
 		</div>
 	);

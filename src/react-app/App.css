@@ -141,17 +141,56 @@
 	position: relative;
 }
 
-.shortcuts-popover {
+.shortcuts-popover,
+.settings-popover {
 	position: absolute;
 	top: calc(100% + 8px);
 	right: 0;
 	z-index: 40;
-	width: 224px;
+	width: 236px;
 	padding: 12px 14px;
 	border-radius: 12px;
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-strong);
 	box-shadow: var(--shadow-popover);
+}
+
+.settings-popover {
+	width: 264px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.settings-popover-group {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.settings-popover-group .shortcuts-popover-title {
+	margin-bottom: 0;
+}
+
+.settings-popover-group .segmented-control {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	width: 100%;
+}
+
+.settings-popover-group .seg-btn {
+	text-align: center;
+	padding: 5px 6px;
+}
+
+.chip-btn.is-muted-pill {
+	color: var(--color-dim);
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
+}
+
+[hidden] {
+	display: none !important;
 }
 
 .shortcuts-popover-title {
@@ -1279,6 +1318,97 @@
 	color: var(--text-muted);
 }
 
+.neighbors-quick-pills {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.chords-matrix-section {
+	margin-top: 12px;
+	padding-top: 11px;
+	border-top: 1px solid var(--border-hairline);
+}
+
+.chords-panel-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.diatonic-chords-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.chords-footer-bar,
+.fretboard-footer-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.chord-quality-legend {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.quality-legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.group-dot-dim {
+	background: var(--color-dim);
+}
+
+.drawer-toggle-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 9px;
+	border-radius: 8px;
+	border: 1px solid var(--border-hairline);
+	background: var(--bg-elevated);
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-weight: 650;
+	white-space: nowrap;
+	transition:
+		border-color 140ms ease,
+		color 140ms ease,
+		background-color 140ms ease;
+}
+
+.drawer-toggle-btn:hover {
+	color: var(--text-primary);
+	border-color: var(--border-strong);
+}
+
+.drawer-toggle-btn.is-open {
+	color: var(--color-fifth);
+	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
+}
+
+.drawer-toggle-btn svg {
+	transition: transform 160ms ease;
+}
+
+.drawer-toggle-btn.is-open svg {
+	transform: rotate(180deg);
+}
+
 .chord-groups {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1333,11 +1463,12 @@
 	text-align: left;
 	background: var(--bg-elevated);
 	border: 1px solid var(--border-hairline);
-	border-radius: 11px;
-	padding: 9px 10px;
+	border-radius: 10px;
+	padding: 7px 8px;
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: 2px;
+	min-width: 0;
 	transition:
 		border-color 140ms ease,
 		background-color 140ms ease,
@@ -1357,6 +1488,11 @@
 .chord-card.chord-quality-minor.is-selected {
 	border-color: var(--color-minor);
 	background: var(--color-minor-soft);
+}
+
+.chord-card.chord-quality-diminished.is-selected {
+	border-color: var(--color-dim);
+	background: var(--color-dim-soft);
 }
 
 .chord-card-top {
@@ -3694,6 +3830,25 @@
 	overflow-wrap: anywhere;
 }
 
+.song-guide-toggles {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.song-guide-drawer {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.guitar-details-drawer {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 6px;
+}
+
 /* Responsive Breakpoints */
 @media (max-width: 1120px) {
 	.studio-layout {
@@ -3713,6 +3868,9 @@
 	}
 	.brand-subtitle {
 		display: none;
+	}
+	.diatonic-chords-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 	.chord-groups,
 	.song-guide-brief,

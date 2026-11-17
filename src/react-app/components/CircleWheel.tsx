@@ -163,6 +163,19 @@ export function CircleWheel({
 		},
 	] as const;
 
+	const headerActions = !isCollapsed ? (
+		<button
+			type="button"
+			className={`chip-btn chip-btn-compact ${rotateToSelected ? "is-on" : ""}`}
+			onClick={onToggleRotate}
+			aria-pressed={rotateToSelected}
+			title="Keep C pinned at 12 o'clock or rotate the selected key to the top"
+		>
+			{rotateToSelected ? <IconRotate size={12} /> : <IconPin size={12} />}
+			<span>{rotateToSelected ? "Key at 12:00" : "C Pinned"}</span>
+		</button>
+	) : null;
+
 	return (
 		<section
 			id="section-circle"
@@ -174,11 +187,12 @@ export function CircleWheel({
 			<SectionHeader
 				headingId="circle-heading"
 				title="Circle of Fifths"
-				description="Click outer Major or inner Minor rings to choose a key"
+				description="Outer Major · Inner Minor"
 				bodyId="section-circle-body"
 				compact
 				isCollapsed={isCollapsed}
 				onToggleCollapse={onToggleCollapse}
+				actions={headerActions}
 			/>
 
 			<div
@@ -205,20 +219,6 @@ export function CircleWheel({
 							In Key
 						</span>
 					</div>
-					<button
-						type="button"
-						className={`chip-btn chip-btn-compact ${rotateToSelected ? "is-on" : ""}`}
-						onClick={onToggleRotate}
-						aria-pressed={rotateToSelected}
-						title="Keep C pinned at 12 o'clock or rotate the selected key to the top"
-					>
-						{rotateToSelected ? (
-							<IconRotate size={12} />
-						) : (
-							<IconPin size={12} />
-						)}
-						<span>{rotateToSelected ? "Key at 12:00" : "C Pinned"}</span>
-					</button>
 				</div>
 
 				<div className="wheel-stage">

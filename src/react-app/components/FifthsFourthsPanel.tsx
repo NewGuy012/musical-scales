@@ -75,6 +75,29 @@ export function FifthsFourthsPanel({
 		</div>
 	);
 
+	const collapsedQuickNav = (
+		<div className="neighbors-quick-pills">
+			<button
+				type="button"
+				className="mini-btn mini-btn-accent-fourth"
+				onClick={() =>
+					onSelectKey(fourthNeighbor.slotIndex, fourthNeighbor.mode)
+				}
+				title={`Step counter-clockwise to 4th (${fourthNeighbor.name})`}
+			>
+				↺ {fourthNeighbor.shortName}
+			</button>
+			<button
+				type="button"
+				className="mini-btn mini-btn-accent-fifth"
+				onClick={() => onSelectKey(fifthNeighbor.slotIndex, fifthNeighbor.mode)}
+				title={`Step clockwise to 5th (${fifthNeighbor.name})`}
+			>
+				{fifthNeighbor.shortName} ↻
+			</button>
+		</div>
+	);
+
 	return (
 		<section
 			id="section-neighbors"
@@ -86,13 +109,13 @@ export function FifthsFourthsPanel({
 			<SectionHeader
 				headingId="rel-heading"
 				title="Neighbors"
-				description="Adjacent 4th & 5th keys · 6/7 notes shared · 1 half-step"
+				description="4th & 5th · 6/7 notes shared"
 				bodyId="section-neighbors-body"
 				compact
 				className="neighbors-header"
 				isCollapsed={isCollapsed}
 				onToggleCollapse={onToggleCollapse}
-				actions={!isCollapsed ? walkControls : null}
+				actions={!isCollapsed ? walkControls : collapsedQuickNav}
 			/>
 
 			<div

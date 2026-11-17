@@ -8,6 +8,7 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 } from "../theory/songExamples";
+import { IconChevronDown } from "./Icons";
 
 export interface SongExamplesPanelProps {
 	songs: SongExample[];
@@ -63,6 +64,7 @@ function SongCard({
 	const wasPlayingOnScrubRef = useRef(false);
 	const latestScrubMsRef = useRef(0);
 	const scrubCleanupRef = useRef<(() => void) | null>(null);
+	const [studyGuideOpen, setStudyGuideOpen] = useState(false);
 	const [tipsOpen, setTipsOpen] = useState(false);
 
 	const playbackPlan = useMemo(() => flattenSongPlaybackSteps(song), [song]);
@@ -220,17 +222,6 @@ function SongCard({
 
 			{song.studyGuide ? (
 				<div className="song-study-guide">
-					<div className="song-guide-brief">
-						<div className="guide-brief-item">
-							<span className="guide-brief-label">Sound &amp; Feel</span>
-							<p className="guide-brief-text">{song.studyGuide.vibeAndSound}</p>
-						</div>
-						<div className="guide-brief-item">
-							<span className="guide-brief-label">Harmony Hook</span>
-							<p className="guide-brief-text">{song.studyGuide.harmonyHook}</p>
-						</div>
-					</div>
-
 					<div className="song-sections-wrap">
 						<div className="song-sections-header">
 							<div
@@ -261,40 +252,73 @@ function SongCard({
 								})}
 							</div>
 
-							<button
-								type="button"
-								className={`chip-btn chip-btn-compact${tipsOpen ? " is-on" : ""}`}
-								aria-expanded={tipsOpen}
-								onClick={() => setTipsOpen((o) => !o)}
-							>
-								Practice Tips
-							</button>
+							<div className="song-guide-toggles">
+								<button
+									type="button"
+									className={`drawer-toggle-btn${studyGuideOpen ? " is-open" : ""}`}
+									aria-expanded={studyGuideOpen}
+									aria-controls={`song-guide-drawer-${song.id}`}
+									onClick={() => setStudyGuideOpen((o) => !o)}
+								>
+									<span>Study Guide</span>
+									<IconChevronDown size={12} />
+								</button>
+								<button
+									type="button"
+									className={`chip-btn chip-btn-compact${tipsOpen ? " is-on" : ""}`}
+									aria-expanded={tipsOpen}
+									onClick={() => setTipsOpen((o) => !o)}
+								>
+									Practice Tips
+								</button>
+							</div>
 						</div>
 
-						{activeSection && (
-							<div className="song-section-spotlight">
-								<div className="spotlight-top">
-									<span className="spotlight-range">
-										{activeSection.barRange}
-									</span>
-									<code className="spotlight-prog">
-										{activeSection.progressionTag}
-									</code>
-									{onPlayFromSongBar && (
-										<button
-											type="button"
-											className="spotlight-play-btn"
-											onClick={() =>
-												onPlayFromSongBar(song, activeSection.startStepIndex)
-											}
-										>
-											▶ Play Section
-										</button>
-									)}
+						<div
+							id={`song-guide-drawer-${song.id}`}
+							className="song-guide-drawer"
+							hidden={!studyGuideOpen}
+						>
+							<div className="song-guide-brief">
+								<div className="guide-brief-item">
+									<span className="guide-brief-label">Sound &amp; Feel</span>
+									<p className="guide-brief-text">
+										{song.studyGuide.vibeAndSound}
+									</p>
 								</div>
-								<p className="spotlight-insight">{activeSection.insight}</p>
+								<div className="guide-brief-item">
+									<span className="guide-brief-label">Harmony Hook</span>
+									<p className="guide-brief-text">
+										{song.studyGuide.harmonyHook}
+									</p>
+								</div>
 							</div>
-						)}
+
+							{activeSection && (
+								<div className="song-section-spotlight">
+									<div className="spotlight-top">
+										<span className="spotlight-range">
+											{activeSection.barRange}
+										</span>
+										<code className="spotlight-prog">
+											{activeSection.progressionTag}
+										</code>
+										{onPlayFromSongBar && (
+											<button
+												type="button"
+												className="spotlight-play-btn"
+												onClick={() =>
+													onPlayFromSongBar(song, activeSection.startStepIndex)
+												}
+											>
+												▶ Play Section
+											</button>
+										)}
+									</div>
+									<p className="spotlight-insight">{activeSection.insight}</p>
+								</div>
+							)}
+						</div>
 
 						{tipsOpen && (
 							<ul

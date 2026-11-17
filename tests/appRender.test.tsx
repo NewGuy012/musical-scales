@@ -13,15 +13,13 @@ import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 
 describe("Musical Scales UI rendering", () => {
-	test("renders App with Musical Scales branding, table of contents, clearly labeled sections, and clean instrument dock", () => {
+	test("renders App with minimalist studio layout, progressive disclosure drawers, and persistent instrument dock", () => {
 		const html = renderToStaticMarkup(<App />);
 		expect(html).toContain("Musical Scales");
-		expect(html).toContain("Table of contents");
+		expect(html).not.toContain("Table of contents");
+		expect(html).not.toContain('class="toc-bar"');
 		expect(html).toContain("Circle of Fifths");
-		expect(html).toContain("Key &amp; Scale");
 		expect(html).toContain("Key Signature");
-		expect(html).toContain("Exploration");
-		expect(html).toContain("Instruments");
 		expect(html).toContain("C Major");
 		expect(html).toContain("Neighbors");
 		expect(html).toContain("F Major");
@@ -30,12 +28,7 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("Chords &amp; Progressions");
 		expect(html).toContain("Passing &amp; Substitutions");
 		expect(html).toContain("Real Songs");
-		expect(html).toContain('href="#section-circle"');
-		expect(html).toContain('href="#section-neighbors"');
-		expect(html).toContain('href="#section-key-scale"');
-		expect(html).toContain('href="#section-exploration"');
-		expect(html).toContain('href="#section-instruments"');
-		expect(html).toContain('href="#section-real-songs"');
+		expect(html).toContain("diatonic-chords-grid");
 		expect(html).toContain("Major Chords");
 		expect(html).toContain("Minor Chords");
 		expect(html).toContain("Dm");
@@ -61,44 +54,29 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("is-in-chord");
 		expect(html).toContain("is-chord-root");
 		expect(html).toContain("Keyboard shortcuts");
-		// Table of contents renders Exploration as a single top-level link without subsection buttons
-		const tocStart = html.indexOf('<nav class="toc-bar"');
-		const tocEnd = html.indexOf("</nav>", tocStart);
-		const tocHtml = html.slice(tocStart, tocEnd);
-		expect(tocHtml).not.toContain("toc-group");
-		expect(tocHtml).not.toContain("toc-sub-btn");
-		expect(tocHtml).not.toContain("Passing");
-		expect(tocHtml).toContain('href="#section-exploration"');
-		expect(tocHtml).toContain("Exploration");
+		expect(html).toContain('aria-label="Audio and spelling preferences"');
 
-		// All 6 main sections expose accessible collapse toggles
-		for (const sectionTitle of [
-			"Circle of Fifths",
-			"Neighbors",
-			"Key &amp; Scale",
-			"Exploration",
-			"Instruments",
-			"Real Songs",
-		]) {
-			expect(html).toContain(`aria-label="Collapse ${sectionTitle}"`);
-		}
+		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
+		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
+		expect(html).toContain('aria-label="Expand Neighbors"');
+		expect(html).toContain("↺ F");
+		expect(html).toContain("G ↻");
 
-		// Real Songs is a dedicated section below Instruments, showing the instrument switcher on top and active repertoire
+		// Progressive disclosure drawers are hidden by default
+		expect(html).toContain('id="settings-popover"');
+		expect(html).toContain('id="chords-extras-drawer"');
+		expect(html).toContain('id="chord-variations-drawer"');
+
+		// Persistent Instrument Dock sits below the workspace card so it stays visible across all workspace modes
+		const workspaceIdx = html.indexOf('id="section-exploration"');
+		const realSongsIdx = html.indexOf('id="section-real-songs"');
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
-		const realSongsSectionIdx = html.indexOf('id="section-real-songs"');
-		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
-		expect(realSongsSectionIdx).toBeGreaterThan(instrumentsSectionIdx);
-		expect(html).not.toContain('id="tab-harmony-songs"');
-		const realSongsHtml = html.slice(realSongsSectionIdx);
-		expect(realSongsHtml).toContain('id="songs-tab-piano"');
-		expect(realSongsHtml).toContain('id="songs-tab-guitar"');
-		expect(realSongsHtml).toContain('id="songs-tab-violin"');
-		expect(realSongsHtml).toContain('id="songs-tab-cello"');
-		expect(realSongsHtml.indexOf('id="songs-tab-piano"')).toBeLessThan(
-			realSongsHtml.indexOf("song-select"),
-		);
+		expect(workspaceIdx).toBeGreaterThan(-1);
+		expect(realSongsIdx).toBeGreaterThan(workspaceIdx);
+		expect(instrumentsSectionIdx).toBeGreaterThan(realSongsIdx);
+		expect(html).toContain('id="tab-harmony-songs"');
 		expect(html).toContain("Piano Repertoire");
-		expect(html).toContain("Synced with Piano above");
+		expect(html).toContain("Synced with Piano below");
 		expect(html).toContain("song-select");
 		expect(html).toContain("1 of 2 pieces");
 		expect(html).toContain("1. Moment Musicaux No. 3");
