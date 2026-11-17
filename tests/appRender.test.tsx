@@ -59,8 +59,11 @@ describe("Musical Scales UI rendering", () => {
 		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
 		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
 		expect(html).toContain('aria-label="Expand Neighbors"');
-		expect(html).toContain('aria-label="Collapse Exploration"');
+		expect(html).toContain('aria-label="Expand Exploration"');
 		expect(html).toContain('aria-controls="section-exploration-body"');
+		expect(html).toContain(
+			'id="section-exploration-body" class="section-body" hidden=""',
+		);
 		expect(html).toContain("↺ F");
 		expect(html).toContain("G ↻");
 
@@ -77,8 +80,8 @@ describe("Musical Scales UI rendering", () => {
 		expect(workspaceIdx).toBeGreaterThan(instrumentsSectionIdx);
 		expect(realSongsIdx).toBeGreaterThan(workspaceIdx);
 		expect(html).toContain('id="tab-harmony-songs"');
-		expect(html).toContain("Piano Repertoire");
-		expect(html).toContain("Synced with Piano above");
+		expect(html).not.toContain("songs-instrument-bar");
+		expect(html).not.toContain('id="songs-tab-piano"');
 		expect(html).toContain("song-select");
 		expect(html).toContain("1 of 2 pieces");
 		expect(html).toContain("1. Moment Musicaux No. 3");
