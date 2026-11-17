@@ -18,7 +18,6 @@ import {
 	IconChevronDown,
 	IconKeyboard,
 	IconMoon,
-	IconMusic,
 	IconPlay,
 	IconSliders,
 	IconStop,
@@ -28,8 +27,29 @@ import {
 	IconVolumeMute,
 } from "./components/Icons";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
+import {
+	MusicTeacherSection,
+	type PendingMusicXmlPartChoice,
+} from "./components/MusicTeacherSection";
 import { PianoKeyboard } from "./components/PianoKeyboard";
-import { SongExamplesPanel } from "./components/SongExamplesPanel";
+import type { MusicXmlPartSummary } from "./musicxml";
+import {
+	getCatalogEntriesForInstrument,
+	getCatalogStubSongsForInstrument,
+	loadSongById,
+} from "./songs/songCatalog";
+import {
+	FlattenedSongStep,
+	InstrumentTab,
+	SongChordStep,
+	SongExample,
+	SongSubBarChord,
+	findPlaybackEventAtTime,
+	flattenSongPlaybackSteps,
+	getSongBarStartTimes,
+	hydrateSong,
+	scaleSongExampleSpeed,
+} from "./songs/songRuntime";
 import { BowedVoicing, getBowedVoicings } from "./theory/celloFingerboard";
 import {
 	HarmonyChordSpec,
@@ -60,21 +80,6 @@ import {
 	getGuitarVoicings,
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
-import {
-	getCatalogStubSongsForInstrument,
-	loadSongById,
-} from "./theory/songCatalog";
-import {
-	FlattenedSongStep,
-	InstrumentTab,
-	SongChordStep,
-	SongExample,
-	SongSubBarChord,
-	findPlaybackEventAtTime,
-	flattenSongPlaybackSteps,
-	getSongBarStartTimes,
-	scaleSongExampleSpeed,
-} from "./theory/songRuntime";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -105,8 +110,11 @@ const INSTRUMENT_TABS: readonly InstrumentTab[] = [
 ] as const;
 
 type MainSectionId =
-	"section-circle" | "section-neighbors" | "section-exploration";
-type WorkspaceTab = "chords" | "color" | "songs";
+	| "section-circle"
+	| "section-neighbors"
+	| "section-music-teacher"
+	| "section-exploration";
+type WorkspaceTab = "chords" | "color";
 
 const INSTRUMENT_META: Record<
 	InstrumentTab,
@@ -237,6 +245,20 @@ export function App() {
 	const [loadedSongsById, setLoadedSongsById] = useState<
 		Record<string, SongExample>
 	>({});
+	const [localPreviewSongs, setLocalPreviewSongs] = useState<SongExample[]>([]);
+	const [isImportingMusicXml, setIsImportingMusicXml] = useState(false);
+	const [musicXmlImportError, setMusicXmlImportError] = useState<string | null>(
+		null,
+	);
+	const [pendingMusicXmlFile, setPendingMusicXmlFile] = useState<{
+		fileName: string;
+		bytes: Uint8Array;
+		title: string;
+		parts: MusicXmlPartSummary[];
+		selectedPartId: string;
+		instrument: InstrumentTab;
+		localId: string;
+	} | null>(null);
 	const [songPlaybackSpeed, setSongPlaybackSpeed] = useState<number>(1);
 	const [activeGuitarRunMidi, setActiveGuitarRunMidi] = useState<number | null>(
 		null,
@@ -1004,17 +1026,42 @@ export function App() {
 		[instrumentView, handleAuditionInstrumentVoicing],
 	);
 
-	const songsForInstrument = useMemo(
-		() =>
-			getCatalogStubSongsForInstrument(instrumentView).map((stub) => {
+	const songsForInstrument = useMemo(() => {
+		const localSongs = localPreviewSongs
+			.filter((s) => s.instruments.includes(instrumentView))
+			.map((s) => scaleSongExampleSpeed(s, songPlaybackSpeed));
+		const catalogSongs = getCatalogStubSongsForInstrument(instrumentView).map(
+			(stub) => {
 				const loaded = loadedSongsById[stub.id];
 				return loaded ? scaleSongExampleSpeed(loaded, songPlaybackSpeed) : stub;
-			}),
-		[instrumentView, loadedSongsById, songPlaybackSpeed],
+			},
+		);
+		return [...localSongs, ...catalogSongs];
+	}, [instrumentView, localPreviewSongs, loadedSongsById, songPlaybackSpeed]);
+
+	const otherInstrumentsWithSongs = useMemo(
+		() =>
+			INSTRUMENT_TABS.filter((tab) => tab !== instrumentView)
+				.map((tab) => {
+					const localCount = localPreviewSongs.filter((s) =>
+						s.instruments.includes(tab),
+					).length;
+					const catalogCount = getCatalogEntriesForInstrument(tab).length;
+					return {
+						instrument: tab,
+						label: INSTRUMENT_META[tab].label,
+						count: localCount + catalogCount,
+					};
+				})
+				.filter((item) => item.count > 0),
+		[instrumentView, localPreviewSongs],
 	);
 
 	const ensureSongLoaded = useCallback(
 		async (songId: string): Promise<SongExample> => {
+			const localMatch = localPreviewSongs.find((s) => s.id === songId);
+			if (localMatch)
+				return scaleSongExampleSpeed(localMatch, songPlaybackSpeed);
 			const cached = loadedSongsById[songId];
 			if (cached) return scaleSongExampleSpeed(cached, songPlaybackSpeed);
 			const loaded = await loadSongById(songId);
@@ -1023,7 +1070,7 @@ export function App() {
 			);
 			return scaleSongExampleSpeed(loaded, songPlaybackSpeed);
 		},
-		[loadedSongsById, songPlaybackSpeed],
+		[localPreviewSongs, loadedSongsById, songPlaybackSpeed],
 	);
 
 	const applySongStepHighlight = useCallback(
@@ -1360,13 +1407,22 @@ export function App() {
 		[instrumentView, resetSongContext],
 	);
 
-	const selectedSongId =
-		selectedSongByInstrument[instrumentView] ??
-		songsForInstrument[0]?.id ??
-		null;
+	const selectedSongId = useMemo(() => {
+		const candidate = selectedSongByInstrument[instrumentView];
+		if (candidate && songsForInstrument.some((s) => s.id === candidate)) {
+			return candidate;
+		}
+		return songsForInstrument[0]?.id ?? null;
+	}, [selectedSongByInstrument, instrumentView, songsForInstrument]);
 
 	useEffect(() => {
-		if (!selectedSongId || loadedSongsById[selectedSongId]) return;
+		if (
+			!selectedSongId ||
+			loadedSongsById[selectedSongId] ||
+			localPreviewSongs.some((s) => s.id === selectedSongId)
+		) {
+			return;
+		}
 		let cancelled = false;
 		void loadSongById(selectedSongId).then((loaded) => {
 			if (!cancelled) {
@@ -1378,7 +1434,7 @@ export function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, [selectedSongId, loadedSongsById]);
+	}, [selectedSongId, loadedSongsById, localPreviewSongs]);
 
 	const handleSelectSong = useCallback(
 		(nextSongId: string) => {
@@ -1391,6 +1447,156 @@ export function App() {
 		[resetSongContext, instrumentView],
 	);
 
+	const compileAndLoadLocalPreview = useCallback(
+		async (
+			bytes: Uint8Array,
+			localId: string,
+			partId: string,
+			targetInstrument: InstrumentTab,
+		) => {
+			const { compileMusicXml } = await import("./musicxml");
+			const { songDoc } = await compileMusicXml(bytes, {
+				id: localId,
+				partId,
+				instrument: targetInstrument,
+			});
+			const hydrated: SongExample = {
+				...hydrateSong(songDoc),
+				isLocalPreview: true,
+			};
+			resetSongContext();
+			setLocalPreviewSongs((prev) => {
+				const filtered = prev.filter((s) => s.id !== hydrated.id);
+				return [hydrated, ...filtered];
+			});
+			setInstrumentView(targetInstrument);
+			setSelectedSongByInstrument((prev) => ({
+				...prev,
+				[targetInstrument]: hydrated.id,
+			}));
+			setCollapsedSections((prev) => ({
+				...prev,
+				"section-music-teacher": false,
+			}));
+		},
+		[resetSongContext],
+	);
+
+	const handleImportMusicXmlFile = useCallback(
+		async (file: File) => {
+			const lowerName = file.name.toLowerCase();
+			if (
+				!lowerName.endsWith(".musicxml") &&
+				!lowerName.endsWith(".xml") &&
+				!lowerName.endsWith(".mxl")
+			) {
+				setMusicXmlImportError(
+					`Unsupported file "${file.name}". Please select a .musicxml, .xml, or .mxl file.`,
+				);
+				return;
+			}
+			setIsImportingMusicXml(true);
+			setMusicXmlImportError(null);
+			try {
+				const bytes = new Uint8Array(await file.arrayBuffer());
+				const { inspectMusicXml } = await import("./musicxml");
+				const inspection = await inspectMusicXml(bytes);
+				const playableParts = inspection.parts.filter(
+					(p) => !p.isPercussion && p.noteCount > 0,
+				);
+				const pool =
+					playableParts.length > 0 ? playableParts : inspection.parts;
+				if (pool.length === 0) {
+					throw new Error("This MusicXML file contains no parts.");
+				}
+
+				const matchingPart =
+					pool.find((p) => p.suggestedInstrument === instrumentView) ??
+					[...pool].sort((a, b) => b.noteCount - a.noteCount)[0];
+				const targetInstrument =
+					matchingPart.suggestedInstrument ?? instrumentView;
+				const slugBase = file.name
+					.replace(/\.(musicxml|xml|mxl)$/i, "")
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, "-")
+					.replace(/^-+|-+$/g, "");
+				const localId = `local-${slugBase || "musicxml"}-${Date.now().toString(36)}`;
+
+				await compileAndLoadLocalPreview(
+					bytes,
+					localId,
+					matchingPart.partId,
+					targetInstrument,
+				);
+
+				if (pool.length > 1) {
+					setPendingMusicXmlFile({
+						fileName: file.name,
+						bytes,
+						title: inspection.title,
+						parts: pool,
+						selectedPartId: matchingPart.partId,
+						instrument: targetInstrument,
+						localId,
+					});
+				} else {
+					setPendingMusicXmlFile(null);
+				}
+			} catch (err) {
+				setMusicXmlImportError(
+					err instanceof Error ? err.message : "Failed to parse MusicXML file.",
+				);
+			} finally {
+				setIsImportingMusicXml(false);
+			}
+		},
+		[instrumentView, compileAndLoadLocalPreview],
+	);
+
+	const handleConfirmPartChoice = useCallback(
+		async (partId: string, targetInstrument: InstrumentTab) => {
+			if (!pendingMusicXmlFile) return;
+			setIsImportingMusicXml(true);
+			setMusicXmlImportError(null);
+			try {
+				await compileAndLoadLocalPreview(
+					pendingMusicXmlFile.bytes,
+					pendingMusicXmlFile.localId,
+					partId,
+					targetInstrument,
+				);
+				setPendingMusicXmlFile((prev) =>
+					prev
+						? { ...prev, selectedPartId: partId, instrument: targetInstrument }
+						: null,
+				);
+			} catch (err) {
+				setMusicXmlImportError(
+					err instanceof Error
+						? err.message
+						: "Failed to load selected MusicXML part.",
+				);
+			} finally {
+				setIsImportingMusicXml(false);
+			}
+		},
+		[pendingMusicXmlFile, compileAndLoadLocalPreview],
+	);
+
+	const handleRemoveLocalPreview = useCallback(
+		(songId: string) => {
+			if (playingSongId === songId || cuedSongId === songId) {
+				stopActiveSequence();
+				setAuditionOverride(null);
+			}
+			setLocalPreviewSongs((prev) => prev.filter((s) => s.id !== songId));
+			setPendingMusicXmlFile((prev) =>
+				prev?.localId === songId ? null : prev,
+			);
+		},
+		[playingSongId, cuedSongId, stopActiveSequence],
+	);
+
 	const handleChangePlaybackSpeed = useCallback(
 		(nextSpeed: number) => {
 			const clamped = Math.max(0.25, Math.min(2.5, nextSpeed));
@@ -1400,7 +1606,9 @@ export function App() {
 
 			const activeId = playingSongId ?? cuedSongId;
 			if (!activeId) return;
-			const baseSong = loadedSongsById[activeId];
+			const baseSong =
+				localPreviewSongs.find((s) => s.id === activeId) ??
+				loadedSongsById[activeId];
 			if (!baseSong) return;
 			const scaledSong = scaleSongExampleSpeed(baseSong, clamped);
 			const scaledPosMs = Math.max(0, songPositionMsRef.current * ratio);
@@ -1421,6 +1629,7 @@ export function App() {
 			songPlaybackSpeed,
 			playingSongId,
 			cuedSongId,
+			localPreviewSongs,
 			loadedSongsById,
 			startSongPlaybackFrom,
 			preference,
@@ -1552,6 +1761,19 @@ export function App() {
 	const isExplorationCollapsed = Boolean(
 		collapsedSections["section-exploration"],
 	);
+	const isMusicTeacherCollapsed = Boolean(
+		collapsedSections["section-music-teacher"],
+	);
+	const pendingPartChoice: PendingMusicXmlPartChoice | null =
+		pendingMusicXmlFile
+			? {
+					fileName: pendingMusicXmlFile.fileName,
+					title: pendingMusicXmlFile.title,
+					parts: pendingMusicXmlFile.parts,
+					selectedPartId: pendingMusicXmlFile.selectedPartId,
+					instrument: pendingMusicXmlFile.instrument,
+				}
+			: null;
 
 	return (
 		<div className="app-shell">
@@ -1922,18 +2144,65 @@ export function App() {
 						</div>
 					</section>
 
+					<MusicTeacherSection
+						instrumentView={instrumentView}
+						instrumentLabel={INSTRUMENT_META[instrumentView].label}
+						repertoireLabel={INSTRUMENT_META[instrumentView].repertoire}
+						instrumentTabList={
+							<InstrumentTabList
+								activeTab={instrumentView}
+								onSelect={handleSelectInstrumentTab}
+								idPrefix="songs-tab"
+								ariaLabel="Learn with Real Songs instrument"
+								controlsId="panel-real-songs"
+							/>
+						}
+						songs={songsForInstrument}
+						otherInstrumentsWithSongs={otherInstrumentsWithSongs}
+						selectedSongId={selectedSongId}
+						playingSongId={playingSongId}
+						cuedSongId={cuedSongId}
+						songPositionMs={songPositionMs}
+						playbackSpeed={songPlaybackSpeed}
+						activeChordStepIndex={activeSongStepIndex}
+						activeNoteLabel={activeSongNoteLabel}
+						selectedPreviewStepId={selectedSongPreviewId}
+						isCollapsed={isMusicTeacherCollapsed}
+						isImporting={isImportingMusicXml}
+						importError={musicXmlImportError}
+						pendingPartChoice={pendingPartChoice}
+						onToggleCollapse={() =>
+							toggleSectionCollapsed("section-music-teacher")
+						}
+						onSelectInstrument={handleSelectInstrumentTab}
+						onSelectSong={handleSelectSong}
+						onImportMusicXmlFile={handleImportMusicXmlFile}
+						onConfirmPartChoice={handleConfirmPartChoice}
+						onCancelPartChoice={() => setPendingMusicXmlFile(null)}
+						onDismissImportError={() => setMusicXmlImportError(null)}
+						onRemoveLocalPreview={handleRemoveLocalPreview}
+						onChangePlaybackSpeed={handleChangePlaybackSpeed}
+						onTogglePlaySong={handleTogglePlaySong}
+						onStopSong={handleStopSong}
+						onSeekSong={handleSeekSong}
+						onBeginScrubSong={handleBeginScrubSong}
+						onSkipSongBar={handleSkipSongBar}
+						onPlayFromSongBar={handlePlayFromSongBar}
+						onSelectSongChordStep={handleSelectSongChordStep}
+					/>
+
 					<section
 						id="section-exploration"
 						className={`panel-card workspace-card${
 							isExplorationCollapsed ? " is-collapsed" : ""
 						}`}
-						aria-label="Harmony and repertoire workspace"
+						aria-label="Harmony exploration workspace"
 					>
 						<div className="harmony-tabs-bar">
 							<div
 								className="instrument-tablist"
 								role="tablist"
-								aria-label="Studio workspace"
+								aria-label="Harmony workspace"
 							>
 								<button
 									type="button"
@@ -1961,26 +2230,6 @@ export function App() {
 								>
 									<span>Passing &amp; Substitutions</span>
 									{activeColorSeqId !== null && (
-										<span className="tab-live-dot" aria-hidden="true" />
-									)}
-								</button>
-								<button
-									type="button"
-									role="tab"
-									id="tab-harmony-songs"
-									aria-selected={harmonyTab === "songs"}
-									aria-controls="section-real-songs"
-									className={`instrument-tab ${
-										harmonyTab === "songs" ? "is-active" : ""
-									}`}
-									onClick={() => handleSelectHarmonyTab("songs")}
-								>
-									<IconMusic size={12} />
-									<span>Real Songs</span>
-									<span className="tab-count-pill">
-										{songsForInstrument.length}
-									</span>
-									{isSongActive && (
 										<span className="tab-live-dot" aria-hidden="true" />
 									)}
 								</button>
@@ -2016,17 +2265,15 @@ export function App() {
 											</div>
 										)}
 
-										{harmonyTab !== "songs" && (
-											<button
-												type="button"
-												className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
-												aria-pressed={arpeggiate}
-												onClick={() => setArpeggiate((a) => !a)}
-												title="Roll chord notes sequentially vs. block chord"
-											>
-												Arpeggio
-											</button>
-										)}
+										<button
+											type="button"
+											className={`chip-btn ${arpeggiate ? "is-on" : ""}`}
+											aria-pressed={arpeggiate}
+											onClick={() => setArpeggiate((a) => !a)}
+											title="Roll chord notes sequentially vs. block chord"
+										>
+											Arpeggio
+										</button>
 									</>
 								)}
 
@@ -2333,54 +2580,6 @@ export function App() {
 									/>
 								</div>
 							)}
-
-							<div
-								id="section-real-songs"
-								role="tabpanel"
-								aria-labelledby="tab-harmony-songs"
-								hidden={harmonyTab !== "songs"}
-							>
-								<div className="instrument-tabs-bar songs-instrument-bar">
-									<InstrumentTabList
-										activeTab={instrumentView}
-										onSelect={handleSelectInstrumentTab}
-										idPrefix="songs-tab"
-										ariaLabel="Real Songs instrument"
-										controlsId="panel-real-songs"
-									/>
-									<span className="instrument-tab-meta">
-										{INSTRUMENT_META[instrumentView].repertoire} · Synced with{" "}
-										{INSTRUMENT_META[instrumentView].label} above
-									</span>
-								</div>
-
-								<div
-									id="panel-real-songs"
-									role="tabpanel"
-									aria-labelledby={`songs-tab-${instrumentView}`}
-								>
-									<SongExamplesPanel
-										songs={songsForInstrument}
-										selectedSongId={selectedSongId}
-										playingSongId={playingSongId}
-										cuedSongId={cuedSongId}
-										songPositionMs={songPositionMs}
-										playbackSpeed={songPlaybackSpeed}
-										activeChordStepIndex={activeSongStepIndex}
-										activeNoteLabel={activeSongNoteLabel}
-										selectedPreviewStepId={selectedSongPreviewId}
-										onSelectSong={handleSelectSong}
-										onChangePlaybackSpeed={handleChangePlaybackSpeed}
-										onTogglePlaySong={handleTogglePlaySong}
-										onStopSong={handleStopSong}
-										onSeekSong={handleSeekSong}
-										onBeginScrubSong={handleBeginScrubSong}
-										onSkipSongBar={handleSkipSongBar}
-										onPlayFromSongBar={handlePlayFromSongBar}
-										onSelectSongChordStep={handleSelectSongChordStep}
-									/>
-								</div>
-							</div>
 						</div>
 					</section>
 				</div>

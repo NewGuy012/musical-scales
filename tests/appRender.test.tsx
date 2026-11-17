@@ -7,13 +7,16 @@ import { CircleWheel } from "../src/react-app/components/CircleWheel";
 import { ColorHarmonyPanel } from "../src/react-app/components/ColorHarmonyPanel";
 import { FifthsFourthsPanel } from "../src/react-app/components/FifthsFourthsPanel";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
+import { MusicTeacherSection } from "../src/react-app/components/MusicTeacherSection";
 import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 
+const noop = () => {};
+
 describe("Musical Scales UI rendering", () => {
-	test("renders App with minimalist studio layout, progressive disclosure drawers, and persistent instrument dock", () => {
+	test("renders App with Instruments dock, Music Teacher -> Learn with Real Songs below it, and Exploration workspace", () => {
 		const html = renderToStaticMarkup(<App />);
 		expect(html).toContain("Musical Scales");
 		expect(html).not.toContain("Table of contents");
@@ -27,7 +30,9 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("Diatonic Chords in C");
 		expect(html).toContain("Chords &amp; Progressions");
 		expect(html).toContain("Passing &amp; Substitutions");
-		expect(html).toContain("Real Songs");
+		expect(html).toContain("Music Teacher");
+		expect(html).toContain("Learn with Real Songs");
+		expect(html).toContain("Import MusicXML");
 		expect(html).toContain("diatonic-chords-grid");
 		expect(html).toContain("Major Chords");
 		expect(html).toContain("Minor Chords");
@@ -59,6 +64,7 @@ describe("Musical Scales UI rendering", () => {
 		// Left column: Circle of Fifths is expanded, Neighbors is collapsed by default with quick-jump pills
 		expect(html).toContain('aria-label="Collapse Circle of Fifths"');
 		expect(html).toContain('aria-label="Expand Neighbors"');
+		expect(html).toContain('aria-label="Collapse Music Teacher"');
 		expect(html).toContain('aria-label="Expand Exploration"');
 		expect(html).toContain('aria-controls="section-exploration-body"');
 		expect(html).toContain(
@@ -72,25 +78,103 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain('id="chords-extras-drawer"');
 		expect(html).toContain('id="chord-variations-drawer"');
 
-		// Persistent Instrument Dock sits above the workspace card so it stays visible across all workspace modes
-		const workspaceIdx = html.indexOf('id="section-exploration"');
-		const realSongsIdx = html.indexOf('id="section-real-songs"');
+		// Right column order: Instruments dock -> Music Teacher (Learn with Real Songs) -> Exploration
 		const instrumentsSectionIdx = html.indexOf('id="section-instruments"');
+		const musicTeacherIdx = html.indexOf('id="section-music-teacher"');
+		const workspaceIdx = html.indexOf('id="section-exploration"');
 		expect(instrumentsSectionIdx).toBeGreaterThan(-1);
-		expect(workspaceIdx).toBeGreaterThan(instrumentsSectionIdx);
-		expect(realSongsIdx).toBeGreaterThan(workspaceIdx);
-		expect(html).toContain('id="tab-harmony-songs"');
+		expect(musicTeacherIdx).toBeGreaterThan(instrumentsSectionIdx);
+		expect(workspaceIdx).toBeGreaterThan(musicTeacherIdx);
+
+		// Real Songs tab is no longer inside Exploration
+		expect(html).not.toContain('id="tab-harmony-songs"');
+		expect(html).not.toContain('id="section-real-songs"');
+
+		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state
+		expect(html).toContain('id="subsection-learn-real-songs"');
 		expect(html).toContain("songs-instrument-bar");
 		expect(html).toContain('id="songs-tab-piano"');
 		expect(html).toContain("Piano Repertoire");
 		expect(html).toContain("Synced with Piano above");
-		expect(html).toContain("song-select");
-		expect(html).toContain("1 of 2 pieces");
-		expect(html).toContain("1. Moment Musicaux No. 3");
-		expect(html).toContain("2. Clair de lune");
-		expect(html).not.toContain("Méditation");
-		expect(html).not.toContain("Cello Suite No. 1");
-		expect(html).not.toContain("Amazing Grace");
+		expect(html).toContain("No Piano MusicXML scores ingested yet");
+	});
+
+	test("renders MusicTeacherSection collapsed, error alert, and multi-part picker states", () => {
+		const html = renderToStaticMarkup(
+			<MusicTeacherSection
+				instrumentView="guitar"
+				instrumentLabel="Guitar"
+				repertoireLabel="Guitar Repertoire"
+				instrumentTabList={<div data-tabs="1" />}
+				songs={[]}
+				otherInstrumentsWithSongs={[]}
+				selectedSongId={null}
+				playingSongId={null}
+				cuedSongId={null}
+				songPositionMs={0}
+				playbackSpeed={1}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				isCollapsed={true}
+				isImporting={false}
+				importError="Invalid XML"
+				pendingPartChoice={{
+					fileName: "duet.mxl",
+					title: "Duet",
+					parts: [
+						{
+							index: 0,
+							partId: "P1",
+							name: "Acoustic Guitar",
+							isPercussion: false,
+							isStringed: true,
+							stringCount: 6,
+							staffCount: 1,
+							midiProgram: 25,
+							noteCount: 42,
+							suggestedInstrument: "guitar",
+						},
+						{
+							index: 1,
+							partId: "P2",
+							name: "Violin",
+							isPercussion: false,
+							isStringed: false,
+							stringCount: 0,
+							staffCount: 1,
+							midiProgram: 41,
+							noteCount: 36,
+							suggestedInstrument: "violin",
+						},
+					],
+					selectedPartId: "P1",
+					instrument: "guitar",
+				}}
+				onToggleCollapse={noop}
+				onSelectInstrument={noop}
+				onSelectSong={noop}
+				onImportMusicXmlFile={noop}
+				onConfirmPartChoice={noop}
+				onCancelPartChoice={noop}
+				onDismissImportError={noop}
+				onRemoveLocalPreview={noop}
+				onChangePlaybackSpeed={noop}
+				onTogglePlaySong={noop}
+				onStopSong={noop}
+				onSeekSong={noop}
+				onBeginScrubSong={noop}
+				onSkipSongBar={noop}
+				onPlayFromSongBar={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(html).toContain('aria-label="Expand Music Teacher"');
+		expect(html).toContain('id="section-music-teacher-body"');
+		expect(html).toContain('hidden=""');
+		expect(html).toContain("Invalid XML");
+		expect(html).toContain("Multiple parts detected");
+		expect(html).toContain("Acoustic Guitar (guitar · 42 notes)");
 	});
 
 	test("renders collapsed state cleanly for collapsible section panels", () => {
@@ -106,21 +190,21 @@ describe("Musical Scales UI rendering", () => {
 					highlightedChord={null}
 					rotateToSelected={false}
 					isCollapsed={true}
-					onSelectKey={() => {}}
-					onPlayTonic={() => {}}
-					onStepFourth={() => {}}
-					onStepFifth={() => {}}
-					onToggleRotate={() => {}}
-					onToggleCollapse={() => {}}
+					onSelectKey={noop}
+					onPlayTonic={noop}
+					onStepFourth={noop}
+					onStepFifth={noop}
+					onToggleRotate={noop}
+					onToggleCollapse={noop}
 				/>
 				<FifthsFourthsPanel
 					analysis={cMaj}
 					walkingDirection={null}
 					isCollapsed={true}
-					onSelectKey={() => {}}
-					onAuditionRelationship={() => {}}
-					onToggleWalk={() => {}}
-					onToggleCollapse={() => {}}
+					onSelectKey={noop}
+					onAuditionRelationship={noop}
+					onToggleWalk={noop}
+					onToggleCollapse={noop}
 				/>
 			</>,
 		);
@@ -152,9 +236,9 @@ describe("Musical Scales UI rendering", () => {
 				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
 				scaleNoteNames={cMaj.scaleNotes}
 				preferFlats={false}
-				onSelectVoicing={() => {}}
-				onStrumVoicing={() => {}}
-				onPlayFretNote={() => {}}
+				onSelectVoicing={noop}
+				onStrumVoicing={noop}
+				onPlayFretNote={noop}
 			/>,
 		);
 		expect(html).toContain("Open C");
@@ -192,9 +276,9 @@ describe("Musical Scales UI rendering", () => {
 				keyRootName="C"
 				keyMode="major"
 				preferFlats={false}
-				onSelectVoicing={() => {}}
-				onStrumVoicing={() => {}}
-				onPlayFretNote={() => {}}
+				onSelectVoicing={noop}
+				onStrumVoicing={noop}
+				onPlayFretNote={noop}
 			/>,
 		);
 		expect(dmHtml).toContain("Pentatonic scale basis");
@@ -224,9 +308,9 @@ describe("Musical Scales UI rendering", () => {
 				preferFlats={false}
 				voicings={cVoicings}
 				activeVoicing={cVoicings[0]}
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(cHtml).toContain("Open 4-Str");
@@ -262,9 +346,9 @@ describe("Musical Scales UI rendering", () => {
 				preferFlats={false}
 				voicings={m7Voicings}
 				activeVoicing={m7Voicings[0]}
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(dmHtml).toContain("5th-Bass m7");
@@ -294,9 +378,9 @@ describe("Musical Scales UI rendering", () => {
 				preferFlats={false}
 				voicings={dVoicings}
 				activeVoicing={dVoicings[0] ?? null}
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(dHtml).toContain("Open D-Str");
@@ -320,25 +404,25 @@ describe("Musical Scales UI rendering", () => {
 					slotOverrides={{}}
 					highlightedChord={null}
 					rotateToSelected={false}
-					onSelectKey={() => {}}
-					onPlayTonic={() => {}}
-					onStepFourth={() => {}}
-					onStepFifth={() => {}}
-					onToggleRotate={() => {}}
+					onSelectKey={noop}
+					onPlayTonic={noop}
+					onStepFourth={noop}
+					onStepFifth={noop}
+					onToggleRotate={noop}
 				/>
 				<FifthsFourthsPanel
 					analysis={fsMaj}
 					walkingDirection={null}
-					onSelectKey={() => {}}
-					onAuditionRelationship={() => {}}
-					onToggleWalk={() => {}}
+					onSelectKey={noop}
+					onAuditionRelationship={noop}
+					onToggleWalk={noop}
 				/>
 				<ChordsPanel
 					analysis={fsMaj}
 					voicingMode="triad"
 					activeChordId={null}
-					onSelectChord={() => {}}
-					onPlayRootPairChord={() => {}}
+					onSelectChord={noop}
+					onPlayRootPairChord={noop}
 				/>
 			</>,
 		);
@@ -356,8 +440,8 @@ describe("Musical Scales UI rendering", () => {
 				analysis={ebMin}
 				voicingMode="seventh"
 				activeChordId={null}
-				onSelectChord={() => {}}
-				onPlayRootPairChord={() => {}}
+				onSelectChord={noop}
+				onPlayRootPairChord={noop}
 			/>,
 		);
 		expect(ebHtml).toContain("E♭m7");
@@ -378,8 +462,8 @@ describe("Musical Scales UI rendering", () => {
 				activeChordId={null}
 				activeSequenceId={null}
 				activeSequenceStepIdx={null}
-				onSelectChord={() => {}}
-				onPlaySequence={() => {}}
+				onSelectChord={noop}
+				onPlaySequence={noop}
 			/>,
 		);
 		expect(html).toContain("Chromatic Passing");

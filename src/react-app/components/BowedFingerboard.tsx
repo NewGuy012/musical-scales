@@ -18,7 +18,7 @@ import {
 	createPitchClassNameResolver,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
-import type { BowedSongStop } from "../theory/songExamples";
+import type { BowedSongStop } from "../songs/songRuntime";
 import { IconChevronDown, IconPlay } from "./Icons";
 
 export type BowedOverlayMode = "voicing" | "all-tones" | "scale";

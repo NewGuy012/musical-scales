@@ -20,7 +20,7 @@ import {
 	getChromaticDegreeLabel,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
-import type { GuitarSongStop } from "../theory/songExamples";
+import type { GuitarSongStop } from "../songs/songRuntime";
 import { IconChevronDown, IconPlay } from "./Icons";
 
 export type FretboardOverlayMode = GuitarFretboardOverlayMode;

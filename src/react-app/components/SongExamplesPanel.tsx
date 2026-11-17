@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
+	type InstrumentTab,
 	type SongExample,
 	describeRomanFunction,
 	findPlaybackEventAtTime,
@@ -7,13 +8,21 @@ import {
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
-} from "../theory/songRuntime";
-import { IconChevronDown } from "./Icons";
+} from "../songs/songRuntime";
+import { IconChevronDown, IconUpload, IconX } from "./Icons";
 
 const PRACTICE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25] as const;
 
+export interface OtherInstrumentSongCount {
+	instrument: InstrumentTab;
+	label: string;
+	count: number;
+}
+
 export interface SongExamplesPanelProps {
 	songs: SongExample[];
+	activeInstrumentLabel?: string;
+	otherInstrumentsWithSongs?: OtherInstrumentSongCount[];
 	selectedSongId?: string | null;
 	playingSongId: string | null;
 	cuedSongId?: string | null;
@@ -23,6 +32,9 @@ export interface SongExamplesPanelProps {
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
 	onSelectSong?: (songId: string) => void;
+	onSelectInstrument?: (instrument: InstrumentTab) => void;
+	onRequestImportMusicXml?: () => void;
+	onRemoveLocalPreview?: (songId: string) => void;
 	onChangePlaybackSpeed?: (speed: number) => void;
 	onTogglePlaySong: (song: SongExample) => void;
 	onStopSong?: () => void;
@@ -39,7 +51,13 @@ export interface SongExamplesPanelProps {
 
 type SongCardProps = Omit<
 	SongExamplesPanelProps,
-	"songs" | "selectedSongId" | "onSelectSong"
+	| "songs"
+	| "selectedSongId"
+	| "onSelectSong"
+	| "activeInstrumentLabel"
+	| "otherInstrumentsWithSongs"
+	| "onSelectInstrument"
+	| "onRequestImportMusicXml"
 > & {
 	song: SongExample;
 	cuedSongId: string | null;
@@ -56,6 +74,7 @@ function SongCard({
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	onRemoveLocalPreview,
 	onChangePlaybackSpeed,
 	onTogglePlaySong,
 	onStopSong,
@@ -206,6 +225,9 @@ function SongCard({
 					<div className="song-title-row">
 						<h3 className="song-name">{song.title}</h3>
 						<span className="song-composer">{song.composerOrSource}</span>
+						{song.isLocalPreview && (
+							<span className="song-local-badge">Local Preview</span>
+						)}
 					</div>
 					<div className="song-meta-row">
 						<span className="song-meta-chip">{song.keyLabel}</span>
@@ -216,16 +238,30 @@ function SongCard({
 					</div>
 				</div>
 
-				<button
-					type="button"
-					className={`song-play-btn${isPlayingThis ? " is-playing" : ""}${
-						isPausedThis ? " is-paused" : ""
-					}`}
-					aria-pressed={isPlayingThis}
-					onClick={() => onTogglePlaySong(song)}
-				>
-					{primaryToggleLabel}
-				</button>
+				<div className="song-card-actions">
+					{song.isLocalPreview && onRemoveLocalPreview && (
+						<button
+							type="button"
+							className="chip-btn chip-btn-compact"
+							onClick={() => onRemoveLocalPreview(song.id)}
+							title="Remove local MusicXML preview"
+							aria-label={`Remove ${song.title} local preview`}
+						>
+							<IconX size={11} />
+							<span>Remove</span>
+						</button>
+					)}
+					<button
+						type="button"
+						className={`song-play-btn${isPlayingThis ? " is-playing" : ""}${
+							isPausedThis ? " is-paused" : ""
+						}`}
+						aria-pressed={isPlayingThis}
+						onClick={() => onTogglePlaySong(song)}
+					>
+						{primaryToggleLabel}
+					</button>
+				</div>
 			</div>
 
 			{song.studyGuide ? (
@@ -559,6 +595,8 @@ function SongCard({
 
 export function SongExamplesPanel({
 	songs,
+	activeInstrumentLabel = "Instrument",
+	otherInstrumentsWithSongs = [],
 	selectedSongId = null,
 	playingSongId,
 	cuedSongId = null,
@@ -568,6 +606,9 @@ export function SongExamplesPanel({
 	activeNoteLabel,
 	selectedPreviewStepId,
 	onSelectSong,
+	onSelectInstrument,
+	onRequestImportMusicXml,
+	onRemoveLocalPreview,
 	onChangePlaybackSpeed,
 	onTogglePlaySong,
 	onStopSong,
@@ -582,7 +623,52 @@ export function SongExamplesPanel({
 		songs[0]?.id ?? null,
 	);
 
-	if (songs.length === 0) return null;
+	if (songs.length === 0) {
+		return (
+			<div className="songs-empty-state" aria-label="No MusicXML songs loaded">
+				<div className="songs-empty-copy">
+					<p className="songs-empty-title">
+						No {activeInstrumentLabel} MusicXML scores ingested yet
+					</p>
+					<p className="songs-empty-desc">
+						Drop a <code>.musicxml</code>, <code>.xml</code>, or{" "}
+						<code>.mxl</code> file here to preview it immediately, or place
+						MusicXML files in <code>songs/musicxml/</code> and run{" "}
+						<code>bun run ingest-songs</code> (synced with{" "}
+						<code>songs/songs.txt</code>).
+					</p>
+				</div>
+
+				<div className="songs-empty-actions">
+					{onRequestImportMusicXml && (
+						<button
+							type="button"
+							className="pill-action-btn"
+							onClick={onRequestImportMusicXml}
+						>
+							<IconUpload size={13} />
+							<span>Load MusicXML File</span>
+						</button>
+					)}
+					{otherInstrumentsWithSongs.length > 0 && onSelectInstrument && (
+						<div className="songs-empty-switch">
+							<span className="songs-empty-switch-label">Loaded in:</span>
+							{otherInstrumentsWithSongs.map((item) => (
+								<button
+									key={item.instrument}
+									type="button"
+									className="chip-btn chip-btn-compact"
+									onClick={() => onSelectInstrument(item.instrument)}
+								>
+									{item.label} ({item.count})
+								</button>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+		);
+	}
 
 	const activeSong =
 		[selectedSongId, playingSongId, cuedSongId, internalSongId]
@@ -613,7 +699,7 @@ export function SongExamplesPanel({
 								{idx + 1}. {song.title} —{" "}
 								{song.composerOrSource.split(" · ")[0]} ({song.keyLabel} ·{" "}
 								{song.timeSignature} · {song.steps.length || song.barCount || 0}{" "}
-								bars)
+								bars){song.isLocalPreview ? " [Preview]" : ""}
 							</option>
 						))}
 					</select>
@@ -634,6 +720,7 @@ export function SongExamplesPanel({
 				activeChordStepIndex={activeChordStepIndex}
 				activeNoteLabel={activeNoteLabel}
 				selectedPreviewStepId={selectedPreviewStepId}
+				onRemoveLocalPreview={onRemoveLocalPreview}
 				onChangePlaybackSpeed={onChangePlaybackSpeed}
 				onTogglePlaySong={onTogglePlaySong}
 				onStopSong={onStopSong}

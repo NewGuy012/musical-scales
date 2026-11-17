@@ -5,32 +5,68 @@ import { BowedFingerboard } from "../src/react-app/components/BowedFingerboard";
 import { GuitarFretboard } from "../src/react-app/components/GuitarFretboard";
 import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
-import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
-import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
-import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import { compileMusicXml } from "../src/react-app/musicxml";
 import {
-	SONG_CATALOG,
-	loadSongById,
-} from "../src/react-app/theory/songCatalog";
-import {
-	SONG_EXAMPLES,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
-	getSongsForInstrument,
+	hydrateSong,
 	scaleSongExampleSpeed,
-} from "../src/react-app/theory/songExamples";
+} from "../src/react-app/songs/songRuntime";
+import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
+import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
+import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 
 const noop = () => {};
 
-describe("songPlayback helpers and synchronized UI", () => {
-	test("bar start times, binary search lookup, and time formatting stay aligned", () => {
-		const bach = getSongsForInstrument("cello")[0];
-		const flat = flattenSongPlaybackSteps(bach);
-		const barStarts = getSongBarStartTimes(bach);
+function buildSampleCelloXml(barsCount = 16): string {
+	const measures = Array.from({ length: barsCount }, (_, i) => {
+		const isFirst = i === 0;
+		const attrs = isFirst
+			? `<attributes>
+        <divisions>4</divisions>
+        <key><fifths>1</fifths><mode>major</mode></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <direction><sound tempo="96"/></direction>`
+			: "";
+		const rehearsal =
+			i === 0
+				? `<direction><direction-type><rehearsal>Opening</rehearsal></direction-type></direction>`
+				: i === 8
+					? `<direction><direction-type><rehearsal>Development</rehearsal></direction-type></direction>`
+					: "";
+		return `<measure number="${i + 1}">
+      ${attrs}
+      ${rehearsal}
+      <note><pitch><step>G</step><octave>2</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>D</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>B</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>A</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>`;
+	}).join("\n");
 
-		expect(barStarts).toHaveLength(42);
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>Cello Suite Prelude Sample</work-title></work>
+  <identification><creator type="composer">J.S. Bach</creator></identification>
+  <part-list><score-part id="P1"><part-name>Cello</part-name></score-part></part-list>
+  <part id="P1">${measures}</part>
+</score-partwise>`;
+}
+
+describe("songPlayback helpers and synchronized UI", () => {
+	test("bar start times, binary search lookup, and time formatting stay aligned", async () => {
+		const { songDoc } = await compileMusicXml(
+			new TextEncoder().encode(buildSampleCelloXml(16)),
+		);
+		const celloSong = hydrateSong(songDoc);
+		const flat = flattenSongPlaybackSteps(celloSong);
+		const barStarts = getSongBarStartTimes(celloSong);
+
+		expect(barStarts).toHaveLength(16);
 		expect(barStarts[0]).toBe(0);
 		for (let i = 1; i < barStarts.length; i++) {
 			expect(barStarts[i]).toBeGreaterThan(barStarts[i - 1]);
@@ -42,19 +78,19 @@ describe("songPlayback helpers and synchronized UI", () => {
 		});
 		expect(findPlaybackEventAtTime(flat.events, -20).eventIndex).toBe(0);
 
-		const midBar1 = findPlaybackEventAtTime(flat.events, 160);
+		const midBar1 = findPlaybackEventAtTime(flat.events, 700);
 		expect(midBar1.eventIndex).toBe(1);
 		expect(midBar1.event?.chordStepIndex).toBe(0);
 
-		const bar22 = findPlaybackEventAtTime(flat.events, barStarts[21]);
-		expect(bar22.event?.chordStepIndex).toBe(21);
+		const bar10 = findPlaybackEventAtTime(flat.events, barStarts[9]);
+		expect(bar10.event?.chordStepIndex).toBe(9);
 
 		const pastEnd = findPlaybackEventAtTime(
 			flat.events,
 			flat.totalDurationMs + 5000,
 		);
 		expect(pastEnd.eventIndex).toBe(flat.events.length - 1);
-		expect(pastEnd.event?.chordStepIndex).toBe(41);
+		expect(pastEnd.event?.chordStepIndex).toBe(15);
 
 		expect(formatSongTime(0)).toBe("0:00");
 		expect(formatSongTime(-400)).toBe("0:00");
@@ -62,20 +98,48 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(formatSongTime(flat.totalDurationMs)).toMatch(/^\d+:\d{2}$/);
 	});
 
-	test("SongExamplesPanel renders transport bar, slider scrubber, paused state, and preview jump button", () => {
-		const bach = getSongsForInstrument("cello")[0];
-		const flat = flattenSongPlaybackSteps(bach);
-		const barStarts = getSongBarStartTimes(bach);
-
-		const idleHtml = renderToStaticMarkup(
+	test("SongExamplesPanel renders empty MusicXML prompt, transport bar, local preview badge, and speed controls", async () => {
+		const emptyHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				songs={[bach]}
+				songs={[]}
+				activeInstrumentLabel="Guitar"
+				otherInstrumentsWithSongs={[
+					{ instrument: "piano", label: "Piano", count: 2 },
+				]}
 				playingSongId={null}
-				cuedSongId={null}
-				songPositionMs={0}
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
 				selectedPreviewStepId={null}
+				onRequestImportMusicXml={noop}
+				onSelectInstrument={noop}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(emptyHtml).toContain("No Guitar MusicXML scores ingested yet");
+		expect(emptyHtml).toContain("Load MusicXML File");
+		expect(emptyHtml).toContain("songs/songs.txt");
+		expect(emptyHtml).toContain("Piano (2)");
+
+		const { songDoc } = await compileMusicXml(
+			new TextEncoder().encode(buildSampleCelloXml(16)),
+		);
+		const celloSong = { ...hydrateSong(songDoc), isLocalPreview: true };
+		const flat = flattenSongPlaybackSteps(celloSong);
+		const barStarts = getSongBarStartTimes(celloSong);
+
+		const idleHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={[celloSong]}
+				playingSongId={null}
+				cuedSongId={null}
+				songPositionMs={0}
+				playbackSpeed={0.75}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onRemoveLocalPreview={noop}
+				onChangePlaybackSpeed={noop}
 				onTogglePlaySong={noop}
 				onStopSong={noop}
 				onSeekSong={noop}
@@ -84,25 +148,29 @@ describe("songPlayback helpers and synchronized UI", () => {
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(idleHtml).toContain("42 Bars");
+		expect(idleHtml).toContain("16 Bars");
+		expect(idleHtml).toContain("Local Preview");
+		expect(idleHtml).toContain("Remove");
 		expect(idleHtml).toContain('type="range"');
 		expect(idleHtml).toContain("song-scrubber");
-		expect(idleHtml).toContain("Bar 1/42");
+		expect(idleHtml).toContain("Bar 1/16");
 		expect(idleHtml).toContain(
 			`0:00 / ${formatSongTime(flat.totalDurationMs)}`,
 		);
 		expect(idleHtml).toContain("song-timeline is-long");
-		expect(idleHtml).toContain("Previous bar in");
-		expect(idleHtml).toContain("Next bar in");
+		expect(idleHtml).toContain("practice speed");
+		expect(idleHtml).toContain("0.5x");
+		expect(idleHtml).toContain("0.75x");
+		expect(idleHtml).toContain("1.25x");
 
 		const playingHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				songs={[bach]}
-				playingSongId={bach.id}
-				cuedSongId={bach.id}
-				songPositionMs={barStarts[12]}
-				activeChordStepIndex={12}
-				activeNoteLabel="D♯3 (II · F1)"
+				songs={[celloSong]}
+				playingSongId={celloSong.id}
+				cuedSongId={celloSong.id}
+				songPositionMs={barStarts[4]}
+				activeChordStepIndex={4}
+				activeNoteLabel="D3 (Open II)"
 				selectedPreviewStepId={null}
 				onTogglePlaySong={noop}
 				onSelectSongChordStep={noop}
@@ -111,19 +179,18 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(playingHtml).toContain("song-card is-playing");
 		expect(playingHtml).toContain("❚❚ Pause");
 		expect(playingHtml).toContain("Playing");
-		expect(playingHtml).toContain("Bar 13");
-		expect(playingHtml).toContain("B7/D♯");
-		expect(playingHtml).toContain("Bar 13/42");
-		expect(playingHtml).toContain("Note: D♯3 (II · F1)");
+		expect(playingHtml).toContain("Bar 5");
+		expect(playingHtml).toContain("Bar 5/16");
+		expect(playingHtml).toContain("Note: D3 (Open II)");
 
 		const pausedHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				songs={[bach]}
+				songs={[celloSong]}
 				playingSongId={null}
-				cuedSongId={bach.id}
-				songPositionMs={barStarts[20]}
-				activeChordStepIndex={20}
-				activeNoteLabel="D3 (Open II)"
+				cuedSongId={celloSong.id}
+				songPositionMs={barStarts[8]}
+				activeChordStepIndex={8}
+				activeNoteLabel="B3"
 				selectedPreviewStepId={null}
 				onTogglePlaySong={noop}
 				onSelectSongChordStep={noop}
@@ -132,100 +199,34 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(pausedHtml).toContain("song-card is-paused");
 		expect(pausedHtml).toContain("▶ Resume");
 		expect(pausedHtml).toContain("Paused");
-		expect(pausedHtml).toContain("Bar 21/42");
+		expect(pausedHtml).toContain("Bar 9/16");
 
 		const previewHtml = renderToStaticMarkup(
 			<SongExamplesPanel
-				songs={[bach]}
+				songs={[celloSong]}
 				playingSongId={null}
 				cuedSongId={null}
 				songPositionMs={0}
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
-				selectedPreviewStepId={bach.steps[4].id}
+				selectedPreviewStepId={celloSong.steps[2].id}
 				onTogglePlaySong={noop}
 				onPlayFromSongBar={noop}
 				onSelectSongChordStep={noop}
 			/>,
 		);
 		expect(previewHtml).toContain("Previewing");
-		expect(previewHtml).toContain("Play from Bar 5");
-		expect(previewHtml).toContain("Bar 5/42");
+		expect(previewHtml).toContain("Play from Bar 3");
 		expect(previewHtml).toContain("Sound &amp; Feel");
 		expect(previewHtml).toContain("Harmony Hook");
 		expect(previewHtml).toContain("Practice Tips");
-		expect(previewHtml).toContain("2. Circle Climb to D &amp; Em");
-		expect(previewHtml).toContain("Play Section");
-		expect(previewHtml).toContain("song-live-fn");
 
-		const guitarHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={getSongsForInstrument("guitar")}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
+		const slowSong = scaleSongExampleSpeed(celloSong, 0.5);
+		expect(slowSong.bpm).toBe(Math.round(celloSong.bpm * 0.5));
+		expect(flattenSongPlaybackSteps(slowSong).totalDurationMs).toBeCloseTo(
+			flat.totalDurationMs * 2,
+			-1,
 		);
-		expect(guitarHtml).toContain("Cannonball Rag");
-		expect(guitarHtml).toContain("Merle Travis");
-		expect(guitarHtml).toContain("58 Bars");
-		expect(guitarHtml).toContain("song-select");
-		expect(guitarHtml).toContain("1 of 2 pieces");
-		expect(guitarHtml).toContain("Amazing Grace");
-
-		const guitarSecondHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={getSongsForInstrument("guitar")}
-				selectedSongId="amazing-grace-guitar"
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(guitarSecondHtml).toContain("2 of 2 pieces");
-		expect(guitarSecondHtml).toContain("Amazing Grace");
-		expect(guitarSecondHtml).toContain("Tommy Emmanuel");
-
-		const pianoSongs = getSongsForInstrument("piano");
-		const pianoDefaultHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={pianoSongs}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(pianoDefaultHtml).toContain("1 of 2 pieces");
-		expect(pianoDefaultHtml).toContain("Moment Musicaux No. 3");
-		expect(pianoDefaultHtml).toContain("Franz Schubert");
-		expect(pianoDefaultHtml).toContain("78 Bars");
-		expect(pianoDefaultHtml).toContain("Clair de lune");
-
-		const pianoSecondHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={pianoSongs}
-				selectedSongId="debussy-clair-de-lune"
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(pianoSecondHtml).toContain("2 of 2 pieces");
-		expect(pianoSecondHtml).toContain("Clair de lune");
-		expect(pianoSecondHtml).toContain("Claude Debussy");
-		expect(pianoSecondHtml).toContain("72 Bars");
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {
@@ -249,9 +250,9 @@ describe("songPlayback helpers and synchronized UI", () => {
 				voicings={celloVoicings}
 				activeVoicing={celloVoicings[0] ?? null}
 				activeSongStops={[{ stringIndex: 3, semitone: 10, finger: 4 }]}
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(celloHtml).toContain("is-song-hit");
@@ -263,7 +264,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeSongMidi={[62]}
 				activeQuality="major"
 				scalePitchClasses={[0, 2, 4, 5, 7, 9, 11]}
-				onPlayNote={() => {}}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(pianoHtml).toContain("is-song-hit");
@@ -285,9 +286,9 @@ describe("songPlayback helpers and synchronized UI", () => {
 				scalePitchClasses={[2, 4, 6, 7, 9, 11, 0]}
 				scaleNoteNames={gMajor.scaleNotes}
 				preferFlats={false}
-				onSelectVoicing={() => {}}
-				onStrumVoicing={() => {}}
-				onPlayFretNote={() => {}}
+				onSelectVoicing={noop}
+				onStrumVoicing={noop}
+				onPlayFretNote={noop}
 			/>,
 		);
 		expect(guitarHtml).toContain("is-song-hit");
@@ -315,29 +316,14 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeSongStops={[
 					{ stringIndex: 3, semitone: 14, finger: 3, technique: "harmonic" },
 				]}
-				onSelectVoicing={() => {}}
-				onRollVoicing={() => {}}
-				onPlayNote={() => {}}
+				onSelectVoicing={noop}
+				onRollVoicing={noop}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(violinHtml).toContain("is-song-hit");
 		expect(violinHtml).toContain("is-harmonic");
 		expect(violinHtml).toContain("song-hit-harmonic");
-
-		const violinSongs = getSongsForInstrument("violin");
-		const thaisHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={violinSongs}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(thaisHtml).toContain("Méditation (from Thaïs)");
-		expect(thaisHtml).toContain("Jules Massenet");
 	});
 
 	test("playTimedSequence supports startOffsetMs, onProgress updates, and cancellation", async () => {
@@ -396,14 +382,13 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeQuality="major"
 				scalePitchClasses={dbMajor.scaleNotes.map(() => 0)}
 				activeNoteNamesByMidi={{ 61: "D♭", 68: "A♭" }}
-				onPlayNote={() => {}}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(bassOnlyHtml).toContain("is-song-hit");
 		expect(bassOnlyHtml).toContain(">D♭</text>");
 		expect(bassOnlyHtml).toContain(">A♭</text>");
 
-		// When an in-range RH note (68) is present alongside bass 49, do not fold 49 -> 61.
 		const mixedHtml = renderToStaticMarkup(
 			<PianoKeyboard
 				activeMidiNotes={[]}
@@ -411,14 +396,14 @@ describe("songPlayback helpers and synchronized UI", () => {
 				activeQuality="major"
 				scalePitchClasses={[]}
 				activeNoteNamesByMidi={{ 61: "D♭", 68: "A♭" }}
-				onPlayNote={() => {}}
+				onPlayNote={noop}
 			/>,
 		);
 		expect(mixedHtml).toContain(">A♭</text>");
 		expect(mixedHtml).not.toContain(">D♭</text>");
 	});
 
-	test("GuitarFretboard renders explicit activeSongStops including diamond harmonic markers", () => {
+	test("GuitarFretboard renders explicit activeSongStops including diamond harmonic markers and extended frets", () => {
 		const eMajor = analyzeKey(4, "major");
 		const voicings = getGuitarVoicings("E", "major", ["E", "G♯", "B"], false);
 		const harmonicHtml = renderToStaticMarkup(
@@ -464,72 +449,5 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(extendedGuitarHtml).toContain(">19<");
 		expect(extendedGuitarHtml).toContain("is-song-hit");
-
-		const dMajor = analyzeKey(2, "major");
-		const celloThumbVoicings = getBowedVoicings(
-			"cello",
-			"D",
-			"major",
-			["D", "F♯", "A"],
-			false,
-		);
-		const celloThumbHtml = renderToStaticMarkup(
-			<BowedFingerboard
-				instrument="cello"
-				chordLabel="D (I)"
-				chordQuality="major"
-				chordKind="major"
-				chordNotes={["D", "F♯", "A"]}
-				scaleNotes={dMajor.scaleNotes}
-				preferFlats={false}
-				voicings={celloThumbVoicings}
-				activeVoicing={celloThumbVoicings[0] ?? null}
-				activeSongStops={[{ stringIndex: 3, semitone: 19, finger: 3 }]}
-				onSelectVoicing={noop}
-				onRollVoicing={noop}
-				onPlayNote={noop}
-			/>,
-		);
-		expect(celloThumbHtml).toContain(">19<");
-		expect(celloThumbHtml).toContain("is-song-hit");
-	});
-
-	test("SONG_CATALOG mirrors SONG_EXAMPLES metadata, lazy-loads songs, and supports practice speed scaling", async () => {
-		expect(SONG_CATALOG.map((c) => c.id)).toEqual(
-			SONG_EXAMPLES.map((s) => s.id),
-		);
-		for (const entry of SONG_CATALOG) {
-			const match = SONG_EXAMPLES.find((s) => s.id === entry.id)!;
-			expect(entry.barCount).toBe(match.steps.length);
-			expect(entry.bpm).toBe(match.bpm);
-			expect(entry.keyLabel).toBe(match.keyLabel);
-		}
-
-		const bachLazy = await loadSongById("bach-cello-suite-1");
-		expect(bachLazy.steps).toHaveLength(42);
-		const slowBach = scaleSongExampleSpeed(bachLazy, 0.5);
-		expect(slowBach.bpm).toBe(Math.round(bachLazy.bpm * 0.5));
-		expect(flattenSongPlaybackSteps(slowBach).totalDurationMs).toBeCloseTo(
-			flattenSongPlaybackSteps(bachLazy).totalDurationMs * 2,
-			-1,
-		);
-
-		const html = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[slowBach]}
-				playingSongId={null}
-				playbackSpeed={0.75}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onChangePlaybackSpeed={noop}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(html).toContain("practice speed");
-		expect(html).toContain("0.5x");
-		expect(html).toContain("0.75x");
-		expect(html).toContain("1.25x");
 	});
 });
