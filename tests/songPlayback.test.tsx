@@ -7,6 +7,13 @@ import { PianoKeyboard } from "../src/react-app/components/PianoKeyboard";
 import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel";
 import { compileMusicXml } from "../src/react-app/musicxml";
 import {
+	SONG_CATALOG,
+	createCatalogStubSong,
+	getCatalogEntriesForInstrument,
+} from "../src/react-app/songs/songCatalog";
+import {
+	type SongDocument,
+	describeRomanFunction,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	formatSongTime,
@@ -16,7 +23,10 @@ import {
 } from "../src/react-app/songs/songRuntime";
 import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
-import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import {
+	STANDARD_TUNING,
+	getGuitarVoicings,
+} from "../src/react-app/theory/guitarFretboard";
 
 const noop = () => {};
 
@@ -448,5 +458,140 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		expect(extendedGuitarHtml).toContain(">19<");
 		expect(extendedGuitarHtml).toContain("is-song-hit");
+	});
+
+	test("hydrates polyphonic SongDocument with custom tunings, stops, catalog stubs, and harmonic descriptions", async () => {
+		const guitarHarmonicXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions><clef><sign>TAB</sign><line>5</line></clef>
+      </attributes>
+      <note><pitch><step>E</step><octave>2</octave></pitch><duration>4</duration><type>quarter</type><notations><technical><string>6</string><fret>0</fret></technical></notations></note>
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>4</duration><type>quarter</type><notations><technical><harmonic><natural/></harmonic><string>1</string><fret>12</fret></technical></notations></note>
+      <note><pitch><step>G</step><alter>1</alter><octave>4</octave></pitch><duration>8</duration><type>half</type><notations><technical><hammer-on type="stop"/><string>1</string><fret>4</fret></technical></notations></note>
+    </measure>
+  </part>
+</score-partwise>`;
+
+		const { songDoc } = await compileMusicXml(
+			new TextEncoder().encode(guitarHarmonicXml),
+		);
+		const harmonicSong = hydrateSong(songDoc);
+		const stops = harmonicSong.steps[0].events.flatMap(
+			(e) => e.guitarStops ?? [],
+		);
+		expect(stops.some((st) => st.technique === "harmonic")).toBe(true);
+		expect(stops.some((st) => st.technique === "hammer")).toBe(true);
+		for (const evt of harmonicSong.steps[0].events) {
+			expect(evt.guitarStops?.length).toBe(evt.midi.length);
+			evt.guitarStops?.forEach((stop, idx) => {
+				const openMidi = STANDARD_TUNING[stop.stringIndex].openMidi;
+				const offset =
+					stop.technique === "harmonic" && stop.fret === 12 ? 12 : stop.fret;
+				expect(evt.midi[idx]).toBe(openMidi + offset);
+			});
+		}
+
+		expect(describeRomanFunction("I6", "major")).toContain("Tonic");
+		expect(describeRomanFunction("V7/vi", "major")).toContain(
+			"Secondary dominant",
+		);
+		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
+
+		const polyDoc: SongDocument = {
+			version: 2,
+			id: "poly-test",
+			idPrefix: "pt",
+			title: "Poly Test",
+			composerOrSource: "Test",
+			instruments: ["guitar"],
+			tpq: 480,
+			keySlot: 1,
+			keyMode: "major",
+			keyLabel: "G Major",
+			timeSignature: "4/4",
+			tempoMap: [[0, 120]],
+			tuning: [38, 45, 50, 55, 59, 64],
+			capo: 2,
+			theorySummary: "Polyphonic SongDocument",
+			chords: {
+				G: {
+					roman: "I",
+					quality: "major",
+					notes: ["G", "B", "D"],
+					degree: 1,
+					slot: 1,
+				},
+				D7: {
+					roman: "V7",
+					quality: "major",
+					notes: ["D", "F♯", "A", "C"],
+					degree: 5,
+					slot: 2,
+					guitarKind: "7",
+				},
+			},
+			bars: [
+				{
+					barTicks: 1440,
+					harmony: [
+						[0, "G"],
+						[720, "D7"],
+					],
+					cue: "Polyphonic bass + melody",
+					notes: [
+						[0, 240, 43, 55, "palmMute", [0, 5]],
+						[0, 864, 67, 92, "letRing", [5, 3]],
+						[720, 480, 62, 85, null, [3, 2]],
+					],
+				},
+				{
+					barTicks: 960,
+					harmony: [[0, "G"]],
+					cue: "Mixed stops",
+					notes: [
+						[0, 480, 40, 80, "normal"],
+						[0, 480, 76, 80, "harmonic", [0, 12]],
+					],
+				},
+			],
+		};
+
+		const polySong = hydrateSong(polyDoc);
+		expect(getSongBarStartTimes(polySong)).toEqual([0, 1500]);
+		const flat = flattenSongPlaybackSteps(polySong);
+		expect(flat.totalDurationMs).toBe(2500);
+		expect(flat.events[0].midi).toEqual([43, 67]);
+		expect(flat.events[0].notes?.map((n) => n.technique)).toEqual([
+			"palmMute",
+			"letRing",
+		]);
+		expect(flat.events[1].subBarChord?.chordSymbol).toBe("D7");
+		expect(polySong.steps[1].events[0].guitarStops).toEqual([
+			{ stringIndex: 0, fret: 12, technique: "harmonic" },
+		]);
+
+		expect(getCatalogEntriesForInstrument("piano")).toEqual(
+			SONG_CATALOG.filter((e) => e.instruments.includes("piano")),
+		);
+		const stub = createCatalogStubSong({
+			id: "sample-stub",
+			title: "Sample Stub",
+			composerOrSource: "MusicXML",
+			subtitle: "C Major",
+			instruments: ["piano"],
+			keySlot: 0,
+			keyMode: "major",
+			keyLabel: "C Major",
+			timeSignature: "4/4",
+			bpm: 120,
+			barCount: 16,
+			theorySummary: "Stub summary",
+		});
+		expect(stub.barCount).toBe(16);
+		expect(stub.steps).toEqual([]);
 	});
 });

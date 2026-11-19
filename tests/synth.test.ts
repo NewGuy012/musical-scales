@@ -174,5 +174,12 @@ describe("instrument synthesis engine", () => {
 		expect(String.fromCharCode(...wav.slice(0, 4))).toBe("RIFF");
 		expect(String.fromCharCode(...wav.slice(8, 12))).toBe("WAVE");
 		expect(wav.byteLength).toBe(44 + ringSamples.length * 2);
+
+		const clampedSamples = renderTimedSequenceOfflineSamples([], {
+			preset: "piano",
+			sampleRate: 4000,
+			totalDurationMs: 2_000_000,
+		});
+		expect(clampedSamples.length).toBe(600 * 8000);
 	});
 });

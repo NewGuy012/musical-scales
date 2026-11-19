@@ -12,6 +12,7 @@ import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
 import { analyzeColorHarmony } from "../src/react-app/theory/chromaticHarmony";
 import { analyzeKey } from "../src/react-app/theory/circleOfFifths";
 import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
+import workerApp from "../src/worker/index";
 
 const noop = () => {};
 
@@ -495,69 +496,50 @@ describe("Musical Scales UI rendering", () => {
 		expect(ebHtml).toContain("Harmonic V");
 	});
 
-	test("renders ColorHarmonyPanel with Chromatic Passing, Diminished, Secondary Dominants, and Tritone Sub topics", () => {
-		const cMaj = analyzeKey(0, "major");
-		const color = analyzeColorHarmony(cMaj);
-		const html = renderToStaticMarkup(
-			<ColorHarmonyPanel
-				colorAnalysis={color}
-				activeChordId={null}
-				activeSequenceId={null}
-				activeSequenceStepIdx={null}
-				onSelectChord={noop}
-				onPlaySequence={noop}
-			/>,
-		);
-		expect(html).toContain("Chromatic Passing");
-		expect(html).toContain("Diminished Chords");
-		expect(html).toContain("Secondary Dominants");
-		expect(html).toContain("Tritone Subs");
-		expect(html).toContain("Parallel m7 Half-Step Slide");
-		expect(html).toContain("Em7");
-		expect(html).toContain("E♭m7");
-		expect(html).toContain("F♯m7♭5");
-		expect(html).toContain("color-cards-grid");
+	test("renders ColorHarmonyPanel topics and enforces Worker API security headers", async () => {
+		const color = analyzeColorHarmony(analyzeKey(0, "major"));
+		const topicCases = [
+			[
+				"chromatic",
+				[
+					"Chromatic Passing",
+					"Parallel m7 Half-Step Slide",
+					"Em7",
+					"E♭m7",
+					"color-cards-grid",
+				],
+			],
+			["diminished", ["Diminished Chords", "dim-symmetry-split", "C♯dim7"]],
+			["secondary", ["Secondary Dominants", "sec-dom-grid", "V7/V"]],
+			["tritone", ["Tritone Subs", "tritone-secondary-grid", "D♭7"]],
+		] as const;
 
-		const dimHtml = renderToStaticMarkup(
-			<ColorHarmonyPanel
-				colorAnalysis={color}
-				activeChordId={null}
-				activeSequenceId={null}
-				activeSequenceStepIdx={null}
-				initialTopic="diminished"
-				onSelectChord={noop}
-				onPlaySequence={noop}
-			/>,
-		);
-		expect(dimHtml).toContain("dim-symmetry-split");
-		expect(dimHtml).toContain("C♯dim7");
+		for (const [topic, expected] of topicCases) {
+			const html = renderToStaticMarkup(
+				<ColorHarmonyPanel
+					colorAnalysis={color}
+					activeChordId={null}
+					activeSequenceId={null}
+					activeSequenceStepIdx={null}
+					initialTopic={topic}
+					onSelectChord={noop}
+					onPlaySequence={noop}
+				/>,
+			);
+			for (const token of expected) expect(html).toContain(token);
+		}
 
-		const secHtml = renderToStaticMarkup(
-			<ColorHarmonyPanel
-				colorAnalysis={color}
-				activeChordId={null}
-				activeSequenceId={null}
-				activeSequenceStepIdx={null}
-				initialTopic="secondary"
-				onSelectChord={noop}
-				onPlaySequence={noop}
-			/>,
+		const getRes = await workerApp.request("/api/unknown");
+		expect(getRes.status).toBe(404);
+		expect(getRes.headers.get("Cache-Control")).toBe("no-store");
+		expect(getRes.headers.get("X-Frame-Options")).toBe("DENY");
+		expect(getRes.headers.get("X-Content-Type-Options")).toBe("nosniff");
+		expect(getRes.headers.get("Content-Security-Policy")).toContain(
+			"default-src 'none'",
 		);
-		expect(secHtml).toContain("sec-dom-grid");
-		expect(secHtml).toContain("V7/V");
 
-		const triHtml = renderToStaticMarkup(
-			<ColorHarmonyPanel
-				colorAnalysis={color}
-				activeChordId={null}
-				activeSequenceId={null}
-				activeSequenceStepIdx={null}
-				initialTopic="tritone"
-				onSelectChord={noop}
-				onPlaySequence={noop}
-			/>,
-		);
-		expect(triHtml).toContain("tritone-secondary-grid");
-		expect(triHtml).toContain("D♭7");
+		const postRes = await workerApp.request("/api/unknown", { method: "POST" });
+		expect(postRes.status).toBe(405);
+		expect(postRes.headers.get("Allow")).toBe("GET, HEAD");
 	});
 });

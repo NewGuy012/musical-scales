@@ -602,4 +602,34 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		const formattedAgain = formatSongRegistryText(nextEntries);
 		expect(formattedAgain).toBe(synced);
 	});
+
+	test("XML parser and .mxl unpacker reject malformed roots, oversized trees, path escapes, and corrupt EOCD", async () => {
+		expect(() => parseXml("<score-partwise/><extra/>")).toThrow(/extra root/i);
+		expect(() => parseXml(`<r>${"<a/>".repeat(250_005)}</r>`)).toThrow(
+			/element limit/i,
+		);
+
+		const driveZip = await buildTestMxlArchive([
+			{ name: "C:\\score.musicxml", content: "<score-partwise/>" },
+		]);
+		await expect(readMusicXmlTextFromBytes(driveZip)).rejects.toThrow(
+			/unsafe path/i,
+		);
+
+		const traversalZip = await buildTestMxlArchive([
+			{ name: "sub/../../escape.musicxml", content: "<score-partwise/>" },
+		]);
+		await expect(readMusicXmlTextFromBytes(traversalZip)).rejects.toThrow(
+			/unsafe path/i,
+		);
+
+		const validZip = await buildTestMxlArchive([
+			{ name: "score.musicxml", content: "<score-partwise/>" },
+		]);
+		const trailingGarbage = new Uint8Array(validZip.length + 4);
+		trailingGarbage.set(validZip, 0);
+		await expect(readMusicXmlTextFromBytes(trailingGarbage)).rejects.toThrow(
+			/End of Central Directory/i,
+		);
+	});
 });
