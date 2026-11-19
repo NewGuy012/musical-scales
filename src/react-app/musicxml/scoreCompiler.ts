@@ -1,4 +1,5 @@
 import type {
+	BarTheoryOverride,
 	InstrumentTab,
 	SongBar,
 	SongChordPaletteEntry,
@@ -87,7 +88,9 @@ export interface CompileScoreOptions {
 	composerOrSource?: string;
 	subtitle?: string;
 	splitHalfBarHarmony?: boolean;
+	theorySummary?: string;
 	studyGuide?: SongStudyGuide;
+	barNotes?: Record<string, BarTheoryOverride>;
 }
 
 /** Unrolls repeat signs and 1st/2nd endings (voltas) into playback order. */
@@ -156,18 +159,29 @@ function inferSectionGuide(
 	instrument: InstrumentTab,
 ): SongStudyGuide {
 	const sections: SongStudyGuide["sections"] = [];
-	let secStart = 0;
-	let secTitle = bars[0]?.sectionMarker || "1. Main Theme";
-	let secIdx = 1;
+	const hasExplicitMarkers = bars.some(
+		(b, idx) => idx > 0 && Boolean(b.sectionMarker),
+	);
 
-	const flushSection = (endIdx: number) => {
+	const flushSection = (
+		secIdx: number,
+		secTitle: string,
+		secStart: number,
+		endIdx: number,
+	) => {
 		const slice = bars.slice(secStart, endIdx + 1);
 		const progs: string[] = [];
+		const romans: string[] = [];
 		for (const b of slice) {
 			if (progs[progs.length - 1] !== b.harmony.chordSymbol) {
 				progs.push(b.harmony.chordSymbol);
+				romans.push(b.harmony.roman);
 			}
 		}
+		const hasSecondary = romans.some((r) => r.includes("/"));
+		const secRole = hasSecondary
+			? "introduces secondary dominant pull around the Circle of Fifths"
+			: `weaves through ${progs.slice(0, 4).join(" → ")} in ${keyLabel}`;
 		sections.push({
 			id: `imp-sec-${secIdx}`,
 			title: secTitle,
@@ -178,32 +192,104 @@ function inferSectionGuide(
 			startStepIndex: secStart,
 			endStepIndex: endIdx,
 			progressionTag: progs.slice(0, 6).join(" – "),
-			insight: `Measures ${secStart + 1}–${endIdx + 1} in ${keyLabel} moving across ${progs.slice(0, 4).join(" → ")}.`,
+			insight: `Measures ${secStart + 1}–${endIdx + 1} (${romans.slice(0, 5).join(" – ")}) ${secRole}.`,
 		});
-		secIdx++;
 	};
 
-	for (let i = 1; i < bars.length; i++) {
-		const marker = bars[i].sectionMarker;
-		if (marker && marker !== secTitle) {
-			flushSection(i - 1);
-			secStart = i;
-			secTitle = `${secIdx}. ${marker}`;
+	if (hasExplicitMarkers) {
+		let secStart = 0;
+		let secTitle = bars[0]?.sectionMarker || "1. Opening";
+		let secIdx = 1;
+		for (let i = 1; i < bars.length; i++) {
+			const marker = bars[i].sectionMarker;
+			if (marker && marker !== secTitle) {
+				flushSection(secIdx, secTitle, secStart, i - 1);
+				secIdx++;
+				secStart = i;
+				secTitle = `${secIdx}. ${marker}`;
+			}
 		}
+		if (bars.length > 0) {
+			flushSection(secIdx, secTitle, secStart, bars.length - 1);
+		}
+	} else if (bars.length >= 16) {
+		const targetSections = bars.length >= 48 ? 4 : bars.length >= 28 ? 3 : 2;
+		const idealLen = Math.ceil(bars.length / targetSections);
+		const names = [
+			"1. Opening Theme",
+			"2. Development",
+			"3. Bridge / Contrast",
+			"4. Recap & Finale",
+		];
+		let secStart = 0;
+		let secIdx = 1;
+		while (secStart < bars.length) {
+			if (
+				secIdx >= targetSections ||
+				bars.length - secStart <= Math.ceil(idealLen * 1.25)
+			) {
+				flushSection(
+					secIdx,
+					secIdx === targetSections
+						? `${secIdx}. Closing Section`
+						: (names[secIdx - 1] ?? `${secIdx}. Section`),
+					secStart,
+					bars.length - 1,
+				);
+				break;
+			}
+			const minEnd = Math.min(
+				bars.length - 2,
+				secStart + Math.max(4, idealLen - 2),
+			);
+			const maxEnd = Math.min(bars.length - 2, secStart + idealLen + 2);
+			let splitIdx = Math.min(bars.length - 2, secStart + idealLen - 1);
+			for (let k = minEnd; k <= maxEnd; k++) {
+				const r = bars[k].harmony.roman;
+				const nextR = bars[k + 1]?.harmony.roman;
+				if (
+					(r.startsWith("V") && nextR?.startsWith("I")) ||
+					r === "I" ||
+					r === "i"
+				) {
+					splitIdx = k;
+					break;
+				}
+			}
+			flushSection(
+				secIdx,
+				names[secIdx - 1] ?? `${secIdx}. Section`,
+				secStart,
+				splitIdx,
+			);
+			secStart = splitIdx + 1;
+			secIdx++;
+		}
+	} else if (bars.length > 0) {
+		flushSection(
+			1,
+			bars[0]?.sectionMarker || "1. Main Theme",
+			0,
+			bars.length - 1,
+		);
 	}
-	if (bars.length > 0) {
-		flushSection(bars.length - 1);
-	}
+
+	const uniqueRomans = [...new Set(bars.map((b) => b.harmony.roman))];
+	const secondaryList = uniqueRomans.filter((r) => r.includes("/")).slice(0, 3);
+	const harmonyHook =
+		secondaryList.length > 0
+			? `Tracks ${keyLabel} harmony bar-by-bar, spotlighting applied tension (${secondaryList.join(", ")}) around the Circle of Fifths.`
+			: `Follows ${keyLabel} chord functions (${uniqueRomans.slice(0, 5).join(" · ")}) bar-by-bar on the Circle of Fifths.`;
 
 	return {
 		vibeAndSound: `MusicXML ${instrument} arrangement of ${title} in ${keyLabel} with polyphonic timing, dynamics, and instrument fingerings.`,
-		harmonyHook: `Tracks ${keyLabel} harmony bar-by-bar against the Circle of Fifths.`,
+		harmonyHook,
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			instrument === "piano"
 				? "Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard."
 				: "Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections,
 	};
@@ -567,11 +653,7 @@ export function compileScoreTrackToSongDocument(
 
 		const barTs = `${meta.ts.numerator}/${meta.ts.denominator}`;
 		const expectedTicks = defaultBarTicks(tpq, meta.ts);
-		const customCue =
-			bar.cue ||
-			(bar.sectionMarker
-				? `[${bar.sectionMarker}] ${harmony[0][1]}`
-				: undefined);
+		const customCue = bar.cue;
 
 		return {
 			...(barTs !== firstTs ? { ts: barTs } : {}),
@@ -605,10 +687,15 @@ export function compileScoreTrackToSongDocument(
 		tempoMap,
 		...(track.tuningMidi ? { tuning: track.tuningMidi } : {}),
 		...(track.capo ? { capo: track.capo } : {}),
-		theorySummary: `Ingested from MusicXML in ${keyInfo.keyLabel} (${firstTs}, ${initialBpm} BPM) with polyphonic timing, dynamics, and ergonomic ${track.instrument} fingerings.`,
+		theorySummary:
+			options.theorySummary ??
+			`Ingested from MusicXML in ${keyInfo.keyLabel} (${firstTs}, ${initialBpm} BPM) with polyphonic timing, dynamics, and ergonomic ${track.instrument} fingerings.`,
 		studyGuide:
 			options.studyGuide ??
 			inferSectionGuide(guideInput, title, keyInfo.keyLabel, track.instrument),
+		...(options.barNotes && Object.keys(options.barNotes).length > 0
+			? { barNotes: options.barNotes }
+			: {}),
 		chords,
 		...(form ? { form } : {}),
 		bars: uniqueBars,

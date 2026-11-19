@@ -20,11 +20,11 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML piano arrangement of Prelude in C Minor, Op. 28 No. 20 in C Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks C Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks C Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
@@ -34,7 +34,8 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 				startStepIndex: 0,
 				endStepIndex: 12,
 				progressionTag: "Cm – A♭ – G7 – D7 – Cm – Am7",
-				insight: "Measures 1–13 in C Minor moving across Cm → A♭ → G7 → D7.",
+				insight:
+					"Measures 1–13 (i – VI – V7 – V7/V – i) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

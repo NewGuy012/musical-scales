@@ -20,22 +20,52 @@ export const CLASSICAL_GAS_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Classical Gas in A Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks A Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks A Minor harmony bar-by-bar, spotlighting applied tension (V7/V, V/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–165",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–42",
 				startStepIndex: 0,
-				endStepIndex: 164,
+				endStepIndex: 41,
 				progressionTag: "Am – Gmaj7/F♯ – Esus4 – Am – Gmaj7/F♯ – Am/E",
 				insight:
-					"Measures 1–165 in A Minor moving across Am → Gmaj7/F♯ → Esus4 → Am.",
+					"Measures 1–42 (i – VIImaj7 – Vsus4 – i – VIImaj7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 43–84",
+				startStepIndex: 42,
+				endStepIndex: 83,
+				progressionTag: "C – G7 – E♭ – A♭ – G/B – Dmaj7/C♯",
+				insight:
+					"Measures 43–84 (III – VII7 – ♭V – VII – VII) weaves through C → G7 → E♭ → A♭ in A Minor.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 85–129",
+				startStepIndex: 84,
+				endStepIndex: 128,
+				progressionTag: "Bm7 – B – C♯m7/B – E – Bm7 – Aadd9",
+				insight:
+					"Measures 85–129 (ii7 – V/V – ♯iii7 – V – ii7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 130–165",
+				startStepIndex: 129,
+				endStepIndex: 164,
+				progressionTag: "Am/E – D/A – Am – D7 – Em7 – Fmaj7",
+				insight:
+					"Measures 130–165 (i – IV – i – IV7 – v7) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

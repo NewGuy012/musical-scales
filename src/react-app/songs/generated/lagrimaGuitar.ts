@@ -23,22 +23,42 @@ export const LAGRIMA_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Lágrima in E Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks E Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks E Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–32",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–11",
 				startStepIndex: 0,
-				endStepIndex: 31,
+				endStepIndex: 10,
 				progressionTag: "Eadd9 – B7 – B7/E♭ – B7 – C♯m7/B – F♯m/C♯",
 				insight:
-					"Measures 1–32 in E Major moving across Eadd9 → B7 → B7/E♭ → B7.",
+					"Measures 1–11 (I – V7 – V7 – V7 – vi7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 12–21",
+				startStepIndex: 11,
+				endStepIndex: 20,
+				progressionTag: "B7 – C♯m7/B – F♯m/C♯ – F♯7/B♭ – Em – B",
+				insight:
+					"Measures 12–21 (V7 – vi7 – ii – V7/V – i) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Closing Section",
+				barRange: "Bars 22–32",
+				startStepIndex: 21,
+				endStepIndex: 31,
+				progressionTag: "Bm7/F♯ – Em/G – Em – B – Em – Bm7/F♯",
+				insight:
+					"Measures 22–32 (v7 – i – i – V – i) weaves through Bm7/F♯ → Em/G → Em → B in E Major.",
 			},
 		],
 	},

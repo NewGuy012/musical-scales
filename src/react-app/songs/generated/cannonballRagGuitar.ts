@@ -20,21 +20,52 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Cannonball Rag in G Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks G Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks G Major harmony bar-by-bar, spotlighting applied tension (V/ii, V7/V, V7/iii) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–113",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–29",
 				startStepIndex: 0,
-				endStepIndex: 112,
+				endStepIndex: 28,
 				progressionTag: "Gmaj7 – E – A7 – Em – D7 – G",
-				insight: "Measures 1–113 in G Major moving across Gmaj7 → E → A7 → Em.",
+				insight:
+					"Measures 1–29 (Imaj7 – V/ii – V7/V – vi – V7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 30–57",
+				startStepIndex: 29,
+				endStepIndex: 56,
+				progressionTag: "E – A7 – Em – D7 – G – Gmaj7/F♯",
+				insight:
+					"Measures 30–57 (V/ii – V7/V – vi – V7 – I) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 58–87",
+				startStepIndex: 57,
+				endStepIndex: 86,
+				progressionTag: "Am – F♯dim/A – G/B – Am/C – D5 – D/A",
+				insight:
+					"Measures 58–87 (ii – vii° – I – ii – V5) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 88–113",
+				startStepIndex: 87,
+				endStepIndex: 112,
+				progressionTag: "G – D7 – G – C – D7 – B♭dim",
+				insight:
+					"Measures 88–113 (I – V7 – I – IV – V7) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

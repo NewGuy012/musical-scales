@@ -21,22 +21,52 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of How Deep Is Your Love in B Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks B Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks B Major harmony bar-by-bar, spotlighting applied tension (V7/ii, V7/vi) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–74",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–19",
 				startStepIndex: 0,
-				endStepIndex: 73,
+				endStepIndex: 18,
 				progressionTag: "B – Bmaj7 – Emaj7/B – A♭m7/F♯ – B – Bmaj7",
 				insight:
-					"Measures 1–74 in B Major moving across B → Bmaj7 → Emaj7/B → A♭m7/F♯.",
+					"Measures 1–19 (I – Imaj7 – IVmaj7 – vi7 – I) weaves through B → Bmaj7 → Emaj7/B → A♭m7/F♯ in B Major.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 20–37",
+				startStepIndex: 19,
+				endStepIndex: 36,
+				progressionTag: "A – E♭m7/F♯ – E♭m/F♯ – B – A♭m7/F♯ – Em",
+				insight:
+					"Measures 20–37 (♭VII – iii7 – iii – I – vi7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 38–57",
+				startStepIndex: 37,
+				endStepIndex: 56,
+				progressionTag: "A♭m7 – C♯m7 – Eadd9/F♯ – E – E♭m7 – C♯m7",
+				insight:
+					"Measures 38–57 (vi7 – ii7 – IV – IV – iii7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 58–74",
+				startStepIndex: 57,
+				endStepIndex: 73,
+				progressionTag: "F♯sus4 – F♯sus2 – B – A♭m7/F♯ – Em – C♯m",
+				insight:
+					"Measures 58–74 (Vsus4 – Vsus2 – I – vi7 – iv) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

@@ -20,11 +20,11 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Amazing Grace in E Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks E Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks E Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
@@ -35,7 +35,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 				endStepIndex: 16,
 				progressionTag: "C♯m7 – E – Eaug/G♯ – Aadd9 – E – C♯m7",
 				insight:
-					"Measures 1–17 in E Major moving across C♯m7 → E → Eaug/G♯ → Aadd9.",
+					"Measures 1–17 (vi7 – I – I+ – IV – I) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 			{
 				id: "imp-sec-2",
@@ -45,7 +45,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 				endStepIndex: 32,
 				progressionTag: "E – E/G♯ – Aadd9 – E6 – E – C♯m7",
 				insight:
-					"Measures 18–33 in E Major moving across E → E/G♯ → Aadd9 → E6.",
+					"Measures 18–33 (I – I – IV – I – I) weaves through E → E/G♯ → Aadd9 → E6 in E Major.",
 			},
 			{
 				id: "imp-sec-3",
@@ -54,7 +54,8 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 				startStepIndex: 33,
 				endStepIndex: 48,
 				progressionTag: "E – A7 – E – Esus2 – E – A",
-				insight: "Measures 34–49 in E Major moving across E → A7 → E → Esus2.",
+				insight:
+					"Measures 34–49 (I – IV7 – I – Isus2 – I) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 			{
 				id: "imp-sec-4",
@@ -64,7 +65,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 				endStepIndex: 64,
 				progressionTag: "E6 – E7/G♯ – A – E7/B – E6 – C♯m7",
 				insight:
-					"Measures 50–65 in E Major moving across E6 → E7/G♯ → A → E7/B.",
+					"Measures 50–65 (I – I7 – IV – I7 – I) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 			{
 				id: "imp-sec-5",
@@ -74,7 +75,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 				endStepIndex: 76,
 				progressionTag: "C♯m7 – F♯9 – Asus2 – E – C♯m7 – F♯7",
 				insight:
-					"Measures 66–77 in E Major moving across C♯m7 → F♯9 → Asus2 → E.",
+					"Measures 66–77 (vi7 – V7/V – IVsus2 – I – vi7) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},
@@ -423,7 +424,6 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		{
 			barTicks: 1440,
 			harmony: [[0, "C♯m7"]],
-			cue: "[Verse 1] C♯m7",
 			notes: [
 				[0, 480, 59, 78, null, [3, 4]],
 				[0, 480, 59, 78, null, [4, 0]],
@@ -735,7 +735,6 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		},
 		{
 			harmony: [[0, "E"]],
-			cue: "[Verse 2] E",
 			notes: [
 				[0, 2400, 40, 78, null, [0, 0]],
 				[0, 1440, 64, 78, null, [5, 0]],
@@ -1022,7 +1021,6 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		},
 		{
 			harmony: [[0, "E"]],
-			cue: "[Verse 3] E",
 			notes: [
 				[0, 1440, 40, 78, null, [0, 0]],
 				[0, 1440, 52, 78, null, [1, 7]],
@@ -1430,7 +1428,6 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		},
 		{
 			harmony: [[0, "E6"]],
-			cue: "[Verse 4] E6",
 			notes: [
 				[0, 2880, 40, 78, null, [0, 0]],
 				[0, 2880, 47, 78, null, [1, 2]],
@@ -1624,7 +1621,6 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 		},
 		{
 			harmony: [[0, "C♯m7"]],
-			cue: "[Ending] C♯m7",
 			notes: [
 				[0, 1920, 64, 78, null, [5, 0]],
 				[480, 480, 49, 78, null, [1, 4]],

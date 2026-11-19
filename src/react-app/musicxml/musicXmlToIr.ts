@@ -141,7 +141,9 @@ export interface MusicXmlImportOptions {
 	splitHalfBarHarmony?: boolean;
 	/** Snap note offsets/durations to `4 / subdivision` quarter-note grid (0 = lossless). */
 	quantizeSubdivision?: number;
+	theorySummary?: string;
 	studyGuide?: CompileScoreOptions["studyGuide"];
+	barNotes?: CompileScoreOptions["barNotes"];
 }
 
 export interface ImportedMusicXmlResult {
@@ -1640,7 +1642,9 @@ export async function compileMusicXml(
 
 	const compileOpts: CompileScoreOptions = {
 		splitHalfBarHarmony: options.splitHalfBarHarmony,
+		...(options.theorySummary ? { theorySummary: options.theorySummary } : {}),
 		...(options.studyGuide ? { studyGuide: options.studyGuide } : {}),
+		...(options.barNotes ? { barNotes: options.barNotes } : {}),
 	};
 	const songDoc = compileScoreTrackToSongDocument(trackIr, compileOpts);
 	return {

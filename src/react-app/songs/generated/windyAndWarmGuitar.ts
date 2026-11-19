@@ -20,21 +20,52 @@ export const WINDY_AND_WARM_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Windy and Warm in A Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks A Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Follows A Minor chord functions (i5 · i · isus4 · v · i7) bar-by-bar on the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–84",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–20",
 				startStepIndex: 0,
-				endStepIndex: 83,
+				endStepIndex: 19,
 				progressionTag: "A5 – Am – Asus4 – Am – Em – Am",
-				insight: "Measures 1–84 in A Minor moving across A5 → Am → Asus4 → Am.",
+				insight:
+					"Measures 1–20 (i5 – i – isus4 – i – v) weaves through A5 → Am → Asus4 → Am in A Minor.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 21–44",
+				startStepIndex: 20,
+				endStepIndex: 43,
+				progressionTag: "Am7 – Am – Gadd9/A – Am – Dm/F – E7",
+				insight:
+					"Measures 21–44 (i7 – i – VII – i – iv) weaves through Am7 → Am → Gadd9/A → Am in A Minor.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 45–64",
+				startStepIndex: 44,
+				endStepIndex: 63,
+				progressionTag: "Asus4 – Am – Em – Am – Asus4 – Am",
+				insight:
+					"Measures 45–64 (isus4 – i – v – i – isus4) weaves through Asus4 → Am → Em → Am in A Minor.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 65–84",
+				startStepIndex: 64,
+				endStepIndex: 83,
+				progressionTag: "C/E – Am – Asus4 – Am – Em – Am",
+				insight:
+					"Measures 65–84 (III – i – isus4 – i – v) weaves through C/E → Am → Asus4 → Am in A Minor.",
 			},
 		],
 	},

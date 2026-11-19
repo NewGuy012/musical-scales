@@ -20,21 +20,32 @@ export const SONATA_DA_CHIESA_OP_3_NO_1_GRAVE_VIOLIN_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML violin arrangement of Sonata da Chiesa, Op. 3 No. 1 — Grave in F Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks F Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks F Major harmony bar-by-bar, spotlighting applied tension (V7/vi) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–19",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–12",
 				startStepIndex: 0,
-				endStepIndex: 18,
+				endStepIndex: 11,
 				progressionTag: "F – C – B♭ – F – C – C/G",
-				insight: "Measures 1–19 in F Major moving across F → C → B♭ → F.",
+				insight:
+					"Measures 1–12 (I – V – IV – I – V) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Closing Section",
+				barRange: "Bars 13–19",
+				startStepIndex: 12,
+				endStepIndex: 18,
+				progressionTag: "F – C – F/A – F/C – F/A – C",
+				insight:
+					"Measures 13–19 (I – V – I – I – I) weaves through F → C → F/A → F/C in F Major.",
 			},
 		],
 	},

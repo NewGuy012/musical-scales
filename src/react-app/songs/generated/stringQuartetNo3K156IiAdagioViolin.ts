@@ -24,22 +24,52 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML violin arrangement of String Quartet No. 3 (K. 156) — II. Adagio in E Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks E Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks E Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–88",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–25",
 				startStepIndex: 0,
-				endStepIndex: 87,
+				endStepIndex: 24,
 				progressionTag: "Em/G – B7/D♯ – B7/A – B7 – G – Cmaj7",
 				insight:
-					"Measures 1–88 in E Minor moving across Em/G → B7/D♯ → B7/A → B7.",
+					"Measures 1–25 (i – V7 – V7 – V7 – III) weaves through Em/G → B7/D♯ → B7/A → B7 in E Minor.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 26–46",
+				startStepIndex: 25,
+				endStepIndex: 45,
+				progressionTag: "G – Fdim/G♯ – G7/B – A♯m – F♯7/C♯ – B/D♯",
+				insight:
+					"Measures 26–46 (III – ♭ii° – III7 – ♯iv – V7/V) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 47–68",
+				startStepIndex: 46,
+				endStepIndex: 67,
+				progressionTag: "B7 – Am7 – F♯7/A♯ – Em – Em/G – B7/D♯",
+				insight:
+					"Measures 47–68 (V7 – iv7 – V7/V – i – i) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 69–88",
+				startStepIndex: 68,
+				endStepIndex: 87,
+				progressionTag: "F♯7/C♯ – B/D♯ – F♯m7/E – Em – B7/F♯ – G♯m/B",
+				insight:
+					"Measures 69–88 (V7/V – V – ii7 – i – V7) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

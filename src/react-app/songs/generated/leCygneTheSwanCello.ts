@@ -63,22 +63,32 @@ export const LE_CYGNE_THE_SWAN_CELLO_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML cello arrangement of Le Cygne (The Swan) in G Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks G Major harmony bar-by-bar against the Circle of Fifths.",
+			"Follows G Major chord functions (I · Imaj7 · ii7 · vi · i) bar-by-bar on the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–27",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–14",
 				startStepIndex: 0,
-				endStepIndex: 26,
+				endStepIndex: 13,
 				progressionTag: "G – Gmaj7 – Am7/G – Em – G – Gmaj7",
 				insight:
-					"Measures 1–27 in G Major moving across G → Gmaj7 → Am7/G → Em.",
+					"Measures 1–14 (I – Imaj7 – ii7 – vi – I) weaves through G → Gmaj7 → Am7/G → Em in G Major.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Closing Section",
+				barRange: "Bars 15–27",
+				startStepIndex: 14,
+				endStepIndex: 26,
+				progressionTag: "D – Dm/F – Dm – G – Am7/G – Em",
+				insight:
+					"Measures 15–27 (V – v – v – I – ii7) weaves through D → Dm/F → Dm → G in G Major.",
 			},
 		],
 	},

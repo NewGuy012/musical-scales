@@ -20,22 +20,42 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML cello arrangement of Cello Suite No. 1 — Prelude (BWV 1007) in G Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks G Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks G Major harmony bar-by-bar, spotlighting applied tension (V7/V, V7/ii) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–42",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–15",
 				startStepIndex: 0,
-				endStepIndex: 41,
+				endStepIndex: 14,
 				progressionTag: "G – Cmaj7/G – Gmaj7 – G – G/B – A7/C♯",
 				insight:
-					"Measures 1–42 in G Major moving across G → Cmaj7/G → Gmaj7 → G.",
+					"Measures 1–15 (I – IVmaj7 – Imaj7 – I – I) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 16–29",
+				startStepIndex: 15,
+				endStepIndex: 28,
+				progressionTag: "G7 – C/G – Gmaj7 – Gmaj7/D – F♯m7/C♯ – D7/C",
+				insight:
+					"Measures 16–29 (I7 – IV – Imaj7 – Imaj7 – vii7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Closing Section",
+				barRange: "Bars 30–42",
+				startStepIndex: 29,
+				endStepIndex: 41,
+				progressionTag: "D7/C – F♯m7/A – D – Bm7/D – Bm7/A – Am7",
+				insight:
+					"Measures 30–42 (V7 – vii7 – V – iii7 – iii7) weaves through D7/C → F♯m7/A → D → Bm7/D in G Major.",
 			},
 		],
 	},

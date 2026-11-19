@@ -1,3 +1,4 @@
+import { analyzeSongBarTheory } from "../theory/barTheoryAnalyzer";
 import {
 	type ChordQuality,
 	FLAT_CHROMATIC,
@@ -112,6 +113,27 @@ interface SongNoteEvent {
 	guitarStops?: GuitarSongStop[];
 }
 
+export interface BarTheoryInsight {
+	roleLabel: string;
+	contextualRoman: string;
+	cardSummary: string;
+	whatItDoes: string;
+	biggerPicture: string;
+	whyItWorks: string;
+	subBarFlow?: string;
+	devices: string[];
+}
+
+export interface BarTheoryOverride {
+	roleLabel?: string;
+	contextualRoman?: string;
+	cardSummary?: string;
+	whatItDoes?: string;
+	biggerPicture?: string;
+	whyItWorks?: string;
+	devices?: string[];
+}
+
 export interface SongChordStep {
 	id: string;
 	barLabel: string;
@@ -124,6 +146,7 @@ export interface SongChordStep {
 	circleDegree: number;
 	circleSlotIndex?: number;
 	cue: string;
+	theory?: BarTheoryInsight;
 	barDurationMs?: number;
 	subBarChords?: SongSubBarChord[];
 	events: SongNoteEvent[];
@@ -240,6 +263,8 @@ export interface SongDocument {
 	capo?: number;
 	theorySummary: string;
 	studyGuide?: SongStudyGuide;
+	/** Optional curated 1-based playback bar teaching overrides. */
+	barNotes?: Record<string, BarTheoryOverride>;
 	chords: Record<string, SongChordPaletteEntry>;
 	/** Optional playback order of 0-based indices into `bars` (supports repeat reuse). */
 	form?: number[];
@@ -609,10 +634,35 @@ export function hydrateSong(
 			...(primaryChord.slot !== undefined
 				? { circleSlotIndex: primaryChord.slot }
 				: {}),
-			cue: bar?.cue || `${chordSymbol} (${primaryChord.roman})`,
+			cue: bar?.cue ?? "",
 			barDurationMs,
 			...(subBarChords ? { subBarChords } : {}),
 			events,
+		};
+	});
+
+	const barTheories = analyzeSongBarTheory({
+		keySlot: doc.keySlot,
+		keyMode: doc.keyMode,
+		keyLabel: doc.keyLabel,
+		steps,
+		studyGuide: doc.studyGuide,
+		barNotes: doc.barNotes,
+	});
+
+	const enrichedSteps: SongChordStep[] = steps.map((step, idx) => {
+		const theory = barTheories[idx];
+		if (!theory) {
+			return {
+				...step,
+				cue: step.cue || `${step.chordSymbol} (${step.roman})`,
+			};
+		}
+		return {
+			...step,
+			roman: theory.contextualRoman || step.roman,
+			cue: step.cue || theory.cardSummary,
+			theory,
 		};
 	});
 
@@ -631,8 +681,8 @@ export function hydrateSong(
 		...(doc.capo ? { capo: doc.capo } : {}),
 		theorySummary: doc.theorySummary,
 		...(doc.studyGuide ? { studyGuide: doc.studyGuide } : {}),
-		barCount: steps.length,
-		steps,
+		barCount: enrichedSteps.length,
+		steps: enrichedSteps,
 	};
 }
 

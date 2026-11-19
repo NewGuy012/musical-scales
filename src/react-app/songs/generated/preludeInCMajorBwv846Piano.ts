@@ -20,21 +20,42 @@ export const PRELUDE_IN_C_MAJOR_BWV_846_PIANO_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML piano arrangement of Prelude in C Major (BWV 846) in C Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks C Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks C Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–35",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–15",
 				startStepIndex: 0,
-				endStepIndex: 34,
+				endStepIndex: 14,
 				progressionTag: "C – Dm7/C – G7/B – C – Am – D7/C",
-				insight: "Measures 1–35 in C Major moving across C → Dm7/C → G7/B → C.",
+				insight:
+					"Measures 1–15 (I – ii7 – V7 – I – vi) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 16–28",
+				startStepIndex: 15,
+				endStepIndex: 27,
+				progressionTag: "Fmaj7/E – Dm – G – C – C7 – F",
+				insight:
+					"Measures 16–28 (IVmaj7 – ii – V – I – I7) weaves through Fmaj7/E → Dm → G → C in C Major.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Closing Section",
+				barRange: "Bars 29–35",
+				startStepIndex: 28,
+				endStepIndex: 34,
+				progressionTag: "C/G – G7 – C – F – Cmaj7 – C",
+				insight:
+					"Measures 29–35 (I – V7 – I – IV – Imaj7) weaves through C/G → G7 → C → F in C Major.",
 			},
 		],
 	},

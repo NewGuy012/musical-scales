@@ -20,22 +20,52 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML piano arrangement of Moment Musicaux No. 3, Op. 94 (D. 780) in F Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks F Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks F Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–78",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–20",
 				startStepIndex: 0,
-				endStepIndex: 77,
+				endStepIndex: 19,
 				progressionTag: "Fm – B♭7 – A♭ – A♭maj7 – Fm – Fm/C",
 				insight:
-					"Measures 1–78 in F Minor moving across Fm → B♭7 → A♭ → A♭maj7.",
+					"Measures 1–20 (i – IV7 – III – IIImaj7 – i) weaves through Fm → B♭7 → A♭ → A♭maj7 in F Minor.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 21–40",
+				startStepIndex: 20,
+				endStepIndex: 39,
+				progressionTag: "A♭add9 – B♭add9 – A♭ – D♭ – E♭7 – A♭",
+				insight:
+					"Measures 21–40 (III – IV – III – VI – VII7) weaves through A♭add9 → B♭add9 → A♭ → D♭ in F Minor.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 41–61",
+				startStepIndex: 40,
+				endStepIndex: 60,
+				progressionTag: "A♭/E♭ – A♭ – C7 – Fm/C – C7 – Fm/C",
+				insight:
+					"Measures 41–61 (III – III – V7 – i – V7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 62–78",
+				startStepIndex: 61,
+				endStepIndex: 77,
+				progressionTag: "Fm – Edim/B♭ – G7/B – Am/C – Am – F",
+				insight:
+					"Measures 62–78 (i – vii° – V7/V – ♯iii – ♯iii) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

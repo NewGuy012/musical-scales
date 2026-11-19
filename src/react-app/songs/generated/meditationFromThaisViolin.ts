@@ -94,21 +94,52 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML violin arrangement of Méditation (from Thaïs) in D Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks D Major harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks D Major harmony bar-by-bar, spotlighting applied tension (V/ii, V7/vi, V7/iii) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–71",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–17",
 				startStepIndex: 0,
-				endStepIndex: 70,
+				endStepIndex: 16,
 				progressionTag: "D – G – Em – A7 – A7/C♯ – D",
-				insight: "Measures 1–71 in D Major moving across D → G → Em → A7.",
+				insight:
+					"Measures 1–17 (I – IV – ii – V7 – V7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 18–38",
+				startStepIndex: 17,
+				endStepIndex: 37,
+				progressionTag: "Em – Bsus4 – A7 – D – C/E – F♯7",
+				insight:
+					"Measures 18–38 (ii – VIsus4 – V7 – I – ♭VII) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 39–57",
+				startStepIndex: 38,
+				endStepIndex: 56,
+				progressionTag: "G – D – G – Em – A7 – A7/C♯",
+				insight:
+					"Measures 39–57 (IV – I – IV – ii – V7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 58–71",
+				startStepIndex: 57,
+				endStepIndex: 70,
+				progressionTag: "D – C♯7 – D – D♯7 – D – G/B",
+				insight:
+					"Measures 58–71 (I – V7/iii – I – ♯I7 – I) introduces secondary dominant pull around the Circle of Fifths.",
 			},
 		],
 	},

@@ -23,22 +23,52 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 		vibeAndSound:
 			"MusicXML guitar arrangement of Étude No. 1 in E Minor in E Minor with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
-			"Tracks E Minor harmony bar-by-bar against the Circle of Fifths.",
+			"Tracks E Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
 		practiceTips: [
-			"Audition individual sections slowly before stringing the full arrangement together.",
+			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
 			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants and chromatic passing chords.",
+			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
 		],
 		sections: [
 			{
 				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–61",
+				title: "1. Opening Theme",
+				barRange: "Bars 1–17",
 				startStepIndex: 0,
-				endStepIndex: 60,
+				endStepIndex: 16,
 				progressionTag: "Em – Am/E – Em – B7/F♯ – Em/G – E/A♭",
 				insight:
-					"Measures 1–61 in E Minor moving across Em → Am/E → Em → B7/F♯.",
+					"Measures 1–17 (i – iv – i – V7 – i) weaves through Em → Am/E → Em → B7/F♯ in E Minor.",
+			},
+			{
+				id: "imp-sec-2",
+				title: "2. Development",
+				barRange: "Bars 18–33",
+				startStepIndex: 17,
+				endStepIndex: 32,
+				progressionTag: "Em/B – Bsus4 – B7 – E7 – C♯m/E – Am/E",
+				insight:
+					"Measures 18–33 (i – Vsus4 – V7 – I7 – ♯vi) weaves through Em/B → Bsus4 → B7 → E7 in E Minor.",
+			},
+			{
+				id: "imp-sec-3",
+				title: "3. Bridge / Contrast",
+				barRange: "Bars 34–49",
+				startStepIndex: 33,
+				endStepIndex: 48,
+				progressionTag: "Am/E – E7 – Edim – Am/E – E7 – Em",
+				insight:
+					"Measures 34–49 (iv – I7 – i° – iv – I7) introduces secondary dominant pull around the Circle of Fifths.",
+			},
+			{
+				id: "imp-sec-4",
+				title: "4. Closing Section",
+				barRange: "Bars 50–61",
+				startStepIndex: 49,
+				endStepIndex: 60,
+				progressionTag: "C♯m7 – F♯m – B7 – Em – Am/C – C♯m7/E",
+				insight:
+					"Measures 50–61 (♯vi7 – ii – V7 – i – iv) weaves through C♯m7 → F♯m → B7 → Em in E Minor.",
 			},
 		],
 	},
