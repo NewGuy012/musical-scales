@@ -651,25 +651,25 @@ describe("songPlayback helpers and synchronized UI", () => {
 			/>,
 		);
 		expect(guitarSelectHtml).toContain(
-			"1. Étude No. 1 in E Minor — Heitor Villa-Lobos (E Minor · 4/4 · 61 bars)",
+			"1. Lágrima — Francisco Tárrega (E Major · 3/4 · 32 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
-			"2. Lágrima — Francisco Tárrega (E Major · 3/4 · 32 bars)",
+			"2. Étude No. 1 in E Minor — Heitor Villa-Lobos (E Minor · 4/4 · 61 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
-			"3. Classical Gas — Mason Williams (A Minor · 4/4 · 165 bars)",
+			"3. How Deep Is Your Love — Bee Gees (Arr. Den Vichakyothin) (B Major · 4/4 · 74 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
-			"4. Cannonball Rag — Merle Travis (G Major · 4/4 · 113 bars)",
+			"4. Amazing Grace — John Newton (Arr. Tommy Emmanuel) (E Major · 9/8 · 77 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
 			"5. Windy and Warm — John D. Loudermilk (A Minor · 4/4 · 84 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
-			"6. Amazing Grace — John Newton (Arr. Tommy Emmanuel) (E Major · 9/8 · 77 bars)",
+			"6. Cannonball Rag — Merle Travis (G Major · 4/4 · 113 bars)",
 		);
 		expect(guitarSelectHtml).toContain(
-			"7. How Deep Is Your Love — Bee Gees (Arr. Den Vichakyothin) (B Major · 4/4 · 74 bars)",
+			"7. Classical Gas — Mason Williams (A Minor · 4/4 · 165 bars)",
 		);
 	});
 

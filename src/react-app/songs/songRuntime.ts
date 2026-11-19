@@ -34,7 +34,7 @@ function songCategoryRank(category?: SongCategory): number {
 
 /**
  * Sorts catalog songs with classical pieces first, followed by modern pieces,
- * each group ordered descending by total bar count.
+ * each group ordered ascending by total bar count.
  */
 export function compareSongCatalogOrder(
 	a: { category?: SongCategory; barCount: number; title: string; id: string },
@@ -44,7 +44,7 @@ export function compareSongCatalogOrder(
 		songCategoryRank(a.category) - songCategoryRank(b.category);
 	if (categoryDiff !== 0) return categoryDiff;
 
-	const barDiff = b.barCount - a.barCount;
+	const barDiff = a.barCount - b.barCount;
 	if (barDiff !== 0) return barDiff;
 
 	const titleDiff = a.title.localeCompare(b.title);

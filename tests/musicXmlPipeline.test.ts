@@ -975,7 +975,7 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("syncFromMusicXmlFolder sorts classical before modern descending by bar count and validates category overrides", async () => {
+	test("syncFromMusicXmlFolder sorts classical before modern ascending by bar count and validates category overrides", async () => {
 		const tmpRoot = await mkdtemp(join(tmpdir(), "musicxml-order-test-"));
 		try {
 			const musicXmlDir = join(tmpRoot, "songs", "musicxml");
@@ -1044,11 +1044,11 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 				(m) => m[1],
 			);
 			expect(ids).toEqual([
-				"long-classical-piano",
 				"short-classical-piano",
-				"long-modern-piano",
-				"uncategorized-piano",
+				"long-classical-piano",
 				"short-modern-piano",
+				"uncategorized-piano",
+				"long-modern-piano",
 			]);
 
 			const badOverridesPath = join(tmpRoot, "songs", "bad-overrides.json");
@@ -1064,7 +1064,7 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("synced 15-song catalog orders classical before modern descending by bar count and preserves metadata & harmonies", async () => {
+	test("synced 15-song catalog orders classical before modern ascending by bar count and preserves metadata & harmonies", async () => {
 		expect(SONG_CATALOG).toHaveLength(15);
 		const byInst = {
 			piano: getCatalogEntriesForInstrument("piano"),
@@ -1078,27 +1078,27 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		expect(byInst.cello).toHaveLength(2);
 
 		expect(byInst.guitar.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["etude-no-1-in-e-minor-guitar", "classical", 61],
 			["lagrima-guitar", "classical", 32],
-			["classical-gas-guitar", "modern", 165],
-			["cannonball-rag-guitar", "modern", 113],
-			["windy-and-warm-guitar", "modern", 84],
-			["amazing-grace-guitar", "modern", 77],
+			["etude-no-1-in-e-minor-guitar", "classical", 61],
 			["how-deep-is-your-love-guitar", "modern", 74],
+			["amazing-grace-guitar", "modern", 77],
+			["windy-and-warm-guitar", "modern", 84],
+			["cannonball-rag-guitar", "modern", 113],
+			["classical-gas-guitar", "modern", 165],
 		]);
 		expect(byInst.piano.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["moment-musicaux-no-3-op-94-d-780-piano", "classical", 78],
-			["prelude-in-c-major-bwv-846-piano", "classical", 35],
 			["prelude-in-c-minor-op-28-no-20-piano", "classical", 13],
+			["prelude-in-c-major-bwv-846-piano", "classical", 35],
+			["moment-musicaux-no-3-op-94-d-780-piano", "classical", 78],
 		]);
 		expect(byInst.violin.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["string-quartet-no-3-k-156-ii-adagio-violin", "classical", 88],
-			["meditation-from-thais-violin", "classical", 71],
 			["sonata-da-chiesa-op-3-no-1-grave-violin", "classical", 19],
+			["meditation-from-thais-violin", "classical", 71],
+			["string-quartet-no-3-k-156-ii-adagio-violin", "classical", 88],
 		]);
 		expect(byInst.cello.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["cello-suite-no-1-prelude-bwv-1007-cello", "classical", 42],
 			["le-cygne-the-swan-cello", "classical", 27],
+			["cello-suite-no-1-prelude-bwv-1007-cello", "classical", 42],
 		]);
 		expect(SONG_CATALOG).toEqual(
 			[...SONG_CATALOG].sort(compareSongCatalogOrder),
