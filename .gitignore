@@ -6,6 +6,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+src/react-app/songs/generated/.ingest-cache.json
 
 # Logs & Environment
 *.log
