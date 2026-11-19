@@ -27,6 +27,7 @@ musical-scales/
 │   ├── favicon.svg
 │   └── logo.png                      # App brand icon
 ├── songs/
+│   ├── annotations.json              # Curated multi-section Study Guides & landmark bar theory notes
 │   ├── overrides.json                # Centralized curated title/composer/instrument/category/key overrides
 │   └── musicxml/                     # Mirrored & local .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
@@ -52,7 +53,7 @@ musical-scales/
 │   │   │   ├── GuitarFretboard.tsx   # 6-string, 15-fret CAGED, pentatonic & passing visualizer
 │   │   │   ├── BowedFingerboard.tsx  # Shared 4-string fretless bowed fingerboard (Violin & Cello)
 │   │   │   ├── MusicTeacherSection.tsx # Collapsible "Music Teacher" card ("Learn with Real Songs" + upload)
-│   │   │   ├── SongExamplesPanel.tsx # Bar-by-bar player, transport scrubber, study guides & empty state
+│   │   │   ├── SongExamplesPanel.tsx # Bar-by-bar player, collapsible Bar Theory Coach, study guides & empty state
 │   │   │   ├── SectionHeader.tsx     # Shared collapsible card header
 │   │   │   └── Icons.tsx             # Inline SVG icons, SegmentedControl, SequencePlayButton, SongHitMarker
 │   │   ├── musicxml/                 # Lazy-loaded isomorphic MusicXML engine (browser + Bun CLI)
@@ -71,6 +72,7 @@ musical-scales/
 │   │   └── theory/
 │   │       ├── circleOfFifths.ts     # Note tables, scales, signatures, diatonic chords, progressions
 │   │       ├── chromaticHarmony.ts   # Passing slides, symmetric dim7, secondary dominants, tritone subs
+│   │       ├── barTheoryAnalyzer.ts  # Contextual bar-by-bar theory insights, voice leading & cadence analyzer
 │   │       ├── guitarFretboard.ts    # Tuning, 13 chord variations, CAGED voicings, pentatonic/passing guides
 │   │       └── celloFingerboard.ts   # Bowed fifths voicing engine, Cello & Violin tunings
 │   └── worker/
@@ -130,6 +132,8 @@ flowchart TD
   - `analyzeKey()` returns the complete `KeyAnalysis` for any slot and mode: scale notes, MIDI pitches (`C4–B5`), 7 diatonic chords (grouped into 3 major, 3 minor, and 1 diminished), harmonic minor `V(7)`, relative/parallel keys, fifth/fourth neighbor diffs (which 6 notes stay shared and which single note shifts by a semitone), and curated `ChordProgression` sets (11 Major, 10 Minor).
 - **[`chromaticHarmony.ts`](../src/react-app/theory/chromaticHarmony.ts)**:
   - `analyzeColorHarmony()` derives chromatic passing-tone patterns, symmetric `dim7` chord families, secondary dominants (`V7/...`), and tritone substitutions (`♭II7`) for the active key.
+- **[`barTheoryAnalyzer.ts`](../src/react-app/theory/barTheoryAnalyzer.ts)**:
+  - `analyzeSongBarTheory()` analyzes every linearized playback bar against its neighboring bars (`Prev → Current → Next`), producing plain-English slash-bass/inversion explanations, secondary-dominant & tritone-resolution mechanics, pedal/chromatic bass lines, intra-bar progressions, and three teaching lenses (_What it's doing_, _Bigger picture_, _Why it works_) merged with optional curated `songs/annotations.json` highlights.
 - **[`guitarFretboard.ts`](../src/react-app/theory/guitarFretboard.ts)**:
   - Defines standard 6-string tuning (`E2–A2–D3–G3–B3–E4`) across 15 frets (`MAX_SONG_GUITAR_FRET = 22`) and 13 chord variations (`CHORD_VARIATION_SPECS`, `buildChordVariation()`).
   - `getGuitarVoicings()` generates open and movable CAGED/shell voicings (`<= 4` fret span) across all 15 roots and 13 chord kinds, ranked by playability.
@@ -157,7 +161,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
   └──▶ MusicXML (.musicxml / .xml / .mxl)
          ├──▶ Offline CLI (`bun run ingest-songs` / `--watch`)
          │      ├── Optionally mirrors `*.musicxml` from `SONGS_SOURCE_DIR` (tracked via `.mirror-manifest.json`)
-         │      ├── Scans `songs/musicxml/` (+ `songs/overrides.json` & `.meta.json` sidecars)
+         │      ├── Scans `songs/musicxml/` (+ `songs/annotations.json`, `songs/overrides.json` & `.meta.json` sidecars)
          │      ├── Incrementally compiles `src/react-app/songs/generated/<id>.ts`
          │      └── Regenerates `src/react-app/songs/songCatalog.generated.ts`
          │

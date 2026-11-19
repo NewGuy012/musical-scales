@@ -894,6 +894,15 @@ export function analyzeSongBarTheory(
 
 	const bassRuns = computeBassRuns(spans);
 	const sameChordRuns = computeSameChordRuns(spans);
+	const contextualRomans = spans.map((span, idx) =>
+		deriveContextualRoman(
+			span.first,
+			span.last,
+			span.atoms.length > 1,
+			span.atoms[1] ?? null,
+			idx + 1 < spans.length ? spans[idx + 1].first : null,
+		),
+	);
 
 	return steps.map((_step, idx) => {
 		const span = spans[idx];
@@ -903,19 +912,17 @@ export function analyzeSongBarTheory(
 		const prev2Last = idx > 1 ? spans[idx - 2].last : null;
 		const nextFirst = idx + 1 < spans.length ? spans[idx + 1].first : null;
 		const next2First = idx + 2 < spans.length ? spans[idx + 2].first : null;
+		const prevRoman = idx > 0 ? contextualRomans[idx - 1] : null;
+		const nextRoman = idx + 1 < spans.length ? contextualRomans[idx + 1] : null;
 		const bassRun = bassRuns[idx];
 		const sameChordRun = sameChordRuns[idx];
 		const hasSubBars = span.atoms.length > 1;
-		const secondSub = span.atoms[1] ?? null;
 
-		const contextualRoman = deriveContextualRoman(
-			first,
-			last,
-			hasSubBars,
-			secondSub,
-			nextFirst,
+		const contextualRoman = contextualRomans[idx] ?? first.roman;
+
+		const arrivedFromSecondaryDom = Boolean(
+			prevLast && isAppliedDominantTo(prevLast, first),
 		);
-
 		const isSecondaryDomCrossBar = Boolean(
 			nextFirst &&
 			isAppliedDominantTo(last, nextFirst) &&
@@ -1081,7 +1088,11 @@ export function analyzeSongBarTheory(
 			);
 		} else if (isSecondaryDomCrossBar && nextFirst) {
 			bigParts.push(
-				`${prevLast ? `following ${prevLast.chordSymbol}, ` : ""}pushes the harmony directly toward ${nextFirst.chordSymbol} (${nextFirst.roman}) as a temporary tonic`,
+				`${prevLast ? `following ${prevLast.chordSymbol}, ` : ""}pushes the harmony directly toward ${nextFirst.chordSymbol} (${nextRoman ?? nextFirst.roman}) as a temporary tonic`,
+			);
+		} else if (arrivedFromSecondaryDom && prevLast) {
+			bigParts.push(
+				`resolves secondary dominant ${prevLast.chordSymbol} (${prevRoman ?? prevLast.roman}) onto ${first.chordSymbol} (${contextualRoman})${nextFirst ? `, then leads into ${nextFirst.chordSymbol} (${nextRoman ?? nextFirst.roman})` : ""}`,
 			);
 		} else if (isCadential64 && nextFirst) {
 			bigParts.push(
@@ -1102,12 +1113,16 @@ export function analyzeSongBarTheory(
 			);
 		} else if (prevLast && nextFirst) {
 			bigParts.push(
-				`bridges ${prevLast.chordSymbol} (${prevLast.roman}) into ${nextFirst.chordSymbol} (${nextFirst.roman})`,
+				`bridges ${prevLast.chordSymbol} (${prevRoman ?? prevLast.roman}) into ${nextFirst.chordSymbol} (${nextRoman ?? nextFirst.roman})`,
 			);
 		} else if (nextFirst) {
-			bigParts.push(`sets up ${nextFirst.chordSymbol} (${nextFirst.roman})`);
+			bigParts.push(
+				`sets up ${nextFirst.chordSymbol} (${nextRoman ?? nextFirst.roman})`,
+			);
 		} else if (prevLast) {
-			bigParts.push(`follows ${prevLast.chordSymbol} (${prevLast.roman})`);
+			bigParts.push(
+				`follows ${prevLast.chordSymbol} (${prevRoman ?? prevLast.roman})`,
+			);
 		}
 
 		const leadText = bigParts[0] ?? "Advances the phrase";

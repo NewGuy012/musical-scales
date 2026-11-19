@@ -182,6 +182,11 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(idleHtml).toContain("1.5x");
 		expect(idleHtml).toContain("1.75x");
 		expect(idleHtml).toContain("2x");
+		// Bar Theory Coach stays collapsed while idle until user clicks a bar or presses Play
+		expect(idleHtml).not.toContain("song-live-coach");
+		expect(idleHtml).not.toContain("What it&#x27;s doing");
+		expect(idleHtml).toContain("song-step-role");
+		expect(idleHtml).not.toContain(">G (I)<");
 
 		const fastHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -220,6 +225,11 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(playingHtml).toContain("Bar 5");
 		expect(playingHtml).toContain("Bar 5/16");
 		expect(playingHtml).toContain("Note: D3 (Open II)");
+		expect(playingHtml).toContain("song-live-coach");
+		expect(playingHtml).toContain("Hide Theory");
+		expect(playingHtml).toContain("What it&#x27;s doing");
+		expect(playingHtml).toContain("Bigger picture");
+		expect(playingHtml).toContain("Why it works");
 
 		const pausedHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -238,6 +248,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(pausedHtml).toContain("▶ Resume");
 		expect(pausedHtml).toContain("Paused");
 		expect(pausedHtml).toContain("Bar 9/16");
+		expect(pausedHtml).toContain("song-live-coach");
 
 		const previewHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -258,6 +269,31 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(previewHtml).toContain("Sound &amp; Feel");
 		expect(previewHtml).toContain("Harmony Hook");
 		expect(previewHtml).toContain("Practice Tips");
+		expect(previewHtml).toContain("What it&#x27;s doing");
+		expect(previewHtml).toContain("Jump to Bar 2");
+		expect(previewHtml).toContain("Jump to Bar 4");
+
+		const chopinSong = await loadSongById(
+			"prelude-in-c-minor-op-28-no-20-piano",
+		);
+		const chopinBarStarts = getSongBarStartTimes(chopinSong);
+		const chopinBeat3Ms = (chopinBarStarts[0] ?? 0) + 1100;
+		const chopinHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={[chopinSong]}
+				playingSongId={chopinSong.id}
+				cuedSongId={chopinSong.id}
+				songPositionMs={chopinBeat3Ms}
+				activeChordStepIndex={0}
+				activeNoteLabel="G4"
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(chopinHtml).toContain("Inside this bar:");
+		expect(chopinHtml).toContain('coach-subbar-chip is-current-sub">G (V)');
+		expect(chopinHtml).toContain("→ Fm7 → G → Cm");
 
 		const slowSong = scaleSongExampleSpeed(celloSong, 0.5);
 		expect(slowSong.bpm).toBe(Math.round(celloSong.bpm * 0.5));

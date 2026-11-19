@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	loadCuratedAnnotations,
 	loadCuratedOverrides,
 	mirrorSourceMusicXml,
 	resolveImportOptions,
@@ -1078,6 +1079,15 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 			);
 			await expect(loadCuratedOverrides(badOverridesPath)).rejects.toThrow(
 				/Invalid --category "baroque"/,
+			);
+
+			const badAnnPath = join(tmpRoot, "songs", "bad-annotations.json");
+			await writeFile(
+				badAnnPath,
+				JSON.stringify({ bad: { barNotes: { notANum: {} } } }),
+			);
+			await expect(loadCuratedAnnotations(badAnnPath)).rejects.toThrow(
+				/Invalid bar number "notANum"/,
 			);
 		} finally {
 			await rm(tmpRoot, { recursive: true, force: true });
