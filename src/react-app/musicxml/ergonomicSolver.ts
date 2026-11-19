@@ -15,7 +15,7 @@ export interface SolvedStop {
 	finger?: number;
 }
 
-export interface SolverNoteInput {
+interface SolverNoteInput {
 	midi: number;
 	stringIndex?: number;
 	fret?: number;
@@ -108,9 +108,15 @@ function expandHandPositions(
 	const span = maxNZ - minNZ;
 	const minAnchor = Math.max(1, maxNZ - windowSpan);
 	const maxAnchor = minNZ;
-	const states: CandidateState[] = [];
+	const positions =
+		minAnchor <= maxAnchor
+			? Array.from(
+					{ length: maxAnchor - minAnchor + 1 },
+					(_, i) => minAnchor + i,
+				)
+			: [minNZ];
 
-	for (let pos = minAnchor; pos <= maxAnchor; pos++) {
+	return positions.map((pos) => {
 		const finalized = stops.map((s) =>
 			isBowed
 				? {
@@ -119,7 +125,7 @@ function expandHandPositions(
 					}
 				: { ...s },
 		);
-		states.push({
+		return {
 			stops: finalized,
 			handPos: pos,
 			intraCost: scoreGripIntraCost(
@@ -129,32 +135,23 @@ function expandHandPositions(
 				span,
 				widePenalty,
 			),
-		});
-	}
+		};
+	});
+}
 
-	if (states.length === 0) {
-		const pos = minNZ;
-		const finalized = stops.map((s) =>
-			isBowed
-				? {
-						...s,
-						finger: s.finger ?? inferBowedFingerInFrame(s.fret, pos),
-					}
-				: { ...s },
-		);
-		states.push({
-			stops: finalized,
-			handPos: pos,
-			intraCost: scoreGripIntraCost(
-				finalized,
-				pos,
-				numStrings,
-				span,
-				widePenalty,
-			),
-		});
-	}
-	return states;
+function hasValidExplicitStop(
+	note: SolverNoteInput,
+	numStrings: number,
+	maxFret: number,
+): note is SolverNoteInput & { stringIndex: number; fret: number } {
+	return (
+		note.stringIndex !== undefined &&
+		note.fret !== undefined &&
+		note.stringIndex >= 0 &&
+		note.stringIndex < numStrings &&
+		note.fret >= 0 &&
+		note.fret <= maxFret
+	);
 }
 
 function buildCandidatesForOnset(
@@ -168,17 +165,7 @@ function buildCandidatesForOnset(
 	const minOpen = Math.min(...openMidiPerString);
 	const maxTop = Math.max(...openMidiPerString) + maxFret;
 
-	if (
-		group.notes.every(
-			(n) =>
-				n.stringIndex !== undefined &&
-				n.fret !== undefined &&
-				n.stringIndex >= 0 &&
-				n.stringIndex < numStrings &&
-				n.fret >= 0 &&
-				n.fret <= maxFret,
-		)
-	) {
+	if (group.notes.every((n) => hasValidExplicitStop(n, numStrings, maxFret))) {
 		const explicitStops: SolvedStop[] = group.notes.map((n) => ({
 			stringIndex: n.stringIndex!,
 			fret: n.fret!,
@@ -195,14 +182,7 @@ function buildCandidatesForOnset(
 
 	const targetNotes = group.notes.slice(0, numStrings);
 	const optionsPerNote: SolvedStop[][] = targetNotes.map((n) => {
-		if (
-			n.stringIndex !== undefined &&
-			n.fret !== undefined &&
-			n.stringIndex >= 0 &&
-			n.stringIndex < numStrings &&
-			n.fret >= 0 &&
-			n.fret <= maxFret
-		) {
+		if (hasValidExplicitStop(n, numStrings, maxFret)) {
 			return [{ stringIndex: n.stringIndex, fret: n.fret, finger: n.finger }];
 		}
 		const targetMidi = clampToInstrumentRange(n.midi, minOpen, maxTop);

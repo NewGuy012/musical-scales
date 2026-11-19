@@ -120,6 +120,7 @@ export interface MusicXmlImportOptions {
 	partIndex?: number;
 	partId?: string;
 	instrument?: InstrumentTab;
+	preferredInstrument?: InstrumentTab;
 	id?: string;
 	title?: string;
 	composerOrSource?: string;
@@ -176,6 +177,44 @@ function pitchToMidi(
 	const basePc = Object.hasOwn(NATURAL_PC, key) ? NATURAL_PC[key] : undefined;
 	if (basePc === undefined || !Number.isFinite(octave)) return null;
 	return (octave + 1) * 12 + basePc + alter;
+}
+
+function parsePitchElement(
+	node: XmlNode,
+	stepTag = "step",
+	alterTag = "alter",
+	octaveTag = "octave",
+	fallbackStep?: string,
+): number | null {
+	const step = getChildText(node, stepTag) ?? fallbackStep;
+	if (!step) return null;
+	const alter = Number.parseFloat(getChildText(node, alterTag) ?? "0");
+	const octave = Number.parseInt(getChildText(node, octaveTag) ?? "4", 10);
+	return pitchToMidi(
+		step,
+		Number.isFinite(alter) ? Math.round(alter) : 0,
+		octave,
+	);
+}
+
+function getTieFlags(
+	noteNode: XmlNode,
+	notations: XmlNode | undefined,
+): { hasTieStart: boolean; hasTieStop: boolean } {
+	const tieElements = [
+		...findChildren(noteNode, "tie"),
+		...(notations ? findChildren(notations, "tied") : []),
+	];
+	return {
+		hasTieStart: tieElements.some((t) => t.attrs.type === "start"),
+		hasTieStop: tieElements.some((t) => t.attrs.type === "stop"),
+	};
+}
+
+function cloneNullAttrs(
+	source?: Record<string, string>,
+): Record<string, string> {
+	return Object.assign(Object.create(null) as Record<string, string>, source);
 }
 
 interface NormalizedScore {
@@ -241,7 +280,7 @@ function normalizeScorePartwise(root: XmlNode): NormalizedScore {
 				}
 				list.push({
 					tag: "measure",
-					attrs: { ...m.attrs },
+					attrs: cloneNullAttrs(m.attrs),
 					children: p.children,
 					text: p.text,
 				});
@@ -251,12 +290,16 @@ function normalizeScorePartwise(root: XmlNode): NormalizedScore {
 			partMetaList.length > 0
 				? partMetaList.map((m) => m.id)
 				: Array.from(byPartId.keys());
-		parts = orderedIds.map((pid) => ({
-			tag: "part",
-			attrs: { id: pid },
-			children: byPartId.get(pid) ?? [],
-			text: "",
-		}));
+		parts = orderedIds.map((pid) => {
+			const attrs = cloneNullAttrs();
+			attrs.id = pid;
+			return {
+				tag: "part",
+				attrs,
+				children: byPartId.get(pid) ?? [],
+				text: "",
+			};
+		});
 	}
 
 	const work = findChild(root, "work");
@@ -292,14 +335,12 @@ function parseStaffTuningNode(staffDetails: XmlNode): number[] {
 			st.attrs.line ?? String(entries.length + 1),
 			10,
 		);
-		const step = getChildText(st, "tuning-step");
-		const alter = Number.parseInt(getChildText(st, "tuning-alter") ?? "0", 10);
-		const octave = Number.parseInt(
-			getChildText(st, "tuning-octave") ?? "4",
-			10,
+		const midi = parsePitchElement(
+			st,
+			"tuning-step",
+			"tuning-alter",
+			"tuning-octave",
 		);
-		if (!step) continue;
-		const midi = pitchToMidi(step, Number.isFinite(alter) ? alter : 0, octave);
 		if (midi !== null) {
 			entries.push({
 				line: Number.isFinite(line) ? line : entries.length + 1,
@@ -422,25 +463,11 @@ function summarizePart(
 			if (findChild(note, "unpitched")) isPercussion = true;
 			if (findChild(note, "rest")) continue;
 			const notations = findChild(note, "notations");
-			const hasTieStop =
-				findChildren(note, "tie").some((t) => t.attrs.type === "stop") ||
-				(notations
-					? findChildren(notations, "tied").some((t) => t.attrs.type === "stop")
-					: false);
+			const { hasTieStop } = getTieFlags(note, notations);
 			if (!hasTieStop) noteCount++;
 			const pitch = findChild(note, "pitch");
 			if (pitch) {
-				const step = getChildText(pitch, "step") ?? "C";
-				const alter = Number.parseFloat(getChildText(pitch, "alter") ?? "0");
-				const octave = Number.parseInt(
-					getChildText(pitch, "octave") ?? "4",
-					10,
-				);
-				const midi = pitchToMidi(
-					step,
-					Number.isFinite(alter) ? Math.round(alter) : 0,
-					octave,
-				);
+				const midi = parsePitchElement(pitch, "step", "alter", "octave", "C");
 				if (midi !== null) {
 					if (midi < minMidi) minMidi = midi;
 					if (midi > maxMidi) maxMidi = midi;
@@ -502,13 +529,14 @@ function selectBestPart(
 	const pool =
 		pitched.length > 0 ? pitched : nonEmpty.length > 0 ? nonEmpty : parts;
 
-	if (options.instrument) {
+	const preferredInstrument = options.instrument ?? options.preferredInstrument;
+	if (preferredInstrument) {
 		const matching = pool.filter(
-			(p) => p.suggestedInstrument === options.instrument,
+			(p) => p.suggestedInstrument === preferredInstrument,
 		);
 		if (matching.length > 0) {
 			return [...matching].sort((a, b) => {
-				if (options.instrument === "guitar" && a.isStringed !== b.isStringed) {
+				if (preferredInstrument === "guitar" && a.isStringed !== b.isStringed) {
 					return a.isStringed ? -1 : 1;
 				}
 				return b.noteCount - a.noteCount;
@@ -630,7 +658,10 @@ function buildTrackIrFromPart(
 	} = score;
 	const partNode = parts[selectedSummary.index];
 	const instrument: InstrumentTab =
-		options.instrument ?? selectedSummary.suggestedInstrument ?? "piano";
+		options.instrument ??
+		selectedSummary.suggestedInstrument ??
+		options.preferredInstrument ??
+		"piano";
 
 	const quantizeStepTicks =
 		options.quantizeSubdivision && options.quantizeSubdivision > 0
@@ -984,18 +1015,12 @@ function buildTrackIrFromPart(
 				const pitchNode = findChild(child, "pitch");
 				if (!pitchNode) continue;
 
-				const step = getChildText(pitchNode, "step") ?? "C";
-				const alter = Number.parseFloat(
-					getChildText(pitchNode, "alter") ?? "0",
-				);
-				const octave = Number.parseInt(
-					getChildText(pitchNode, "octave") ?? "4",
-					10,
-				);
-				const writtenMidi = pitchToMidi(
-					step,
-					Number.isFinite(alter) ? Math.round(alter) : 0,
-					octave,
+				const writtenMidi = parsePitchElement(
+					pitchNode,
+					"step",
+					"alter",
+					"octave",
+					"C",
 				);
 				if (writtenMidi === null) continue;
 
@@ -1009,12 +1034,7 @@ function buildTrackIrFromPart(
 				if (midi <= 0 || midi > 127) continue;
 
 				const notations = findChild(child, "notations");
-				const tieElements = [
-					...findChildren(child, "tie"),
-					...(notations ? findChildren(notations, "tied") : []),
-				];
-				const hasTieStart = tieElements.some((t) => t.attrs.type === "start");
-				const hasTieStop = tieElements.some((t) => t.attrs.type === "stop");
+				const { hasTieStart, hasTieStop } = getTieFlags(child, notations);
 
 				const durTicks = snapDuration(rawDurTicks);
 				const tieKey = `${staffNum}:${voiceNum}:${midi}`;
@@ -1334,12 +1354,6 @@ export async function compileMusicXml(
 	const trackIr = buildTrackIrFromPart(score, selectedPart, options);
 
 	const compileOpts: CompileScoreOptions = {
-		...(options.id ? { id: options.id } : {}),
-		...(options.title ? { title: options.title } : {}),
-		...(options.composerOrSource
-			? { composerOrSource: options.composerOrSource }
-			: {}),
-		...(options.subtitle ? { subtitle: options.subtitle } : {}),
 		splitHalfBarHarmony: options.splitHalfBarHarmony,
 		...(options.studyGuide ? { studyGuide: options.studyGuide } : {}),
 	};

@@ -31,7 +31,13 @@ interface ZipEntryMeta {
 
 function isSafeZipEntryName(name: string): boolean {
 	if (!name || name.includes("\0")) return false;
-	if (name.startsWith("/") || name.startsWith("\\")) return false;
+	if (
+		name.startsWith("/") ||
+		name.startsWith("\\") ||
+		/^[a-zA-Z]:/.test(name)
+	) {
+		return false;
+	}
 	return !name.split(/[\\/]/).includes("..");
 }
 
@@ -105,7 +111,10 @@ export function isMxlBuffer(bytes: Uint8Array): boolean {
 function findEndOfCentralDirectory(view: DataView, byteLength: number): number {
 	const minOffset = Math.max(0, byteLength - 65557);
 	for (let pos = byteLength - 22; pos >= minOffset; pos--) {
-		if (view.getUint32(pos, true) === 0x06054b50) {
+		if (
+			view.getUint32(pos, true) === 0x06054b50 &&
+			view.getUint16(pos + 20, true) === byteLength - pos - 22
+		) {
 			return pos;
 		}
 	}
@@ -145,7 +154,7 @@ function indexZipEntries(bytes: Uint8Array): Map<string, ZipEntryMeta> {
 		const commentLen = view.getUint16(cursor + 32, true);
 		const localHeaderOffset = view.getUint32(cursor + 42, true);
 
-		if (cursor + 46 + nameLen > bytes.byteLength) {
+		if (cursor + 46 + nameLen + extraLen + commentLen > bytes.byteLength) {
 			throw new Error("Truncated .mxl ZIP central directory entry.");
 		}
 		const entryName = decoder.decode(
@@ -216,12 +225,13 @@ function findEntryCaseInsensitive(
 	entries: Map<string, ZipEntryMeta>,
 	targetPath: string,
 ): ZipEntryMeta | undefined {
-	const cleaned = targetPath.replace(/^\.\//, "");
+	const normalize = (p: string) => p.replace(/\\/g, "/").replace(/^\.\//, "");
+	const cleaned = normalize(targetPath);
 	const direct = entries.get(cleaned) ?? entries.get(targetPath);
 	if (direct) return direct;
 	const lower = cleaned.toLowerCase();
 	for (const [name, meta] of entries.entries()) {
-		if (name.toLowerCase() === lower) return meta;
+		if (normalize(name).toLowerCase() === lower) return meta;
 	}
 	return undefined;
 }

@@ -9,6 +9,7 @@ import type {
 	SongStopTuple,
 	SongStudyGuide,
 } from "../songs/songRuntime";
+import { analyzeKey } from "../theory/circleOfFifths";
 import { type SolverOnsetGroup, solveInstrumentStops } from "./ergonomicSolver";
 import {
 	type InferredHarmony,
@@ -16,6 +17,8 @@ import {
 	inferHarmonyForWindow,
 	resolveExplicitChordSymbol,
 } from "./harmonicAnalyzer";
+
+const MAX_LINEARIZED_BARS = 4096;
 
 export interface ScoreTempoEvent {
 	atTick: number;
@@ -87,9 +90,7 @@ export interface CompileScoreOptions {
 	studyGuide?: SongStudyGuide;
 }
 
-/**
- * Unrolls repeat signs and 1st/2nd endings (voltas) into a linear performance order.
- */
+/** Unrolls repeat signs and 1st/2nd endings (voltas) into playback order. */
 export function linearizeRepeatedBars(
 	bars: readonly ScoreBarIR[],
 ): ScoreBarIR[] {
@@ -100,9 +101,13 @@ export function linearizeRepeatedBars(
 	let currentPass = 1;
 	let i = 0;
 	let guard = 0;
-	const maxBars = bars.length * 6;
+	const maxSteps = Math.min(MAX_LINEARIZED_BARS * 2, bars.length * 6);
 
-	while (i < bars.length && guard < maxBars) {
+	while (
+		i < bars.length &&
+		guard < maxSteps &&
+		out.length < MAX_LINEARIZED_BARS
+	) {
 		guard++;
 		const bar = bars[i];
 		if (bar.repeatStart) {
@@ -278,38 +283,22 @@ function encodeNoteTuple(
 
 	const tech =
 		note.technique && note.technique !== "normal" ? note.technique : undefined;
-
+	const base = [
+		note.offsetTicks,
+		Math.max(1, note.durationTicks),
+		note.midi,
+		velPct,
+	] as const;
 	if (note.slideFromMidi !== undefined) {
-		return [
-			note.offsetTicks,
-			Math.max(1, note.durationTicks),
-			note.midi,
-			velPct,
-			tech ?? null,
-			tupleStop ?? null,
-			note.slideFromMidi,
-		];
+		return [...base, tech ?? null, tupleStop ?? null, note.slideFromMidi];
 	}
 	if (tupleStop !== undefined) {
-		return [
-			note.offsetTicks,
-			Math.max(1, note.durationTicks),
-			note.midi,
-			velPct,
-			tech ?? null,
-			tupleStop,
-		];
+		return [...base, tech ?? null, tupleStop];
 	}
 	if (tech !== undefined) {
-		return [
-			note.offsetTicks,
-			Math.max(1, note.durationTicks),
-			note.midi,
-			velPct,
-			tech,
-		];
+		return [...base, tech];
 	}
-	return [note.offsetTicks, Math.max(1, note.durationTicks), note.midi, velPct];
+	return [...base];
 }
 
 function dedupeBarsToForm(bars: readonly SongBar[]): {
@@ -361,6 +350,7 @@ export function compileScoreTrackToSongDocument(
 	);
 	const keyInfo =
 		track.keySignature ?? detectKeyFromEvents(allWeightedNotes, false);
+	const keyAnalysis = analyzeKey(keyInfo.keySlot, keyInfo.keyMode);
 
 	const barMetaList: {
 		barStartTick: number;
@@ -459,31 +449,24 @@ export function compileScoreTrackToSongDocument(
 			() => solvedStops[globalBatchCursor++] ?? [],
 		);
 
-		let primaryHarmony: InferredHarmony;
 		const explicitMarks = bar.harmonies ?? [];
-		if (explicitMarks.length > 0) {
-			primaryHarmony =
-				resolveExplicitChordSymbol(
-					explicitMarks[0].chordSymbol,
-					keyInfo.keySlot,
-					keyInfo.keyMode,
-				) ??
-				inferHarmonyForWindow(
-					bar.notes,
-					keyInfo.keySlot,
-					keyInfo.keyMode,
-					0,
-					tpq,
-				);
-		} else {
-			primaryHarmony = inferHarmonyForWindow(
+		let primaryHarmony =
+			(explicitMarks.length > 0
+				? resolveExplicitChordSymbol(
+						explicitMarks[0].chordSymbol,
+						keyInfo.keySlot,
+						keyInfo.keyMode,
+						keyAnalysis,
+					)
+				: null) ??
+			inferHarmonyForWindow(
 				bar.notes,
 				keyInfo.keySlot,
 				keyInfo.keyMode,
 				0,
 				tpq,
+				keyAnalysis,
 			);
-		}
 
 		let harmonyMarks: Array<{
 			offsetTicks: number;
@@ -498,6 +481,7 @@ export function compileScoreTrackToSongDocument(
 						mark.chordSymbol,
 						keyInfo.keySlot,
 						keyInfo.keyMode,
+						keyAnalysis,
 					) ?? primaryHarmony,
 			}));
 		} else if (
@@ -515,6 +499,7 @@ export function compileScoreTrackToSongDocument(
 					keyInfo.keyMode,
 					0,
 					tpq,
+					keyAnalysis,
 				);
 				const h2 = inferHarmonyForWindow(
 					secondHalf,
@@ -522,6 +507,7 @@ export function compileScoreTrackToSongDocument(
 					keyInfo.keyMode,
 					halfOffset,
 					tpq,
+					keyAnalysis,
 				);
 				if (h1.chordSymbol !== h2.chordSymbol) {
 					primaryHarmony = h1;

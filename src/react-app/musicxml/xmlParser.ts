@@ -7,6 +7,7 @@ export interface XmlNode {
 
 const MAX_XML_DEPTH = 64;
 const MAX_XML_CHARS = 16 * 1024 * 1024;
+const MAX_XML_NODES = 250_000;
 
 const NAMED_ENTITIES: Record<string, string> = {
 	amp: "&",
@@ -171,15 +172,14 @@ function parseAttributes(
 	throw new Error("Unexpected end of XML while parsing tag attributes.");
 }
 
-/**
- * Parses an XML string into a lightweight AST suitable for MusicXML documents.
- */
+/** Parses an XML string into a lightweight AST for MusicXML documents. */
 export function parseXml(xmlText: string): XmlNode {
 	if (xmlText.length > MAX_XML_CHARS) {
 		throw new Error(`XML document exceeds ${MAX_XML_CHARS} character limit.`);
 	}
 	const stack: XmlNode[] = [];
 	let root: XmlNode | null = null;
+	let nodeCount = 0;
 	let pos = 0;
 	const len = xmlText.length;
 
@@ -272,10 +272,16 @@ export function parseXml(xmlText: string): XmlNode {
 		}
 
 		const { attrs, nextPos, selfClosing } = parseAttributes(xmlText, cursor);
+		nodeCount++;
+		if (nodeCount > MAX_XML_NODES) {
+			throw new Error(`XML document exceeds ${MAX_XML_NODES} element limit.`);
+		}
 		const node: XmlNode = { tag, attrs, children: [], text: "" };
 
 		if (stack.length > 0) {
 			stack[stack.length - 1].children.push(node);
+		} else if (root) {
+			throw new Error(`Unexpected extra root XML element <${tag}>.`);
 		} else {
 			root = node;
 		}

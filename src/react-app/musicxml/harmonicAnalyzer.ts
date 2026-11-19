@@ -1,13 +1,14 @@
 import {
-	CIRCLE_SLOTS,
 	type ChordQuality,
 	FLAT_CHROMATIC,
+	type KeyAnalysis,
 	type KeyMode,
 	SHARP_CHROMATIC,
 	analyzeKey,
 	mod12,
 	noteToPitchClass,
 	pcToCircleIndex,
+	resolveSlotVariant,
 } from "../theory/circleOfFifths";
 import {
 	CHORD_INTERVAL_MAP,
@@ -15,7 +16,7 @@ import {
 	buildChordVariation,
 } from "../theory/guitarFretboard";
 
-export interface WeightedPitchEvent {
+interface WeightedPitchEvent {
 	midi: number;
 	offsetTicks: number;
 	durationTicks: number;
@@ -96,40 +97,16 @@ export function resolveKeySignatureFromRootPc(
 	mode: KeyMode,
 	preferFlats = false,
 ): { keySlot: number; keyMode: KeyMode; keyLabel: string } {
-	const normPc = mod12(rootPc);
-	for (const slot of CIRCLE_SLOTS) {
-		const variants = [
-			slot.primary,
-			...(slot.enharmonic ? [slot.enharmonic] : []),
-		];
-		const chosenVariant =
-			preferFlats && slot.enharmonic?.side === "flat"
-				? slot.enharmonic
-				: slot.primary;
-		const root =
-			mode === "major" ? chosenVariant.majorRoot : chosenVariant.minorRoot;
-		if (noteToPitchClass(root) === normPc) {
-			return {
-				keySlot: slot.index,
-				keyMode: mode,
-				keyLabel: `${root} ${mode === "major" ? "Major" : "Minor"}`,
-			};
-		}
-		for (const v of variants) {
-			const vRoot = mode === "major" ? v.majorRoot : v.minorRoot;
-			if (noteToPitchClass(vRoot) === normPc) {
-				return {
-					keySlot: slot.index,
-					keyMode: mode,
-					keyLabel: `${vRoot} ${mode === "major" ? "Major" : "Minor"}`,
-				};
-			}
-		}
-	}
+	const keySlot = pcToCircleIndex(mod12(rootPc), mode);
+	const variant = resolveSlotVariant(
+		keySlot,
+		preferFlats ? "flats" : "standard",
+	);
+	const root = mode === "major" ? variant.majorRoot : variant.minorRoot;
 	return {
-		keySlot: 0,
+		keySlot,
 		keyMode: mode,
-		keyLabel: mode === "major" ? "C Major" : "A Minor",
+		keyLabel: `${root} ${mode === "major" ? "Major" : "Minor"}`,
 	};
 }
 
@@ -265,8 +242,9 @@ export function inferHarmonyForWindow(
 	keyMode: KeyMode,
 	windowStartTicks: number,
 	ticksPerQuarter: number,
+	precomputedKey?: KeyAnalysis,
 ): InferredHarmony {
-	const keyAnalysis = analyzeKey(keySlot, keyMode);
+	const keyAnalysis = precomputedKey ?? analyzeKey(keySlot, keyMode);
 	const tonicPc = noteToPitchClass(keyAnalysis.root);
 	const preferFlats = keyAnalysis.accidentalsCount < 0;
 
@@ -368,10 +346,36 @@ export function inferHarmonyForWindow(
 	};
 }
 
+const EXPLICIT_SUFFIX_MAP: Readonly<Record<string, GuitarChordKind>> = {
+	m: "minor",
+	min: "minor",
+	maj7: "maj7",
+	Δ7: "maj7",
+	M7: "maj7",
+	m7: "m7",
+	min7: "m7",
+	"m7♭5": "m7♭5",
+	ø7: "m7♭5",
+	ø: "m7♭5",
+	dim7: "dim7",
+	"°7": "dim7",
+	dim: "diminished",
+	"°": "diminished",
+	aug: "aug",
+	"+": "aug",
+	add9: "add9",
+	madd9: "madd9",
+	"m(add9)": "madd9",
+	sus4: "sus4",
+	sus: "sus4",
+	sus2: "sus2",
+};
+
 export function resolveExplicitChordSymbol(
 	symbolRaw: string,
 	keySlot: number,
 	keyMode: KeyMode,
+	precomputedKey?: KeyAnalysis,
 ): InferredHarmony | null {
 	const normalized = symbolRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
 	const clean = normalized.split("/")[0]?.trim();
@@ -382,38 +386,24 @@ export function resolveExplicitChordSymbol(
 	const [, rootName, suffix] = match;
 	const rootPc = noteToPitchClass(rootName);
 
-	let kind: GuitarChordKind = "major";
-	if (suffix === "m" || suffix === "min") kind = "minor";
-	else if (suffix === "maj7" || suffix === "Δ7" || suffix === "M7")
-		kind = "maj7";
-	else if (suffix === "m7" || suffix === "min7") kind = "m7";
-	else if (suffix === "m7♭5" || suffix === "ø7" || suffix === "ø")
-		kind = "m7♭5";
-	else if (suffix === "dim7" || suffix === "°7") kind = "dim7";
-	else if (suffix === "dim" || suffix === "°") kind = "diminished";
-	else if (suffix === "aug" || suffix === "+") kind = "aug";
-	else if (suffix === "add9") kind = "add9";
-	else if (suffix === "madd9" || suffix === "m(add9)") kind = "madd9";
-	else if (suffix === "sus4" || suffix === "sus") kind = "sus4";
-	else if (suffix === "sus2") kind = "sus2";
-	else if (
-		suffix.includes("maj9") ||
-		suffix.includes("Δ9") ||
-		suffix.includes("M9")
-	)
-		kind = "maj7";
-	else if (
-		suffix.includes("7") ||
-		suffix.includes("9") ||
-		suffix.includes("11") ||
-		suffix.includes("13")
-	) {
-		kind = suffix.startsWith("m") ? "m7" : "7";
-	} else if (suffix.startsWith("m")) {
-		kind = "minor";
+	let kind: GuitarChordKind = Object.hasOwn(EXPLICIT_SUFFIX_MAP, suffix)
+		? EXPLICIT_SUFFIX_MAP[suffix]
+		: "major";
+	if (!Object.hasOwn(EXPLICIT_SUFFIX_MAP, suffix)) {
+		if (
+			suffix.includes("maj9") ||
+			suffix.includes("Δ9") ||
+			suffix.includes("M9")
+		) {
+			kind = "maj7";
+		} else if (/(?:7|9|11|13)/.test(suffix)) {
+			kind = suffix.startsWith("m") ? "m7" : "7";
+		} else if (suffix.startsWith("m")) {
+			kind = "minor";
+		}
 	}
 
-	const keyAnalysis = analyzeKey(keySlot, keyMode);
+	const keyAnalysis = precomputedKey ?? analyzeKey(keySlot, keyMode);
 	const tonicPc = noteToPitchClass(keyAnalysis.root);
 	const variation = buildChordVariation(
 		rootName,

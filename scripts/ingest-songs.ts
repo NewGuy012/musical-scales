@@ -29,6 +29,7 @@ import {
 	type SongDocument,
 	flattenSongPlaybackSteps,
 	hydrateSong,
+	isInstrumentTab,
 	slugifyId,
 } from "../src/react-app/songs/songRuntime";
 
@@ -131,14 +132,7 @@ function parseInstrumentFlag(
 	raw: string | undefined,
 ): InstrumentTab | undefined {
 	if (raw === undefined) return undefined;
-	if (
-		raw === "piano" ||
-		raw === "guitar" ||
-		raw === "cello" ||
-		raw === "violin"
-	) {
-		return raw;
-	}
+	if (isInstrumentTab(raw)) return raw;
 	throw new Error(
 		`Invalid --instrument "${raw}". Expected piano, guitar, cello, or violin.`,
 	);
@@ -188,9 +182,21 @@ async function readSidecarMeta(filePath: string): Promise<SidecarMeta> {
 	for (const candidate of candidates) {
 		try {
 			const raw = await readFile(candidate, "utf8");
-			return JSON.parse(raw) as SidecarMeta;
-		} catch {
-			// Sidecar is optional
+			const parsed: unknown = JSON.parse(raw);
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				throw new Error(`Expected JSON object in sidecar "${candidate}".`);
+			}
+			const meta = parsed as Record<string, unknown>;
+			if (meta.instrument !== undefined) {
+				if (typeof meta.instrument !== "string") {
+					throw new Error(`Invalid instrument in sidecar "${candidate}".`);
+				}
+				parseInstrumentFlag(meta.instrument);
+			}
+			return meta as SidecarMeta;
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException)?.code === "ENOENT") continue;
+			throw err;
 		}
 	}
 	return {};
