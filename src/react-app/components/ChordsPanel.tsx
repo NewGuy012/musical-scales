@@ -4,7 +4,7 @@ import {
 	KeyAnalysis,
 	getChordCardId,
 } from "../theory/circleOfFifths";
-import { IconChevronDown } from "./Icons";
+import { IconChevronDown, getQualityClass } from "./Icons";
 
 export type ChordVoicingMode = "triad" | "seventh";
 
@@ -46,15 +46,13 @@ export function ChordsPanel({
 			<button
 				key={id}
 				type="button"
-				className={`chord-card chord-quality-${chord.quality} ${
-					isActive ? "is-selected" : ""
+				className={`chord-card ${getQualityClass(chord.quality)}${
+					isActive ? " is-selected" : ""
 				}`}
 				onClick={() => onSelectChord(chord, id)}
 			>
 				<div className="chord-card-top">
-					<span className={`chord-roman chord-roman-${chord.quality}`}>
-						{chord.roman}
-					</span>
+					<span className="chord-roman">{chord.roman}</span>
 				</div>
 				<div className="chord-symbol">{getSymbol(chord)}</div>
 				<div className="chord-notes-line">{getNotes(chord).join(" · ")}</div>
@@ -146,8 +144,8 @@ export function ChordsPanel({
 								<button
 									key={kind}
 									type="button"
-									className={`root-pair-btn pair-${kind.slice(0, 3)} ${
-										activeChordId === id ? "is-selected" : ""
+									className={`root-pair-btn ${getQualityClass(kind)}${
+										activeChordId === id ? " is-selected" : ""
 									}`}
 									onClick={() => onPlayRootPairChord(kind)}
 									title={target.noteLabel ?? target.notes.join(" · ")}

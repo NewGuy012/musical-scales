@@ -5,10 +5,9 @@ import {
 	HarmonyChordSpec,
 	TritoneSubPair,
 } from "../theory/chromaticHarmony";
-import { IconPlay, IconStop } from "./Icons";
+import { SequencePlayButton, getQualityClass } from "./Icons";
 
-export type ColorHarmonyTopic =
-	"chromatic" | "diminished" | "secondary" | "tritone";
+type ColorHarmonyTopic = "chromatic" | "diminished" | "secondary" | "tritone";
 
 interface ColorHarmonyPanelProps {
 	colorAnalysis: ColorHarmonyAnalysis;
@@ -26,34 +25,6 @@ const TOPICS: readonly { id: ColorHarmonyTopic; label: string }[] = [
 	{ id: "secondary", label: "Secondary Dominants" },
 	{ id: "tritone", label: "Tritone Subs" },
 ];
-
-function SequencePlayButton({
-	isPlaying,
-	idleLabel,
-	onClick,
-}: {
-	isPlaying: boolean;
-	idleLabel: string;
-	onClick: () => void;
-}) {
-	return (
-		<button
-			type="button"
-			className={`pill-action-btn pill-action-sm ${isPlaying ? "is-playing" : ""}`}
-			onClick={onClick}
-		>
-			{isPlaying ? (
-				<>
-					<IconStop size={10} /> Stop
-				</>
-			) : (
-				<>
-					<IconPlay size={10} /> {idleLabel}
-				</>
-			)}
-		</button>
-	);
-}
 
 export function ColorHarmonyPanel({
 	colorAnalysis,
@@ -80,7 +51,7 @@ export function ColorHarmonyPanel({
 			<button
 				key={`${seqId}-step-${stepIdx}-${chord.id}`}
 				type="button"
-				className={`color-step-chip chord-quality-${chord.quality} ${
+				className={`color-step-chip ${getQualityClass(chord.quality)} ${
 					isHighlightTarget ? "is-highlight-target" : ""
 				} ${isPlayingStep || isSelected ? "is-active-step" : ""}`}
 				onClick={() => onSelectChord(chord)}

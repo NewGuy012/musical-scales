@@ -141,7 +141,7 @@ export function PianoKeyboard({
 	};
 
 	return (
-		<div className="piano-wrap">
+		<div>
 			<svg
 				viewBox={`0 0 ${totalWidth} ${whiteKeyHeight + 2}`}
 				className="piano-svg"

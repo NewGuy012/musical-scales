@@ -7,7 +7,6 @@ interface SectionHeaderProps {
 	description?: string;
 	bodyId?: string;
 	compact?: boolean;
-	className?: string;
 	titlePrefix?: ReactNode;
 	titleBadge?: ReactNode;
 	actions?: ReactNode;
@@ -22,7 +21,6 @@ export function SectionHeader({
 	description,
 	bodyId,
 	compact = false,
-	className = "",
 	titlePrefix,
 	titleBadge,
 	actions,
@@ -33,9 +31,7 @@ export function SectionHeader({
 
 	return (
 		<div
-			className={`section-header${compact ? " section-header-compact" : ""}${
-				className ? ` ${className}` : ""
-			}`}
+			className={`section-header${compact ? " section-header-compact" : ""}`}
 		>
 			<div
 				className={`section-heading${onToggleCollapse ? " is-collapsible" : ""}`}

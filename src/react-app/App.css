@@ -244,11 +244,7 @@
 		background-color 150ms ease;
 }
 
-.chip-btn-compact {
-	padding: 4px 9px;
-	font-size: 0.74rem;
-}
-
+.chip-btn-compact,
 .pill-action-sm {
 	padding: 4px 9px;
 	font-size: 0.74rem;
@@ -356,10 +352,6 @@
 	padding-bottom: 0;
 	margin-bottom: 0;
 	border-bottom-color: transparent;
-}
-
-.section-body[hidden] {
-	display: none;
 }
 
 .section-title-row {
@@ -969,10 +961,6 @@
 	padding: 12px 16px;
 }
 
-.neighbors-header {
-	align-items: center;
-}
-
 .walk-controls {
 	display: flex;
 	flex-wrap: wrap;
@@ -1354,19 +1342,9 @@
 	transform: translateY(-1px);
 }
 
-.chord-card.chord-quality-major.is-selected {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-}
-
-.chord-card.chord-quality-minor.is-selected {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
-}
-
-.chord-card.chord-quality-diminished.is-selected {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
+.chord-card.is-selected {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
 }
 
 .chord-card-top {
@@ -1379,18 +1357,7 @@
 .chord-roman {
 	font-size: 0.74rem;
 	font-weight: 800;
-}
-
-.chord-roman-major {
-	color: var(--color-tonic);
-}
-
-.chord-roman-minor {
-	color: var(--color-minor);
-}
-
-.chord-roman-diminished {
-	color: var(--color-dim);
+	color: var(--q-color, var(--color-tonic));
 }
 
 .chord-symbol {
@@ -1493,14 +1460,9 @@
 	color: var(--text-primary);
 }
 
-.root-pair-btn.pair-maj.is-selected {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-}
-
-.root-pair-btn.pair-min.is-selected {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
+.root-pair-btn.is-selected {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
 }
 
 /* Tablist & Instrument Status */
@@ -1566,12 +1528,9 @@
 	justify-content: center;
 }
 
-/* Guitar Fretboard View */
-.guitar-wrap {
-	margin-bottom: 0;
-}
-
-.guitar-top-bar {
+/* Guitar & Fretless Bowed Views */
+.guitar-top-bar,
+.cello-toolbar {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1602,7 +1561,8 @@
 	color: var(--text-primary);
 }
 
-.guitar-controls {
+.guitar-controls,
+.cello-controls-group {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1689,7 +1649,8 @@
 	color: var(--q-color, var(--color-tonic));
 }
 
-.fretboard-scroll {
+.fretboard-scroll,
+.cello-neck-scroll {
 	width: 100%;
 	overflow-x: auto;
 	padding-bottom: 4px;
@@ -2210,19 +2171,6 @@
 }
 
 /* Fretless Cello Fingerboard View */
-.cello-panel {
-	margin-bottom: 0;
-}
-
-.cello-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	margin-bottom: 8px;
-}
-
 .cello-chord-summary {
 	display: flex;
 	flex-wrap: wrap;
@@ -2236,13 +2184,6 @@
 	color: var(--text-secondary);
 }
 
-.cello-controls-group {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px;
-}
-
 .cello-roll-btn {
 	font-size: 0.75rem;
 	padding: 5px 10px;
@@ -2252,11 +2193,6 @@
 	font-size: 0.68rem;
 	font-weight: 600;
 	opacity: 0.78;
-}
-
-.cello-neck-scroll {
-	overflow-x: auto;
-	padding-bottom: 4px;
 }
 
 .cello-svg {
@@ -2351,10 +2287,6 @@
 }
 
 /* Piano Keyboard */
-.piano-wrap {
-	margin-bottom: 0;
-}
-
 .piano-badge {
 	font-size: 0.72rem;
 	font-weight: 700;
@@ -2548,22 +2480,10 @@
 	border-color: var(--border-strong);
 }
 
-.var-pill.var-quality-major.is-selected {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-	color: var(--color-tonic);
-}
-
-.var-pill.var-quality-minor.is-selected {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
-	color: var(--color-minor);
-}
-
-.var-pill.var-quality-diminished.is-selected {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
-	color: var(--color-dim);
+.var-pill.is-selected {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
+	color: var(--q-color, var(--color-tonic));
 }
 
 /* Scalable Progression Selector */
@@ -2584,7 +2504,8 @@
 	gap: 8px;
 }
 
-.progressions-select-group {
+.progressions-select-group,
+.song-select-group {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -2599,7 +2520,8 @@
 	white-space: nowrap;
 }
 
-.progression-select {
+.progression-select,
+.song-select {
 	font-family: inherit;
 	font-size: 0.78rem;
 	font-weight: 600;
@@ -2616,7 +2538,9 @@
 }
 
 .progression-select:hover,
-.progression-select:focus-visible {
+.progression-select:focus-visible,
+.song-select:hover,
+.song-select:focus-visible {
 	border-color: var(--color-fifth);
 	outline: none;
 }
@@ -2667,19 +2591,9 @@
 	color: var(--text-primary);
 }
 
-.prog-step-chip.is-active-step.chord-quality-major {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-}
-
-.prog-step-chip.is-active-step.chord-quality-minor {
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
-}
-
-.prog-step-chip.is-active-step.chord-quality-diminished {
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
+.prog-step-chip.is-active-step {
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
 }
 
 .progression-desc {
@@ -2882,25 +2796,11 @@
 	border-color: var(--color-tonic);
 }
 
-.color-step-chip.is-active-step.chord-quality-major {
+.color-step-chip.is-active-step {
 	border-style: solid;
-	border-color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-	box-shadow: 0 0 0 1px var(--color-tonic);
-}
-
-.color-step-chip.is-active-step.chord-quality-minor {
-	border-style: solid;
-	border-color: var(--color-minor);
-	background: var(--color-minor-soft);
-	box-shadow: 0 0 0 1px var(--color-minor);
-}
-
-.color-step-chip.is-active-step.chord-quality-diminished {
-	border-style: solid;
-	border-color: var(--color-dim);
-	background: var(--color-dim-soft);
-	box-shadow: 0 0 0 1px var(--color-dim);
+	border-color: var(--q-color, var(--color-tonic));
+	background: var(--q-soft, var(--color-tonic-soft));
+	box-shadow: 0 0 0 1px var(--q-color, var(--color-tonic));
 }
 
 .csc-top {
@@ -3205,10 +3105,6 @@
 	gap: 12px;
 }
 
-.songs-instrument-bar {
-	margin-bottom: 0;
-}
-
 .teacher-import-controls {
 	display: inline-flex;
 	align-items: center;
@@ -3352,15 +3248,6 @@
 	gap: 8px;
 }
 
-.song-select-group {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	flex: 1 1 280px;
-	min-width: 0;
-}
-
 .song-select-label {
 	font-size: 0.78rem;
 	font-weight: 700;
@@ -3369,25 +3256,10 @@
 }
 
 .song-select {
-	font-family: inherit;
 	font-size: 0.8rem;
 	font-weight: 650;
-	color: var(--text-primary);
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-strong);
-	border-radius: 9px;
 	padding: 6px 10px;
-	min-width: 0;
-	max-width: 100%;
-	flex: 1 1 240px;
-	cursor: pointer;
-	transition: border-color 140ms ease;
-}
-
-.song-select:hover,
-.song-select:focus-visible {
-	border-color: var(--color-fifth);
-	outline: none;
+	flex-basis: 240px;
 }
 
 .song-selector-count {

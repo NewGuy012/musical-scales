@@ -1,11 +1,11 @@
 import { type DragEvent, type ReactNode, useId, useRef, useState } from "react";
 import type { MusicXmlPartSummary } from "../musicxml";
-import type { InstrumentTab, SongExample } from "../songs/songRuntime";
+import { INSTRUMENT_TABS, type InstrumentTab } from "../songs/songRuntime";
 import { IconMusic, IconUpload, IconX } from "./Icons";
 import { SectionHeader } from "./SectionHeader";
 import {
-	type OtherInstrumentSongCount,
 	SongExamplesPanel,
+	type SongExamplesPanelProps,
 } from "./SongExamplesPanel";
 
 export interface PendingMusicXmlPartChoice {
@@ -16,101 +16,51 @@ export interface PendingMusicXmlPartChoice {
 	instrument: InstrumentTab;
 }
 
-export interface MusicTeacherSectionProps {
+interface MusicTeacherSectionProps extends Omit<
+	SongExamplesPanelProps,
+	"activeInstrumentLabel"
+> {
 	instrumentView: InstrumentTab;
 	instrumentLabel: string;
 	instrumentTabList: ReactNode;
-	songs: SongExample[];
-	otherInstrumentsWithSongs: OtherInstrumentSongCount[];
-	selectedSongId: string | null;
-	playingSongId: string | null;
-	cuedSongId: string | null;
-	songPositionMs: number;
-	playbackSpeed: number;
-	activeChordStepIndex: number | null;
-	activeNoteLabel: string | null;
-	selectedPreviewStepId: string | null;
 	isCollapsed: boolean;
 	isImporting: boolean;
 	importError: string | null;
 	pendingPartChoice: PendingMusicXmlPartChoice | null;
 	onToggleCollapse: () => void;
-	onSelectInstrument: (
-		instrument: InstrumentTab,
-		anchorEl?: HTMLElement | null,
-	) => void;
-	onSelectSong: (songId: string) => void;
 	onImportMusicXmlFile: (file: File) => void;
 	onConfirmPartChoice: (partId: string, instrument: InstrumentTab) => void;
 	onCancelPartChoice: () => void;
 	onDismissImportError: () => void;
-	onRemoveLocalPreview: (songId: string) => void;
-	onChangePlaybackSpeed: (speed: number) => void;
-	onTogglePlaySong: (song: SongExample) => void;
-	onStopSong: () => void;
-	onSeekSong: (
-		song: SongExample,
-		timeMs: number,
-		resumePlayback?: boolean,
-	) => void;
-	onBeginScrubSong: (song: SongExample) => void;
-	onSkipSongBar: (song: SongExample, deltaBars: number) => void;
-	onPlayFromSongBar: (song: SongExample, stepIndex: number) => void;
-	onSelectSongChordStep: (song: SongExample, stepIndex: number) => void;
 }
 
-const INSTRUMENT_OPTIONS: ReadonlyArray<{ id: InstrumentTab; label: string }> =
-	[
-		{ id: "piano", label: "Piano" },
-		{ id: "guitar", label: "Guitar" },
-		{ id: "violin", label: "Violin" },
-		{ id: "cello", label: "Cello" },
-	];
-
-/**
- * Collapsible Music Teacher section below the Chords section,
- * housing the "Learn with Real Songs" subsection and MusicXML file ingestion preview.
- */
+/** Collapsible Music Teacher card housing Learn with Real Songs & MusicXML import. */
 export function MusicTeacherSection({
 	instrumentView,
 	instrumentLabel,
 	instrumentTabList,
-	songs,
-	otherInstrumentsWithSongs,
-	selectedSongId,
-	playingSongId,
-	cuedSongId,
-	songPositionMs,
-	playbackSpeed,
-	activeChordStepIndex,
-	activeNoteLabel,
-	selectedPreviewStepId,
 	isCollapsed,
 	isImporting,
 	importError,
 	pendingPartChoice,
 	onToggleCollapse,
-	onSelectInstrument,
-	onSelectSong,
 	onImportMusicXmlFile,
 	onConfirmPartChoice,
 	onCancelPartChoice,
 	onDismissImportError,
-	onRemoveLocalPreview,
-	onChangePlaybackSpeed,
-	onTogglePlaySong,
-	onStopSong,
-	onSeekSong,
-	onBeginScrubSong,
-	onSkipSongBar,
-	onPlayFromSongBar,
-	onSelectSongChordStep,
+	...songPanelProps
 }: MusicTeacherSectionProps) {
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const partSelectId = useId();
 	const instSelectId = useId();
 	const [isDragOver, setIsDragOver] = useState(false);
 
+	const {
+		songs,
+		otherInstrumentsWithSongs = [],
+		playingSongId,
+		cuedSongId = null,
+	} = songPanelProps;
 	const isSongActive = playingSongId !== null || cuedSongId !== null;
 	const totalVisibleSongs =
 		songs.length +
@@ -284,9 +234,9 @@ export function MusicTeacherSection({
 										)
 									}
 								>
-									{INSTRUMENT_OPTIONS.map((opt) => (
-										<option key={opt.id} value={opt.id}>
-											{opt.label}
+									{INSTRUMENT_TABS.map((id) => (
+										<option key={id} value={id}>
+											{id[0].toUpperCase() + id.slice(1)}
 										</option>
 									))}
 								</select>
@@ -313,28 +263,8 @@ export function MusicTeacherSection({
 						aria-labelledby={`songs-tab-${instrumentView}`}
 					>
 						<SongExamplesPanel
-							songs={songs}
+							{...songPanelProps}
 							activeInstrumentLabel={instrumentLabel}
-							otherInstrumentsWithSongs={otherInstrumentsWithSongs}
-							selectedSongId={selectedSongId}
-							playingSongId={playingSongId}
-							cuedSongId={cuedSongId}
-							songPositionMs={songPositionMs}
-							playbackSpeed={playbackSpeed}
-							activeChordStepIndex={activeChordStepIndex}
-							activeNoteLabel={activeNoteLabel}
-							selectedPreviewStepId={selectedPreviewStepId}
-							onSelectSong={onSelectSong}
-							onSelectInstrument={onSelectInstrument}
-							onRemoveLocalPreview={onRemoveLocalPreview}
-							onChangePlaybackSpeed={onChangePlaybackSpeed}
-							onTogglePlaySong={onTogglePlaySong}
-							onStopSong={onStopSong}
-							onSeekSong={onSeekSong}
-							onBeginScrubSong={onBeginScrubSong}
-							onSkipSongBar={onSkipSongBar}
-							onPlayFromSongBar={onPlayFromSongBar}
-							onSelectSongChordStep={onSelectSongChordStep}
 						/>
 					</div>
 				</div>

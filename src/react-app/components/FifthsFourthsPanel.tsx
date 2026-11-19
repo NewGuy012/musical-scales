@@ -115,7 +115,6 @@ export function FifthsFourthsPanel({
 				bodyId="section-neighbors-body"
 				titlePrefix={<IconNeighbors size={14} />}
 				compact
-				className="neighbors-header"
 				isCollapsed={isCollapsed}
 				onToggleCollapse={onToggleCollapse}
 				actions={!isCollapsed ? walkControls : collapsedQuickNav}

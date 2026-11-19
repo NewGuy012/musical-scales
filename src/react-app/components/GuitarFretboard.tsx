@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { GuitarSongStop } from "../songs/songRuntime";
 import {
 	ChordQuality,
 	KeyMode,
@@ -6,7 +7,7 @@ import {
 	noteToPitchClass,
 } from "../theory/circleOfFifths";
 import {
-	FretboardOverlayMode as GuitarFretboardOverlayMode,
+	type FretboardOverlayMode,
 	GuitarChordKind,
 	GuitarVoicing,
 	MAX_GUITAR_FRET,
@@ -18,16 +19,16 @@ import {
 	getChromaticDegreeLabel,
 	getIntervalLabel,
 } from "../theory/guitarFretboard";
-import type { GuitarSongStop } from "../songs/songRuntime";
 import {
 	IconChevronDown,
 	IconPlay,
+	SegmentedControl,
+	SongHitMarker,
 	getQualityClass,
 	handleSvgButtonKeyDown,
 } from "./Icons";
 
-export type FretboardOverlayMode = GuitarFretboardOverlayMode;
-export type FretboardLabelMode = "notes" | "intervals";
+type FretboardLabelMode = "notes" | "intervals";
 
 interface GuitarFretboardProps {
 	activeQuality: ChordQuality;
@@ -288,7 +289,7 @@ export function GuitarFretboard({
 	const bottomY = topY + 5 * stringGap;
 
 	return (
-		<div className="guitar-wrap">
+		<div>
 			<div className="guitar-top-bar">
 				<div className="guitar-title-group">
 					{selectedVoicing && (
@@ -304,29 +305,17 @@ export function GuitarFretboard({
 				</div>
 
 				<div className="guitar-controls">
-					<div
-						className="segmented-control"
-						role="group"
-						aria-label="Fretboard display mode"
-					>
-						{(
-							[
-								["voicing", "Voicing"],
-								["chordTones", "All Notes"],
-								["pentatonic", "Pentatonic"],
-								["scale", "Scale"],
-							] as const
-						).map(([modeKey, label]) => (
-							<button
-								key={modeKey}
-								type="button"
-								className={`seg-btn ${overlayMode === modeKey ? "is-active" : ""}`}
-								onClick={() => setOverlayMode(modeKey)}
-							>
-								{label}
-							</button>
-						))}
-					</div>
+					<SegmentedControl
+						ariaLabel="Fretboard display mode"
+						value={overlayMode}
+						onChange={setOverlayMode}
+						options={[
+							{ value: "voicing", label: "Voicing" },
+							{ value: "chordTones", label: "All Notes" },
+							{ value: "pentatonic", label: "Pentatonic" },
+							{ value: "scale", label: "Scale" },
+						]}
+					/>
 
 					<button
 						type="button"
@@ -340,27 +329,15 @@ export function GuitarFretboard({
 						+ Chromatic
 					</button>
 
-					<div
-						className="segmented-control"
-						role="group"
-						aria-label="Fret marker label mode"
-					>
-						{(
-							[
-								["notes", "Notes"],
-								["intervals", "Intervals"],
-							] as const
-						).map(([modeKey, label]) => (
-							<button
-								key={modeKey}
-								type="button"
-								className={`seg-btn ${labelMode === modeKey ? "is-active" : ""}`}
-								onClick={() => setLabelMode(modeKey)}
-							>
-								{label}
-							</button>
-						))}
-					</div>
+					<SegmentedControl
+						ariaLabel="Fret marker label mode"
+						value={labelMode}
+						onChange={setLabelMode}
+						options={[
+							{ value: "notes", label: "Notes" },
+							{ value: "intervals", label: "Intervals" },
+						]}
+					/>
 
 					{selectedVoicing && (
 						<button
@@ -645,20 +622,14 @@ export function GuitarFretboard({
 														isHarmonicHit,
 													)}
 												>
-													{isSongHit &&
-														(isHarmonicHit ? (
-															<polygon
-																points={`${cx},${y - 15} ${cx + 15},${y} ${cx},${y + 15} ${cx - 15},${y}`}
-																className="song-hit-harmonic"
-															/>
-														) : (
-															<circle
-																cx={cx}
-																cy={y}
-																r={14}
-																className="song-hit-halo"
-															/>
-														))}
+													{isSongHit && (
+														<SongHitMarker
+															cx={cx}
+															cy={y}
+															radius={isHarmonicHit ? 15 : 14}
+															isHarmonic={isHarmonicHit}
+														/>
+													)}
 													<circle
 														cx={cx}
 														cy={y}
@@ -793,28 +764,24 @@ export function GuitarFretboard({
 
 							<div className="guitar-guide-actions">
 								{guide.hasDistinctChordPentatonic && (
-									<div
-										className="segmented-control segmented-xs"
-										role="group"
-										aria-label="Pentatonic scale basis"
-									>
-										<button
-											type="button"
-											className={`seg-btn ${guide.activeScope === "key" ? "is-active" : ""}`}
-											onClick={() => setPentatonicScope("key")}
-											title={guide.keyPentatonicName}
-										>
-											Key
-										</button>
-										<button
-											type="button"
-											className={`seg-btn ${guide.activeScope === "chord" ? "is-active" : ""}`}
-											onClick={() => setPentatonicScope("chord")}
-											title={guide.chordPentatonicName}
-										>
-											Chord
-										</button>
-									</div>
+									<SegmentedControl
+										ariaLabel="Pentatonic scale basis"
+										className="segmented-xs"
+										value={guide.activeScope}
+										onChange={setPentatonicScope}
+										options={[
+											{
+												value: "key",
+												label: "Key",
+												title: guide.keyPentatonicName,
+											},
+											{
+												value: "chord",
+												label: "Chord",
+												title: guide.chordPentatonicName,
+											},
+										]}
+									/>
 								)}
 								<button
 									type="button"

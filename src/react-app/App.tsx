@@ -26,13 +26,13 @@ import {
 	IconChords,
 	IconKeyboard,
 	IconMoon,
-	IconPlay,
 	IconSliders,
-	IconStop,
 	IconSun,
 	IconSwap,
 	IconVolume,
 	IconVolumeMute,
+	SegmentedControl,
+	SequencePlayButton,
 	getQualityClass,
 } from "./components/Icons";
 import { KeySignatureStaff } from "./components/KeySignatureStaff";
@@ -50,10 +50,12 @@ import {
 } from "./songs/songCatalog";
 import {
 	FlattenedSongStep,
+	INSTRUMENT_TABS,
 	InstrumentTab,
 	SongChordStep,
 	SongExample,
 	SongSubBarChord,
+	clampPlaybackSpeed,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
@@ -136,13 +138,6 @@ const PROGRESSION_CATEGORIES: readonly ProgressionCategory[] = [
 	"Pop & Rock",
 	"Jazz & Circle",
 	"Classical & Sequence",
-] as const;
-
-const INSTRUMENT_TABS: readonly InstrumentTab[] = [
-	"piano",
-	"guitar",
-	"violin",
-	"cello",
 ] as const;
 
 const MAX_MUSICXML_FILE_BYTES = 10 * 1024 * 1024;
@@ -311,6 +306,7 @@ export function App() {
 	const songPositionMsRef = useRef<number>(0);
 	const lastUiProgressMsRef = useRef<number>(-100);
 	const songPlayRequestIdRef = useRef<number>(0);
+	const importRequestIdRef = useRef<number>(0);
 	const pendingInstrumentAnchorRef = useRef<{
 		element: HTMLElement;
 		top: number;
@@ -333,12 +329,18 @@ export function App() {
 		() => analyzeKey(selectedSlot, mode, preference, slotOverrides),
 		[selectedSlot, mode, preference, slotOverrides],
 	);
+	const analyzeSongKey = useCallback(
+		(song: SongExample) =>
+			analyzeKey(song.keySlot, song.keyMode, preference, slotOverrides),
+		[preference, slotOverrides],
+	);
 	const colorAnalysis = useMemo(
 		() => analyzeColorHarmony(analysis),
 		[analysis],
 	);
 
 	const cancelActivePlaybackEngine = useCallback(() => {
+		songPlayRequestIdRef.current += 1;
 		if (cancelSequenceRef.current) {
 			cancelSequenceRef.current();
 			cancelSequenceRef.current = null;
@@ -359,7 +361,6 @@ export function App() {
 	}, []);
 
 	const stopActiveSequence = useCallback(() => {
-		songPlayRequestIdRef.current += 1;
 		cancelActivePlaybackEngine();
 		clearTransientSequences();
 		resetSongPlaybackState();
@@ -648,6 +649,40 @@ export function App() {
 		[stopActiveSequence, analysis.tonicPair, playInstrumentChord],
 	);
 
+	const runStepSequence = useCallback(
+		(
+			steps: { midi: number[]; durationSec: number }[],
+			options: {
+				stepMs: number;
+				arpeggiate?: boolean;
+				clearOverrideOnDone?: boolean;
+				onStep: (stepIndex: number) => void;
+			},
+		) => {
+			cancelSequenceRef.current = playStepSequence(steps, {
+				preset: soundPreset,
+				stepMs: options.stepMs,
+				arpeggiate: options.arpeggiate,
+				spreadSec: options.arpeggiate ? instrumentSpreadSec : undefined,
+				onStep: options.onStep,
+				onDone: () => {
+					setActiveSequence(null);
+					if (options.clearOverrideOnDone) setAuditionOverride(null);
+					cancelSequenceRef.current = null;
+				},
+			});
+		},
+		[soundPreset, instrumentSpreadSec],
+	);
+
+	const resolveProgressionStep = useCallback(
+		(deg: number) =>
+			deg === -5 && analysis.harmonicMinorV !== null
+				? { chord: analysis.harmonicMinorV, suffix: "-harmonic" }
+				: { chord: analysis.chords[deg - 1], suffix: "" },
+		[analysis.chords, analysis.harmonicMinorV],
+	);
+
 	const handlePlayScale = useCallback(() => {
 		if (activeScaleIndex !== null) {
 			stopActiveSequence();
@@ -660,9 +695,9 @@ export function App() {
 			durationSec: 0.34,
 		}));
 
-		cancelSequenceRef.current = playStepSequence(steps, {
-			preset: soundPreset,
+		runStepSequence(steps, {
 			stepMs: 260,
+			clearOverrideOnDone: true,
 			onStep: (idx) => {
 				setActiveSequence({ kind: "scale", stepIndex: idx });
 				const noteLabel = analysis.scaleNotes[idx % analysis.scaleNotes.length];
@@ -677,18 +712,13 @@ export function App() {
 					wheelHighlight: null,
 				});
 			},
-			onDone: () => {
-				setActiveSequence(null);
-				setAuditionOverride(null);
-				cancelSequenceRef.current = null;
-			},
 		});
 	}, [
 		activeScaleIndex,
 		stopActiveSequence,
+		runStepSequence,
 		analysis.scaleMidi,
 		analysis.scaleNotes,
-		soundPreset,
 		mode,
 	]);
 
@@ -700,8 +730,7 @@ export function App() {
 				midi: [midi],
 				durationSec: idx === midiNotes.length - 1 ? 0.65 : 0.34,
 			}));
-			cancelSequenceRef.current = playStepSequence(steps, {
-				preset: soundPreset,
+			runStepSequence(steps, {
 				stepMs,
 				onStep: (idx) => {
 					const midi = midiNotes[idx];
@@ -709,13 +738,9 @@ export function App() {
 						midi !== undefined ? { kind: "guitarRun", midi } : null,
 					);
 				},
-				onDone: () => {
-					setActiveSequence(null);
-					cancelSequenceRef.current = null;
-				},
 			});
 		},
-		[stopActiveSequence, soundPreset],
+		[stopActiveSequence, runStepSequence],
 	);
 
 	const handleAuditionRelationship = useCallback(
@@ -724,34 +749,28 @@ export function App() {
 			const targetChord = analysis.chords[direction === "fourth" ? 3 : 4];
 			const cadence = [tonicChord, targetChord, tonicChord];
 
-			cancelSequenceRef.current = playStepSequence(
+			runStepSequence(
 				cadence.map((c) => ({
 					midi: resolveDiatonicPlayback(c, analysis.accidentalsCount < 0).midi,
 					durationSec: 0.72,
 				})),
 				{
-					preset: soundPreset,
 					stepMs: 680,
 					arpeggiate,
-					spreadSec: instrumentSpreadSec,
+					clearOverrideOnDone: true,
 					onStep: (idx) => setAuditionOverride(toChordVoicing(cadence[idx])),
-					onDone: () => {
-						setAuditionOverride(null);
-						cancelSequenceRef.current = null;
-					},
 				},
 			);
 		},
 		[
 			stopActiveSequence,
+			runStepSequence,
 			analysis.chords,
 			analysis.accidentalsCount,
 			tonicChord,
 			resolveDiatonicPlayback,
 			toChordVoicing,
-			soundPreset,
 			arpeggiate,
-			instrumentSpreadSec,
 		],
 	);
 
@@ -777,11 +796,10 @@ export function App() {
 		(kind: GuitarChordKind) => {
 			stopActiveSequence();
 			const variation = buildChordVariation(activeRootNote, kind, preferFlats);
-			const rootPc = noteToPitchClass(activeRootNote);
-			const targetSlotMatch =
-				rootPc !== null
-					? pcToCircleIndex(rootPc, variation.quality)
-					: (activeVoicing.wheelHighlight?.circleIndex ?? selectedSlot);
+			const targetSlotMatch = pcToCircleIndex(
+				noteToPitchClass(activeRootNote),
+				variation.quality,
+			);
 
 			const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
 			setAuditionOverride({
@@ -807,14 +825,7 @@ export function App() {
 				preferFlats || activeRootNote.includes("♭"),
 			);
 		},
-		[
-			stopActiveSequence,
-			activeRootNote,
-			preferFlats,
-			activeVoicing.wheelHighlight,
-			selectedSlot,
-			playInstrumentChord,
-		],
+		[stopActiveSequence, activeRootNote, preferFlats, playInstrumentChord],
 	);
 
 	const handlePlayProgression = useCallback(
@@ -827,23 +838,18 @@ export function App() {
 			setSelectedProgressionId(prog.id);
 			setActiveSequence({ kind: "progression", id: prog.id, stepIndex: 0 });
 
-			const chordSteps = prog.degrees.map((deg) =>
-				deg === -5 && analysis.harmonicMinorV !== null
-					? { chord: analysis.harmonicMinorV, suffix: "-harmonic" }
-					: { chord: analysis.chords[deg - 1], suffix: "" },
-			);
+			const chordSteps = prog.degrees.map(resolveProgressionStep);
 
-			cancelSequenceRef.current = playStepSequence(
+			runStepSequence(
 				chordSteps.map(({ chord }) => ({
 					midi: resolveDiatonicPlayback(chord, analysis.accidentalsCount < 0)
 						.midi,
 					durationSec: 0.85,
 				})),
 				{
-					preset: soundPreset,
 					stepMs: 780,
 					arpeggiate,
-					spreadSec: instrumentSpreadSec,
+					clearOverrideOnDone: true,
 					onStep: (idx) => {
 						setActiveSequence({
 							kind: "progression",
@@ -855,25 +861,18 @@ export function App() {
 							toChordVoicing(chord, getChordCardId(chord, suffix)),
 						);
 					},
-					onDone: () => {
-						setActiveSequence(null);
-						setAuditionOverride(null);
-						cancelSequenceRef.current = null;
-					},
 				},
 			);
 		},
 		[
 			activeProgressionId,
 			stopActiveSequence,
-			analysis.chords,
-			analysis.harmonicMinorV,
+			runStepSequence,
+			resolveProgressionStep,
 			analysis.accidentalsCount,
 			resolveDiatonicPlayback,
 			toChordVoicing,
-			soundPreset,
 			arpeggiate,
-			instrumentSpreadSec,
 		],
 	);
 
@@ -932,7 +931,7 @@ export function App() {
 
 			setActiveSequence({ kind: "color", id: seqId, stepIndex: 0 });
 
-			cancelSequenceRef.current = playStepSequence(
+			runStepSequence(
 				steps.map((chord) => ({
 					midi: resolvePlaybackForInstrument(
 						chord.notes,
@@ -944,18 +943,12 @@ export function App() {
 					durationSec: 0.85,
 				})),
 				{
-					preset: soundPreset,
 					stepMs: 800,
 					arpeggiate,
-					spreadSec: instrumentSpreadSec,
+					clearOverrideOnDone: true,
 					onStep: (idx) => {
 						setActiveSequence({ kind: "color", id: seqId, stepIndex: idx });
 						setAuditionOverride(toColorChordVoicing(steps[idx]));
-					},
-					onDone: () => {
-						setActiveSequence(null);
-						setAuditionOverride(null);
-						cancelSequenceRef.current = null;
 					},
 				},
 			);
@@ -963,10 +956,9 @@ export function App() {
 		[
 			activeColorSeqId,
 			stopActiveSequence,
+			runStepSequence,
 			resolvePlaybackForInstrument,
-			soundPreset,
 			arpeggiate,
-			instrumentSpreadSec,
 			toColorChordVoicing,
 		],
 	);
@@ -991,32 +983,25 @@ export function App() {
 				return { slot, midi: pb.midi, durationSec: 0.65 };
 			});
 
-			cancelSequenceRef.current = playStepSequence(steps, {
-				preset: soundPreset,
+			runStepSequence(steps, {
 				stepMs: 650,
 				arpeggiate,
-				spreadSec: instrumentSpreadSec,
 				onStep: (idx) => {
 					setSelectedSlot(steps[idx].slot);
 					setAuditionOverride(null);
-				},
-				onDone: () => {
-					setActiveSequence(null);
-					cancelSequenceRef.current = null;
 				},
 			});
 		},
 		[
 			walkingDirection,
 			stopActiveSequence,
+			runStepSequence,
 			selectedSlot,
 			mode,
 			preference,
 			slotOverrides,
 			resolveDiatonicPlayback,
-			soundPreset,
 			arpeggiate,
-			instrumentSpreadSec,
 		],
 	);
 
@@ -1191,12 +1176,7 @@ export function App() {
 		(song: SongExample, startMs: number) => {
 			prepareSongContext(song, true);
 
-			const songAnalysis = analyzeKey(
-				song.keySlot,
-				song.keyMode,
-				preference,
-				slotOverrides,
-			);
+			const songAnalysis = analyzeSongKey(song);
 			const plan = flattenSongPlaybackSteps(song);
 			const offsetMs =
 				startMs >= plan.totalDurationMs - 25 ? 0 : Math.max(0, startMs);
@@ -1236,8 +1216,7 @@ export function App() {
 		},
 		[
 			prepareSongContext,
-			preference,
-			slotOverrides,
+			analyzeSongKey,
 			syncSongStateAtTime,
 			soundPreset,
 			applySongStepHighlight,
@@ -1294,37 +1273,25 @@ export function App() {
 
 	const handleSeekSong = useCallback(
 		(song: SongExample, timeMs: number, resumePlayback = false) => {
+			if (song.steps.length === 0) return;
 			if (resumePlayback) {
 				startSongPlaybackFrom(song, timeMs);
 				return;
 			}
 			prepareSongContext(song, false);
-
-			const songAnalysis = analyzeKey(
-				song.keySlot,
-				song.keyMode,
-				preference,
-				slotOverrides,
-			);
-			syncSongStateAtTime(song, timeMs, songAnalysis);
+			syncSongStateAtTime(song, timeMs, analyzeSongKey(song));
 		},
 		[
 			startSongPlaybackFrom,
 			prepareSongContext,
-			preference,
-			slotOverrides,
+			analyzeSongKey,
 			syncSongStateAtTime,
 		],
 	);
 
 	const playSongStepAudition = useCallback(
 		(song: SongExample, step: SongChordStep) => {
-			const songAnalysis = analyzeKey(
-				song.keySlot,
-				song.keyMode,
-				preference,
-				slotOverrides,
-			);
+			const songAnalysis = analyzeSongKey(song);
 			playInstrumentChord(
 				step.chordNotes,
 				step.guitarKind,
@@ -1333,7 +1300,7 @@ export function App() {
 			);
 			return songAnalysis;
 		},
-		[preference, slotOverrides, playInstrumentChord],
+		[analyzeSongKey, playInstrumentChord],
 	);
 
 	const handleSkipSongBar = useCallback(
@@ -1508,28 +1475,20 @@ export function App() {
 		[resetSongContext, instrumentView],
 	);
 
-	const compileAndLoadLocalPreview = useCallback(
-		async (
-			source: Uint8Array | XmlNode,
-			localId: string,
-			partId: string,
+	const applyLocalPreviewSong = useCallback(
+		(
+			songDoc: Parameters<typeof hydrateSong>[0],
 			targetInstrument: InstrumentTab,
 		) => {
-			const { compileMusicXml } = await import("./musicxml");
-			const { songDoc } = await compileMusicXml(source, {
-				id: localId,
-				partId,
-				instrument: targetInstrument,
-			});
 			const hydrated: SongExample = {
 				...hydrateSong(songDoc),
 				isLocalPreview: true,
 			};
 			resetSongContext();
-			setLocalPreviewSongs((prev) => {
-				const filtered = prev.filter((s) => s.id !== hydrated.id);
-				return [hydrated, ...filtered];
-			});
+			setLocalPreviewSongs((prev) => [
+				hydrated,
+				...prev.filter((s) => s.id !== hydrated.id),
+			]);
 			setInstrumentView(targetInstrument);
 			setSelectedSongByInstrument((prev) => ({
 				...prev,
@@ -1562,48 +1521,42 @@ export function App() {
 				);
 				return;
 			}
+			const requestId = ++importRequestIdRef.current;
 			setIsImportingMusicXml(true);
 			setMusicXmlImportError(null);
 			try {
 				const bytes = new Uint8Array(await file.arrayBuffer());
-				const { inspectMusicXml, parseMusicXmlDocument } =
+				const { compileMusicXml, parseMusicXmlDocument } =
 					await import("./musicxml");
 				const xmlRoot = await parseMusicXmlDocument(bytes);
-				const inspection = await inspectMusicXml(xmlRoot);
-				const playableParts = inspection.parts.filter(
-					(p) => !p.isPercussion && p.noteCount > 0,
-				);
-				const pool =
-					playableParts.length > 0 ? playableParts : inspection.parts;
-				if (pool.length === 0) {
-					throw new Error("This MusicXML file contains no parts.");
-				}
+				if (importRequestIdRef.current !== requestId) return;
 
-				const matchingPart =
-					pool.find((p) => p.suggestedInstrument === instrumentView) ??
-					[...pool].sort((a, b) => b.noteCount - a.noteCount)[0];
-				const targetInstrument =
-					matchingPart.suggestedInstrument ?? instrumentView;
 				const slugBase = slugifyId(
 					file.name.replace(/\.(musicxml|xml|mxl)$/i, ""),
 					"musicxml",
 				);
 				const localId = `local-${slugBase}-${Date.now().toString(36)}`;
-
-				await compileAndLoadLocalPreview(
+				const { songDoc, selectedPart, availableParts } = await compileMusicXml(
 					xmlRoot,
-					localId,
-					matchingPart.partId,
-					targetInstrument,
+					{ id: localId, preferredInstrument: instrumentView },
 				);
+				if (importRequestIdRef.current !== requestId) return;
+
+				const playableParts = availableParts.filter(
+					(p) => !p.isPercussion && p.noteCount > 0,
+				);
+				const pool = playableParts.length > 0 ? playableParts : availableParts;
+				const targetInstrument = songDoc.instruments[0] ?? instrumentView;
+
+				applyLocalPreviewSong(songDoc, targetInstrument);
 
 				if (pool.length > 1) {
 					setPendingMusicXmlFile({
 						fileName: file.name,
 						xmlRoot,
-						title: inspection.title,
+						title: songDoc.title,
 						parts: pool,
-						selectedPartId: matchingPart.partId,
+						selectedPartId: selectedPart.partId,
 						instrument: targetInstrument,
 						localId,
 					});
@@ -1611,44 +1564,58 @@ export function App() {
 					setPendingMusicXmlFile(null);
 				}
 			} catch (err) {
-				setMusicXmlImportError(
-					err instanceof Error ? err.message : "Failed to parse MusicXML file.",
-				);
+				if (importRequestIdRef.current === requestId) {
+					setMusicXmlImportError(
+						err instanceof Error
+							? err.message
+							: "Failed to parse MusicXML file.",
+					);
+				}
 			} finally {
-				setIsImportingMusicXml(false);
+				if (importRequestIdRef.current === requestId) {
+					setIsImportingMusicXml(false);
+				}
 			}
 		},
-		[instrumentView, compileAndLoadLocalPreview],
+		[instrumentView, applyLocalPreviewSong],
 	);
 
 	const handleConfirmPartChoice = useCallback(
 		async (partId: string, targetInstrument: InstrumentTab) => {
 			if (!pendingMusicXmlFile) return;
+			const requestId = ++importRequestIdRef.current;
 			setIsImportingMusicXml(true);
 			setMusicXmlImportError(null);
 			try {
-				await compileAndLoadLocalPreview(
-					pendingMusicXmlFile.xmlRoot,
-					pendingMusicXmlFile.localId,
+				const { compileMusicXml } = await import("./musicxml");
+				const { songDoc } = await compileMusicXml(pendingMusicXmlFile.xmlRoot, {
+					id: pendingMusicXmlFile.localId,
 					partId,
-					targetInstrument,
-				);
+					instrument: targetInstrument,
+				});
+				if (importRequestIdRef.current !== requestId) return;
+
+				applyLocalPreviewSong(songDoc, targetInstrument);
 				setPendingMusicXmlFile((prev) =>
 					prev
 						? { ...prev, selectedPartId: partId, instrument: targetInstrument }
 						: null,
 				);
 			} catch (err) {
-				setMusicXmlImportError(
-					err instanceof Error
-						? err.message
-						: "Failed to load selected MusicXML part.",
-				);
+				if (importRequestIdRef.current === requestId) {
+					setMusicXmlImportError(
+						err instanceof Error
+							? err.message
+							: "Failed to load selected MusicXML part.",
+					);
+				}
 			} finally {
-				setIsImportingMusicXml(false);
+				if (importRequestIdRef.current === requestId) {
+					setIsImportingMusicXml(false);
+				}
 			}
 		},
-		[pendingMusicXmlFile, compileAndLoadLocalPreview],
+		[pendingMusicXmlFile, applyLocalPreviewSong],
 	);
 
 	const handleRemoveLocalPreview = useCallback(
@@ -1667,7 +1634,7 @@ export function App() {
 
 	const handleChangePlaybackSpeed = useCallback(
 		(nextSpeed: number) => {
-			const clamped = Math.max(0.25, Math.min(2.5, nextSpeed));
+			const clamped = clampPlaybackSpeed(nextSpeed);
 			if (Math.abs(clamped - songPlaybackSpeed) < 0.001) return;
 			const ratio = songPlaybackSpeed / clamped;
 			setSongPlaybackSpeed(clamped);
@@ -1684,13 +1651,11 @@ export function App() {
 			if (playingSongId === activeId) {
 				startSongPlaybackFrom(scaledSong, scaledPosMs);
 			} else if (cuedSongId === activeId) {
-				const songAnalysis = analyzeKey(
-					scaledSong.keySlot,
-					scaledSong.keyMode,
-					preference,
-					slotOverrides,
+				syncSongStateAtTime(
+					scaledSong,
+					scaledPosMs,
+					analyzeSongKey(scaledSong),
 				);
-				syncSongStateAtTime(scaledSong, scaledPosMs, songAnalysis);
 			}
 		},
 		[
@@ -1700,8 +1665,7 @@ export function App() {
 			localPreviewSongs,
 			loadedSongsById,
 			startSongPlaybackFrom,
-			preference,
-			slotOverrides,
+			analyzeSongKey,
 			syncSongStateAtTime,
 		],
 	);
@@ -1910,67 +1874,49 @@ export function App() {
 						>
 							<div className="settings-popover-group">
 								<div className="shortcuts-popover-title">Audio Output</div>
-								<div
-									className="segmented-control"
-									role="group"
-									aria-label="Audio sound preset"
-								>
-									<button
-										type="button"
-										className={`seg-btn ${soundMode === "auto" ? "is-active" : ""}`}
-										onClick={() => handleSelectSoundMode("auto")}
-										title="Match active instrument sound (Piano, Acoustic Guitar, Solo Violin, or Bowed Cello)"
-									>
-										Instrument
-									</button>
-									<button
-										type="button"
-										className={`seg-btn ${soundMode === "pad" ? "is-active" : ""}`}
-										onClick={() => handleSelectSoundMode("pad")}
-									>
-										Pad
-									</button>
-									<button
-										type="button"
-										className={`seg-btn ${soundMode === "muted" ? "is-active" : ""}`}
-										onClick={() => handleSelectSoundMode("muted")}
-									>
-										Mute
-									</button>
-								</div>
+								<SegmentedControl
+									ariaLabel="Audio sound preset"
+									value={soundMode}
+									onChange={handleSelectSoundMode}
+									options={[
+										{
+											value: "auto",
+											label: "Instrument",
+											title:
+												"Match active instrument sound (Piano, Acoustic Guitar, Solo Violin, or Bowed Cello)",
+										},
+										{ value: "pad", label: "Pad" },
+										{ value: "muted", label: "Mute" },
+									]}
+								/>
 							</div>
 
 							<div className="settings-popover-group">
 								<div className="shortcuts-popover-title">
 									Enharmonic Spelling
 								</div>
-								<div
-									className="segmented-control"
-									role="group"
-									aria-label="Accidental spelling preference"
-								>
-									{(
-										[
-											[
-												"standard",
-												"Standard",
-												"Balanced standard spellings (B, F♯, D♭)",
-											],
-											["sharps", "Sharps ♯", "Prefer sharp keys (B, F♯, C♯)"],
-											["flats", "Flats ♭", "Prefer flat keys (C♭, G♭, D♭)"],
-										] as const
-									).map(([pref, label, title]) => (
-										<button
-											key={pref}
-											type="button"
-											className={`seg-btn ${preference === pref ? "is-active" : ""}`}
-											onClick={() => handlePreferenceChange(pref)}
-											title={title}
-										>
-											{label}
-										</button>
-									))}
-								</div>
+								<SegmentedControl
+									ariaLabel="Accidental spelling preference"
+									value={preference}
+									onChange={handlePreferenceChange}
+									options={[
+										{
+											value: "standard",
+											label: "Standard",
+											title: "Balanced standard spellings (B, F♯, D♭)",
+										},
+										{
+											value: "sharps",
+											label: "Sharps ♯",
+											title: "Prefer sharp keys (B, F♯, C♯)",
+										},
+										{
+											value: "flats",
+											label: "Flats ♭",
+											title: "Prefer flat keys (C♭, G♭, D♭)",
+										},
+									]}
+								/>
 							</div>
 						</div>
 					</div>
@@ -2060,7 +2006,7 @@ export function App() {
 				<div className="inspector-column">
 					<section
 						id="section-instruments"
-						className="panel-card instrument-card"
+						className="panel-card"
 						aria-label="Interactive instruments dock"
 					>
 						<div className="instrument-tabs-bar">
@@ -2115,7 +2061,7 @@ export function App() {
 										<button
 											key={spec.kind}
 											type="button"
-											className={`var-pill var-quality-${spec.quality} ${
+											className={`var-pill ${getQualityClass(spec.quality)} ${
 												isSelected ? "is-selected" : ""
 											}`}
 											aria-pressed={isSelected}
@@ -2213,9 +2159,7 @@ export function App() {
 
 					<section
 						id="section-chords"
-						className={`panel-card workspace-card${
-							isChordsCollapsed ? " is-collapsed" : ""
-						}`}
+						className={`panel-card${isChordsCollapsed ? " is-collapsed" : ""}`}
 						aria-labelledby="section-chords-heading"
 					>
 						<SectionHeader
@@ -2283,26 +2227,15 @@ export function App() {
 
 								<div className="chord-toolbar">
 									{harmonyTab === "chords" && (
-										<div
-											className="segmented-control"
-											role="group"
-											aria-label="Chord extension"
-										>
-											<button
-												type="button"
-												className={`seg-btn ${voicingMode === "triad" ? "is-active" : ""}`}
-												onClick={() => setVoicingMode("triad")}
-											>
-												Triads
-											</button>
-											<button
-												type="button"
-												className={`seg-btn ${isSeventh ? "is-active" : ""}`}
-												onClick={() => setVoicingMode("seventh")}
-											>
-												7ths
-											</button>
-										</div>
+										<SegmentedControl
+											ariaLabel="Chord extension"
+											value={voicingMode}
+											onChange={setVoicingMode}
+											options={[
+												{ value: "triad", label: "Triads" },
+												{ value: "seventh", label: "7ths" },
+											]}
+										/>
 									)}
 
 									<button
@@ -2323,29 +2256,24 @@ export function App() {
 								aria-labelledby="tab-harmony-chords"
 								hidden={harmonyTab !== "chords"}
 							>
-								<div id="section-key-scale" className="hero-top">
+								<div className="hero-top">
 									<div className="hero-identity">
 										<div className="hero-title-row">
 											<h3 id="key-title" className="hero-key-title">
 												{analysis.name}
 											</h3>
 
-											<div
-												className="segmented-control"
-												role="group"
-												aria-label="Scale mode"
-											>
-												{(["major", "minor"] as const).map((m) => (
-													<button
-														key={m}
-														type="button"
-														className={`seg-btn ${mode === m ? "is-active" : ""}`}
-														onClick={() => selectKey(selectedSlot, m)}
-													>
-														{m === "major" ? "Major" : "Minor"}
-													</button>
-												))}
-											</div>
+											<SegmentedControl
+												ariaLabel="Scale mode"
+												value={mode}
+												onChange={(nextMode) =>
+													selectKey(selectedSlot, nextMode)
+												}
+												options={[
+													{ value: "major", label: "Major" },
+													{ value: "minor", label: "Minor" },
+												]}
+											/>
 										</div>
 
 										<div className="hero-meta-row">
@@ -2409,21 +2337,11 @@ export function App() {
 												</span>
 											)}
 										</span>
-										<button
-											type="button"
-											className={`pill-action-btn pill-action-sm ${activeScaleIndex !== null ? "is-playing" : ""}`}
+										<SequencePlayButton
+											isPlaying={activeScaleIndex !== null}
+											idleLabel="Play Scale"
 											onClick={handlePlayScale}
-										>
-											{activeScaleIndex !== null ? (
-												<>
-													<IconStop size={10} /> Stop
-												</>
-											) : (
-												<>
-													<IconPlay size={10} /> Play Scale
-												</>
-											)}
-										</button>
+										/>
 									</div>
 
 									<div className="scale-notes-row">
@@ -2512,26 +2430,12 @@ export function App() {
 											</select>
 										</div>
 
-										<button
-											type="button"
-											className={`pill-action-btn pill-action-sm ${
-												activeProgressionId === selectedProgression.id
-													? "is-playing"
-													: ""
-											}`}
+										<SequencePlayButton
+											isPlaying={activeProgressionId === selectedProgression.id}
+											idleLabel="Play Progression"
 											onClick={() => handlePlayProgression(selectedProgression)}
 											title={selectedProgression.description}
-										>
-											{activeProgressionId === selectedProgression.id ? (
-												<>
-													<IconStop size={10} /> Stop
-												</>
-											) : (
-												<>
-													<IconPlay size={10} /> Play Progression
-												</>
-											)}
-										</button>
+										/>
 									</div>
 
 									<div className="progression-steps-row">
@@ -2541,12 +2445,8 @@ export function App() {
 											aria-label={`${selectedProgression.name} chord steps`}
 										>
 											{selectedProgression.degrees.map((deg, idx) => {
-												const isHarmonicV =
-													deg === -5 && analysis.harmonicMinorV !== null;
-												const stepChord = isHarmonicV
-													? analysis.harmonicMinorV!
-													: analysis.chords[deg - 1];
-												const suffix = isHarmonicV ? "-harmonic" : "";
+												const { chord: stepChord, suffix } =
+													resolveProgressionStep(deg);
 												const cardId = getChordCardId(stepChord, suffix);
 												const isCurrentStep =
 													activeProgressionId === selectedProgression.id &&
@@ -2558,7 +2458,7 @@ export function App() {
 													<button
 														key={`${selectedProgression.id}-step-${idx}`}
 														type="button"
-														className={`prog-step-chip chord-quality-${stepChord.quality} ${
+														className={`prog-step-chip ${getQualityClass(stepChord.quality)} ${
 															isCurrentStep ? "is-active-step" : ""
 														}`}
 														onClick={() => handleSelectChord(stepChord, cardId)}

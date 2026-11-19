@@ -242,3 +242,93 @@ export function handleSvgButtonKeyDown(
 		action();
 	}
 }
+
+export function SegmentedControl<T extends string | number>({
+	ariaLabel,
+	options,
+	value,
+	onChange,
+	className = "",
+}: {
+	ariaLabel: string;
+	options: ReadonlyArray<{ value: T; label: string; title?: string }>;
+	value: T;
+	onChange: (value: T) => void;
+	className?: string;
+}) {
+	return (
+		<div
+			className={`segmented-control${className ? ` ${className}` : ""}`}
+			role="group"
+			aria-label={ariaLabel}
+		>
+			{options.map((opt) => {
+				const isActive = opt.value === value;
+				return (
+					<button
+						key={String(opt.value)}
+						type="button"
+						className={`seg-btn${isActive ? " is-active" : ""}`}
+						aria-pressed={isActive}
+						onClick={() => onChange(opt.value)}
+						title={opt.title}
+					>
+						{opt.label}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+export function SequencePlayButton({
+	isPlaying,
+	idleLabel,
+	onClick,
+	title,
+}: {
+	isPlaying: boolean;
+	idleLabel: string;
+	onClick: () => void;
+	title?: string;
+}) {
+	return (
+		<button
+			type="button"
+			className={`pill-action-btn pill-action-sm${isPlaying ? " is-playing" : ""}`}
+			onClick={onClick}
+			title={title}
+		>
+			{isPlaying ? (
+				<>
+					<IconStop size={10} /> Stop
+				</>
+			) : (
+				<>
+					<IconPlay size={10} /> {idleLabel}
+				</>
+			)}
+		</button>
+	);
+}
+
+export function SongHitMarker({
+	cx,
+	cy,
+	radius,
+	isHarmonic,
+}: {
+	cx: number;
+	cy: number;
+	radius: number;
+	isHarmonic: boolean;
+}) {
+	return isHarmonic ? (
+		<polygon
+			points={`${cx},${cy - radius} ${cx + radius},${cy} ${cx},${cy + radius} ${cx - radius},${cy}`}
+			className="song-hit-harmonic"
+		/>
+	) : (
+		<circle cx={cx} cy={cy} r={radius} className="song-hit-halo" />
+	);
+}

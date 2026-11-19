@@ -9,9 +9,19 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 } from "../songs/songRuntime";
-import { IconChevronDown, IconX, getQualityClass } from "./Icons";
+import {
+	IconChevronDown,
+	IconX,
+	SegmentedControl,
+	getQualityClass,
+} from "./Icons";
 
-const PRACTICE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25] as const;
+const PRACTICE_SPEED_OPTIONS = [
+	{ value: 0.5, label: "0.5x", title: "Practice speed 0.5x" },
+	{ value: 0.75, label: "0.75x", title: "Practice speed 0.75x" },
+	{ value: 1, label: "1x", title: "Practice speed 1x" },
+	{ value: 1.25, label: "1.25x", title: "Practice speed 1.25x" },
+] as const;
 
 export interface OtherInstrumentSongCount {
 	instrument: InstrumentTab;
@@ -211,6 +221,8 @@ function SongCard({
 			? "▶ Resume"
 			: "▶ Play Song";
 	const canStop = isCuedThis || displayMs > 0;
+	const statusStep = liveStep ?? previewStep;
+	const hasSteps = song.steps.length > 0;
 	const totalBars = song.steps.length || song.barCount || 0;
 	const isLongTimeline = totalBars > 12;
 	const activeSection = findSongSectionForBar(song.studyGuide, activeBarIndex);
@@ -392,7 +404,7 @@ function SongCard({
 						className="song-ctrl-btn"
 						aria-label={`Previous bar in ${song.title}`}
 						title="Previous bar"
-						disabled={!onSkipSongBar}
+						disabled={!onSkipSongBar || !hasSteps}
 						onClick={() => onSkipSongBar?.(song, -1)}
 					>
 						⏮
@@ -430,7 +442,7 @@ function SongCard({
 						className="song-ctrl-btn"
 						aria-label={`Next bar in ${song.title}`}
 						title="Next bar"
-						disabled={!onSkipSongBar}
+						disabled={!onSkipSongBar || !hasSteps}
 						onClick={() => onSkipSongBar?.(song, 1)}
 					>
 						⏭
@@ -444,6 +456,7 @@ function SongCard({
 						min={0}
 						max={Math.max(1, totalDurationMs)}
 						step={10}
+						disabled={!hasSteps}
 						value={Math.min(Math.round(displayMs), totalDurationMs)}
 						aria-label={`${song.title} playback position`}
 						aria-valuetext={`${song.steps[activeBarIndex]?.barLabel ?? "Bar 1"}, ${formatSongTime(displayMs)} of ${formatSongTime(totalDurationMs)}`}
@@ -474,71 +487,52 @@ function SongCard({
 						{formatSongTime(displayMs)} / {formatSongTime(totalDurationMs)}
 					</span>
 					{onChangePlaybackSpeed && (
-						<div
-							className="segmented-control song-speed-group"
-							role="group"
-							aria-label={`${song.title} practice speed`}
-						>
-							{PRACTICE_SPEED_OPTIONS.map((spd) => (
-								<button
-									key={spd}
-									type="button"
-									className={`seg-btn ${Math.abs(playbackSpeed - spd) < 0.01 ? "is-active" : ""}`}
-									aria-pressed={Math.abs(playbackSpeed - spd) < 0.01}
-									onClick={() => onChangePlaybackSpeed(spd)}
-									title={`Practice speed ${spd}x`}
-								>
-									{spd}x
-								</button>
-							))}
-						</div>
+						<SegmentedControl
+							ariaLabel={`${song.title} practice speed`}
+							className="song-speed-group"
+							value={
+								PRACTICE_SPEED_OPTIONS.find(
+									(o) => Math.abs(o.value - playbackSpeed) < 0.01,
+								)?.value ?? 1
+							}
+							onChange={onChangePlaybackSpeed}
+							options={PRACTICE_SPEED_OPTIONS}
+						/>
 					)}
 				</div>
 			</div>
 
-			{liveStep ? (
+			{statusStep && (
 				<div
-					className={`song-live-status${isPausedThis ? " is-paused" : ""}`}
+					className={`song-live-status${
+						liveStep ? (isPausedThis ? " is-paused" : "") : " is-preview"
+					}`}
 					aria-live="polite"
 				>
 					<span className="song-live-dot" aria-hidden="true" />
 					<span>
-						{isPlayingThis ? "Playing" : "Paused"}{" "}
-						<strong>{liveStep.barLabel}</strong> ·{" "}
+						{liveStep ? (isPlayingThis ? "Playing" : "Paused") : "Previewing"}{" "}
+						<strong>{statusStep.barLabel}</strong> ·{" "}
 						<strong>
-							{liveStep.chordSymbol} ({liveStep.roman})
+							{statusStep.chordSymbol} ({statusStep.roman})
 						</strong>{" "}
 						·{" "}
 						<span className="song-live-fn">
-							{describeRomanFunction(liveStep.roman, liveStep.quality)}
+							{describeRomanFunction(statusStep.roman, statusStep.quality)}
 						</span>
-						{activeNoteLabel ? ` · Note: ${activeNoteLabel}` : ""}
+						{liveStep && activeNoteLabel ? ` · Note: ${activeNoteLabel}` : ""}
 					</span>
-				</div>
-			) : previewStep ? (
-				<div className="song-live-status is-preview" aria-live="polite">
-					<span className="song-live-dot" aria-hidden="true" />
-					<span>
-						Previewing <strong>{previewStep.barLabel}</strong> ·{" "}
-						<strong>
-							{previewStep.chordSymbol} ({previewStep.roman})
-						</strong>{" "}
-						·{" "}
-						<span className="song-live-fn">
-							{describeRomanFunction(previewStep.roman, previewStep.quality)}
-						</span>
-					</span>
-					{onPlayFromSongBar && (
+					{!liveStep && onPlayFromSongBar && (
 						<button
 							type="button"
 							className="song-jump-play-btn"
 							onClick={() => onPlayFromSongBar(song, previewIndex)}
 						>
-							▶ Play from {previewStep.barLabel}
+							▶ Play from {statusStep.barLabel}
 						</button>
 					)}
 				</div>
-			) : null}
+			)}
 
 			<div
 				ref={timelineRef}

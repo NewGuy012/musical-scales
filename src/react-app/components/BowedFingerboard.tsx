@@ -20,14 +20,16 @@ import type { BowedSongStop } from "../songs/songRuntime";
 import {
 	IconChevronDown,
 	IconPlay,
+	SegmentedControl,
+	SongHitMarker,
 	getQualityClass,
 	handleSvgButtonKeyDown,
 } from "./Icons";
 
-export type BowedOverlayMode = "voicing" | "all-tones" | "scale";
-export type BowedLabelMode = "notes" | "intervals" | "fingers";
+type BowedOverlayMode = "voicing" | "all-tones" | "scale";
+type BowedLabelMode = "notes" | "intervals" | "fingers";
 
-export interface BowedFingerboardProps {
+interface BowedFingerboardProps {
 	instrument: BowedInstrument;
 	chordLabel: string;
 	chordQuality: ChordQuality;
@@ -102,7 +104,6 @@ export function BowedFingerboard({
 		stringOctaveLabels,
 		stringWidths,
 	} = BOWED_PRESETS[instrument];
-	const instrumentSlug = instrument;
 	const tuning = BOWED_TUNINGS[instrument];
 	const maxSongSemi =
 		activeSongStops && activeSongStops.length > 0
@@ -147,7 +148,7 @@ export function BowedFingerboard({
 		: "No voicing";
 
 	return (
-		<div className="cello-panel">
+		<div>
 			<div className="cello-toolbar">
 				<div className="cello-chord-summary">
 					<span className="cello-notes-readout">
@@ -159,58 +160,34 @@ export function BowedFingerboard({
 				</div>
 
 				<div className="cello-controls-group">
-					<div
-						className="segmented-control"
-						role="group"
-						aria-label={`${instrumentTitle} fingerboard overlay mode`}
-					>
-						{(
-							[
-								["voicing", "Voicing"],
-								["all-tones", "All Notes"],
-								["scale", "Scale"],
-							] as const
-						).map(([modeKey, label]) => (
-							<button
-								key={modeKey}
-								type="button"
-								className={`seg-btn${overlayMode === modeKey ? " is-active" : ""}`}
-								onClick={() => setOverlayMode(modeKey)}
-							>
-								{label}
-							</button>
-						))}
-					</div>
+					<SegmentedControl
+						ariaLabel={`${instrumentTitle} fingerboard overlay mode`}
+						value={overlayMode}
+						onChange={setOverlayMode}
+						options={[
+							{ value: "voicing", label: "Voicing" },
+							{ value: "all-tones", label: "All Notes" },
+							{ value: "scale", label: "Scale" },
+						]}
+					/>
 
-					<div
-						className="segmented-control"
-						role="group"
-						aria-label={`${instrumentTitle} marker label mode`}
-					>
-						{(
-							[
-								["notes", "Notes"],
-								["intervals", "Intervals"],
-								["fingers", "Fingers"],
-							] as const
-						).map(([modeKey, label]) => (
-							<button
-								key={modeKey}
-								type="button"
-								className={`seg-btn${labelMode === modeKey ? " is-active" : ""}`}
-								onClick={() => setLabelMode(modeKey)}
-							>
-								{label}
-							</button>
-						))}
-					</div>
+					<SegmentedControl
+						ariaLabel={`${instrumentTitle} marker label mode`}
+						value={labelMode}
+						onChange={setLabelMode}
+						options={[
+							{ value: "notes", label: "Notes" },
+							{ value: "intervals", label: "Intervals" },
+							{ value: "fingers", label: "Fingers" },
+						]}
+					/>
 
 					<button
 						type="button"
 						className="pill-action-btn cello-roll-btn"
 						disabled={!activeVoicing}
 						onClick={() => activeVoicing && onRollVoicing(activeVoicing)}
-						aria-label={`Bow roll ${chordLabel} ${instrumentSlug} chord`}
+						aria-label={`Bow roll ${chordLabel} ${instrument} chord`}
 					>
 						<IconPlay size={11} />
 						<span>Bow Roll</span>
@@ -246,7 +223,7 @@ export function BowedFingerboard({
 					className="cello-svg"
 					viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
 					role="img"
-					aria-label={`Fretless ${instrumentSlug} fingerboard showing ${chordLabel} (${activeVoicing?.name ?? "notes"})`}
+					aria-label={`Fretless ${instrument} fingerboard showing ${chordLabel} (${activeVoicing?.name ?? "notes"})`}
 				>
 					<rect
 						x={NUT_X}
@@ -515,20 +492,14 @@ export function BowedFingerboard({
 															: ""
 													}`}
 												>
-													{isSongHit &&
-														(isHarmonicHit ? (
-															<polygon
-																points={`${x},${y - 17} ${x + 17},${y} ${x},${y + 17} ${x - 17},${y}`}
-																className="song-hit-harmonic"
-															/>
-														) : (
-															<circle
-																cx={x}
-																cy={y}
-																r={17}
-																className="song-hit-halo"
-															/>
-														))}
+													{isSongHit && (
+														<SongHitMarker
+															cx={x}
+															cy={y}
+															radius={17}
+															isHarmonic={isHarmonicHit}
+														/>
+													)}
 													<circle
 														cx={x}
 														cy={y}
@@ -564,7 +535,7 @@ export function BowedFingerboard({
 							type="button"
 							className={`drawer-toggle-btn ${breakdownOpen ? "is-open" : ""}`}
 							aria-expanded={breakdownOpen}
-							aria-controls={`${instrumentSlug}-breakdown-drawer`}
+							aria-controls={`${instrument}-breakdown-drawer`}
 							onClick={() => setBreakdownOpen((open) => !open)}
 						>
 							<span>Strings IV → I Breakdown</span>
@@ -572,7 +543,7 @@ export function BowedFingerboard({
 						</button>
 					</div>
 					<div
-						id={`${instrumentSlug}-breakdown-drawer`}
+						id={`${instrument}-breakdown-drawer`}
 						className="voicing-breakdown cello-breakdown-wrap"
 						hidden={!breakdownOpen}
 					>
