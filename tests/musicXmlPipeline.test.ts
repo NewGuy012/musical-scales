@@ -970,8 +970,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("synced 13-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
-		expect(SONG_CATALOG).toHaveLength(13);
+	test("synced 14-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
+		expect(SONG_CATALOG).toHaveLength(14);
 		const byInst = {
 			piano: SONG_CATALOG.filter((e) => e.instruments.includes("piano")),
 			guitar: SONG_CATALOG.filter((e) => e.instruments.includes("guitar")),
@@ -979,7 +979,7 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 			cello: SONG_CATALOG.filter((e) => e.instruments.includes("cello")),
 		};
 		expect(byInst.piano).toHaveLength(3);
-		expect(byInst.guitar).toHaveLength(5);
+		expect(byInst.guitar).toHaveLength(6);
 		expect(byInst.violin).toHaveLength(3);
 		expect(byInst.cello).toHaveLength(2);
 
@@ -997,6 +997,7 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		);
 		expect(keyById["le-cygne-the-swan-cello"]).toBe("G Major");
 		expect(keyById["lagrima-guitar"]).toBe("E Major");
+		expect(keyById["amazing-grace-seoul-2009-guitar"]).toBe("E Major");
 		expect(keyById["classical-gas-guitar"]).toBe("A Minor");
 		expect(keyById["windy-and-warm-guitar"]).toBe("A Minor");
 		expect(keyById["cannonball-rag-guitar"]).toBe("G Major");

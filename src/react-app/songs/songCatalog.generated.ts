@@ -139,6 +139,21 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 			"Ingested from MusicXML in E Major (3/4, 128 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
 	},
 	{
+		id: "amazing-grace-seoul-2009-guitar",
+		title: "Amazing Grace (Seoul 2009)",
+		composerOrSource: "John Newton (Arr. Tommy Emmanuel)",
+		subtitle: "E Major (9/8) · guitar MusicXML",
+		instruments: ["guitar"],
+		keySlot: 4,
+		keyMode: "major",
+		keyLabel: "E Major",
+		timeSignature: "9/8",
+		bpm: 78,
+		barCount: 77,
+		theorySummary:
+			"Ingested from MusicXML in E Major (9/8, 78 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+	},
+	{
 		id: "classical-gas-guitar",
 		title: "Classical Gas",
 		composerOrSource: "Mason Williams · arr. Tommy Emmanuel",
@@ -238,6 +253,10 @@ export async function loadGeneratedSongById(id: string): Promise<SongExample> {
 		case "lagrima-guitar": {
 			const mod = await import("./generated/lagrimaGuitar");
 			return hydrateSong(mod.LAGRIMA_GUITAR_SPEC);
+		}
+		case "amazing-grace-seoul-2009-guitar": {
+			const mod = await import("./generated/amazingGraceSeoul2009Guitar");
+			return hydrateSong(mod.AMAZING_GRACE_SEOUL_2009_GUITAR_SPEC);
 		}
 		case "classical-gas-guitar": {
 			const mod = await import("./generated/classicalGasGuitar");
