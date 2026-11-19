@@ -269,10 +269,7 @@ export function CircleWheel({
 
 						<g
 							className="wheel-rotator"
-							style={{
-								transform: `rotate(${wheelRotation}deg)`,
-								transformOrigin: "0px 0px",
-							}}
+							style={{ transform: `rotate(${wheelRotation}deg)` }}
 						>
 							{CIRCLE_SLOTS.map((slot) => {
 								const i = slot.index;
@@ -543,17 +540,13 @@ export function CircleWheel({
 										y="-2"
 										textAnchor="middle"
 										dominantBaseline="central"
-										className="hub-key-name"
-										style={
-											highlightedChord.symbol.length > 5
-												? {
-														fontSize:
-															highlightedChord.symbol.length > 7
-																? "17px"
-																: "21px",
-													}
-												: undefined
-										}
+										className={`hub-key-name${
+											highlightedChord.symbol.length > 7
+												? " is-long"
+												: highlightedChord.symbol.length > 5
+													? " is-medium"
+													: ""
+										}`}
 									>
 										{highlightedChord.symbol}
 									</text>

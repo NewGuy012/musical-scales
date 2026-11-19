@@ -475,6 +475,7 @@
 
 .wheel-rotator,
 .label-counter-rotator {
+	transform-origin: 0 0;
 	transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -670,6 +671,14 @@
 	font-weight: 800;
 	letter-spacing: -0.03em;
 	fill: var(--text-primary);
+}
+
+.hub-key-name.is-medium {
+	font-size: 21px;
+}
+
+.hub-key-name.is-long {
+	font-size: 17px;
 }
 
 .hub-subline {

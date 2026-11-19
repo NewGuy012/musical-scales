@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-	loadCuratedAnnotations,
 	loadCuratedOverrides,
 	mirrorSourceMusicXml,
 	resolveImportOptions,
@@ -589,8 +588,11 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		);
 	});
 
-	test("XML parser and .mxl unpacker reject malformed roots, oversized trees, path escapes, and corrupt EOCD", async () => {
+	test("XML parser and .mxl unpacker reject malformed roots, unknown declarations, oversized trees, path escapes, and corrupt EOCD", async () => {
 		expect(() => parseXml("<score-partwise/><extra/>")).toThrow(/extra root/i);
+		expect(() => parseXml("<!ENTITY x 'y'><score-partwise/>")).toThrow(
+			/Unsupported XML declaration/i,
+		);
 		expect(() => parseXml(`<r>${"<a/>".repeat(250_005)}</r>`)).toThrow(
 			/element limit/i,
 		);
@@ -1086,8 +1088,17 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 				badAnnPath,
 				JSON.stringify({ bad: { barNotes: { notANum: {} } } }),
 			);
-			await expect(loadCuratedAnnotations(badAnnPath)).rejects.toThrow(
+			await expect(loadCuratedOverrides(badAnnPath)).rejects.toThrow(
 				/Invalid bar number "notANum"/,
+			);
+
+			const badQuantPath = join(tmpRoot, "songs", "bad-quant.json");
+			await writeFile(
+				badQuantPath,
+				JSON.stringify({ bad: { quantizeSubdivision: -4 } }),
+			);
+			await expect(loadCuratedOverrides(badQuantPath)).rejects.toThrow(
+				/Invalid quantizeSubdivision/,
 			);
 		} finally {
 			await rm(tmpRoot, { recursive: true, force: true });

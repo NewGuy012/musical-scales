@@ -2,24 +2,7 @@ import { decodeXmlBytes, findChildren, parseXml } from "./xmlParser";
 
 const MAX_MXL_ENTRIES = 128;
 const MAX_MXL_UNCOMPRESSED_BYTES = 16 * 1024 * 1024;
-
-interface MinimalStreamPair {
-	readable: {
-		getReader(): {
-			read(): Promise<{ done: boolean; value?: Uint8Array }>;
-			cancel?: () => Promise<void>;
-		};
-	};
-	writable: {
-		getWriter(): {
-			write(chunk: Uint8Array): Promise<void>;
-			close(): Promise<void>;
-			abort?: () => Promise<void>;
-		};
-	};
-}
-
-type DecompressionStreamCtor = new (format: string) => MinimalStreamPair;
+const MAX_CONTAINER_XML_BYTES = 256 * 1024;
 
 interface ZipEntryMeta {
 	name: string;
@@ -58,18 +41,17 @@ async function inflateRawDeflate(
 	compressed: Uint8Array,
 	maxBytes = MAX_MXL_UNCOMPRESSED_BYTES,
 ): Promise<Uint8Array> {
-	const Ctor = (
-		globalThis as unknown as { DecompressionStream?: DecompressionStreamCtor }
-	).DecompressionStream;
-	if (!Ctor) {
+	if (typeof DecompressionStream !== "function") {
 		throw new Error(
 			"Compressed .mxl requires Web DecompressionStream support in this runtime.",
 		);
 	}
-	const ds = new Ctor("deflate-raw");
+	const ds = new DecompressionStream("deflate-raw");
 	const writer = ds.writable.getWriter();
 	const reader = ds.readable.getReader();
-	const writePromise = writer.write(compressed).then(() => writer.close());
+	const writePromise = writer
+		.write(new Uint8Array(compressed))
+		.then(() => writer.close());
 	writePromise.catch(() => {});
 
 	const chunks: Uint8Array[] = [];
@@ -182,10 +164,11 @@ function indexZipEntries(bytes: Uint8Array): Map<string, ZipEntryMeta> {
 async function extractZipEntry(
 	bytes: Uint8Array,
 	entry: ZipEntryMeta,
+	maxBytes = MAX_MXL_UNCOMPRESSED_BYTES,
 ): Promise<Uint8Array> {
-	if (entry.uncompressedSize > MAX_MXL_UNCOMPRESSED_BYTES) {
+	if (entry.uncompressedSize > maxBytes) {
 		throw new Error(
-			`Compressed .mxl entry "${entry.name}" exceeds ${MAX_MXL_UNCOMPRESSED_BYTES} byte limit.`,
+			`Compressed .mxl entry "${entry.name}" exceeds ${maxBytes} byte limit.`,
 		);
 	}
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -206,15 +189,13 @@ async function extractZipEntry(
 	const rawSlice = bytes.subarray(dataStart, dataEnd);
 
 	if (compressionMethod === 0) {
-		if (rawSlice.byteLength > MAX_MXL_UNCOMPRESSED_BYTES) {
-			throw new Error(
-				`.mxl entry "${name}" exceeds ${MAX_MXL_UNCOMPRESSED_BYTES} byte limit.`,
-			);
+		if (rawSlice.byteLength > maxBytes) {
+			throw new Error(`.mxl entry "${name}" exceeds ${maxBytes} byte limit.`);
 		}
 		return rawSlice;
 	}
 	if (compressionMethod === 8) {
-		return inflateRawDeflate(rawSlice, MAX_MXL_UNCOMPRESSED_BYTES);
+		return inflateRawDeflate(rawSlice, maxBytes);
 	}
 	throw new Error(
 		`Unsupported ZIP compression method ${compressionMethod} for "${name}".`,
@@ -225,7 +206,8 @@ function findEntryCaseInsensitive(
 	entries: Map<string, ZipEntryMeta>,
 	targetPath: string,
 ): ZipEntryMeta | undefined {
-	const normalize = (p: string) => p.replace(/\\/g, "/").replace(/^\.\//, "");
+	const normalize = (p: string) =>
+		p.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
 	const cleaned = normalize(targetPath);
 	const direct = entries.get(cleaned) ?? entries.get(targetPath);
 	if (direct) return direct;
@@ -256,7 +238,11 @@ export async function readMusicXmlTextFromBytes(
 	);
 
 	if (containerMeta) {
-		const containerBytes = await extractZipEntry(bytes, containerMeta);
+		const containerBytes = await extractZipEntry(
+			bytes,
+			containerMeta,
+			MAX_CONTAINER_XML_BYTES,
+		);
 		const containerXml = parseXml(decodeXmlBytes(containerBytes));
 		const rootfilesParent = containerXml.children.find(
 			(c) => c.tag === "rootfiles",

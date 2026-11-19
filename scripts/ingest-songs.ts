@@ -13,10 +13,10 @@ import {
 	basename,
 	dirname,
 	extname,
+	isAbsolute,
 	join,
 	relative,
 	resolve,
-	sep,
 } from "node:path";
 import { parseArgs } from "node:util";
 import {
@@ -68,6 +68,7 @@ const GENERATED_CATALOG_PATH = join(
 	"songCatalog.generated.ts",
 );
 const COMPILER_SOURCE_DIR = join(REPO_ROOT, "src", "react-app", "musicxml");
+const THEORY_SOURCE_DIR = join(REPO_ROOT, "src", "react-app", "theory");
 const SONG_RUNTIME_PATH = join(
 	REPO_ROOT,
 	"src",
@@ -78,7 +79,7 @@ const SONG_RUNTIME_PATH = join(
 
 interface SidecarMeta extends MusicXmlImportOptions {}
 
-export type CuratedOverridesMap = Record<string, MusicXmlImportOptions>;
+type CuratedOverridesMap = Record<string, MusicXmlImportOptions>;
 
 interface MirrorManifest {
 	mirroredFiles: string[];
@@ -98,14 +99,14 @@ interface IngestCacheFile {
 	entries: Record<string, CachedSongEntry>;
 }
 
-export interface MirrorSummary {
+interface MirrorSummary {
 	skipped: boolean;
 	copied: number;
 	unchanged: number;
 	pruned: number;
 }
 
-export interface SyncSummary {
+interface SyncSummary {
 	mirror: MirrorSummary;
 	ingestedCount: number;
 	compiledCount: number;
@@ -148,7 +149,8 @@ Options:
 function assertContainedPath(rootDir: string, candidatePath: string): string {
 	const resolvedRoot = resolve(rootDir);
 	const resolvedTarget = resolve(candidatePath);
-	if (!resolvedTarget.startsWith(resolvedRoot + sep)) {
+	const rel = relative(resolvedRoot, resolvedTarget);
+	if (!rel || rel.startsWith("..") || isAbsolute(rel)) {
 		throw new Error(
 			`Refusing to write outside "${resolvedRoot}": "${resolvedTarget}".`,
 		);
@@ -162,8 +164,7 @@ function sha256Hex(data: Uint8Array | string): string {
 
 async function fileExists(path: string): Promise<boolean> {
 	try {
-		const info = await stat(path);
-		return info.isFile();
+		return (await stat(path)).isFile();
 	} catch {
 		return false;
 	}
@@ -171,8 +172,7 @@ async function fileExists(path: string): Promise<boolean> {
 
 async function dirExists(path: string): Promise<boolean> {
 	try {
-		const info = await stat(path);
-		return info.isDirectory();
+		return (await stat(path)).isDirectory();
 	} catch {
 		return false;
 	}
@@ -192,10 +192,19 @@ function formatWithBunFmt(content: string, filepath: string): string {
 		if (res.exitCode === 0 && res.stdout.length > 0) {
 			return new TextDecoder().decode(res.stdout);
 		}
-	} catch {
-		// Fall back to unformatted content when bun fmt is unavailable
-	}
+	} catch {}
 	return content;
+}
+
+function formatFilesInPlace(filePaths: readonly string[]): void {
+	if (filePaths.length === 0) return;
+	try {
+		Bun.spawnSync([process.execPath, "fmt", ...filePaths], {
+			cwd: REPO_ROOT,
+			stdout: "ignore",
+			stderr: "ignore",
+		});
+	} catch {}
 }
 
 async function writeIfChanged(
@@ -203,11 +212,8 @@ async function writeIfChanged(
 	nextContent: string,
 ): Promise<boolean> {
 	try {
-		const existing = await readFile(filePath, "utf8");
-		if (existing === nextContent) return false;
-	} catch {
-		// File does not exist yet
-	}
+		if ((await readFile(filePath, "utf8")) === nextContent) return false;
+	} catch {}
 	await writeFile(filePath, nextContent, "utf8");
 	return true;
 }
@@ -274,114 +280,143 @@ function parsePartFlag(raw: string | undefined): {
 	return { partId: raw.trim() };
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+function isNonNegInt(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function assertStrings(
+	obj: Record<string, unknown>,
+	keys: readonly string[],
+	context: string,
+	required = false,
+): void {
+	for (const key of keys) {
+		const val = obj[key];
+		if ((required || val !== undefined) && typeof val !== "string") {
+			throw new Error(`Invalid ${key} in "${context}".`);
+		}
+	}
+}
+
 function validateImportOptionsObject(
 	raw: unknown,
 	sourceLabel: string,
 ): MusicXmlImportOptions {
-	if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+	if (!isPlainRecord(raw)) {
 		throw new Error(`Expected JSON object in "${sourceLabel}".`);
 	}
-	const meta = raw as Record<string, unknown>;
-	if (meta.instrument !== undefined) {
-		if (typeof meta.instrument !== "string") {
-			throw new Error(`Invalid instrument in "${sourceLabel}".`);
-		}
-		parseInstrumentFlag(meta.instrument);
-	}
-	if (meta.preferredInstrument !== undefined) {
-		if (typeof meta.preferredInstrument !== "string") {
-			throw new Error(`Invalid preferredInstrument in "${sourceLabel}".`);
-		}
-		parseInstrumentFlag(meta.preferredInstrument);
-	}
-	if (meta.category !== undefined) {
-		if (typeof meta.category !== "string") {
-			throw new Error(`Invalid category in "${sourceLabel}".`);
-		}
-		parseCategoryFlag(meta.category);
-	}
-	for (const strKey of [
-		"id",
-		"title",
-		"composerOrSource",
-		"subtitle",
-		"key",
-		"partId",
-		"theorySummary",
+	for (const [key, check] of [
+		["instrument", parseInstrumentFlag],
+		["preferredInstrument", parseInstrumentFlag],
+		["category", parseCategoryFlag],
 	] as const) {
-		if (meta[strKey] !== undefined && typeof meta[strKey] !== "string") {
-			throw new Error(`Invalid ${strKey} in "${sourceLabel}".`);
+		if (raw[key] !== undefined) {
+			if (typeof raw[key] !== "string") {
+				throw new Error(`Invalid ${key} in "${sourceLabel}".`);
+			}
+			check(raw[key]);
 		}
 	}
-	if (meta.studyGuide !== undefined) {
-		const sg = meta.studyGuide as Record<string, unknown>;
+	assertStrings(
+		raw,
+		[
+			"id",
+			"title",
+			"composerOrSource",
+			"subtitle",
+			"key",
+			"partId",
+			"theorySummary",
+		],
+		sourceLabel,
+	);
+	if (raw.partIndex !== undefined && !isNonNegInt(raw.partIndex)) {
+		throw new Error(`Invalid partIndex in "${sourceLabel}".`);
+	}
+	if (
+		raw.quantizeSubdivision !== undefined &&
+		!isNonNegInt(raw.quantizeSubdivision)
+	) {
+		throw new Error(`Invalid quantizeSubdivision in "${sourceLabel}".`);
+	}
+	if (
+		raw.splitHalfBarHarmony !== undefined &&
+		typeof raw.splitHalfBarHarmony !== "boolean"
+	) {
+		throw new Error(`Invalid splitHalfBarHarmony in "${sourceLabel}".`);
+	}
+
+	if (raw.studyGuide !== undefined) {
+		const sg = raw.studyGuide;
 		if (
-			!sg ||
-			typeof sg !== "object" ||
-			Array.isArray(sg) ||
-			typeof sg.vibeAndSound !== "string" ||
-			typeof sg.harmonyHook !== "string" ||
-			!Array.isArray(sg.practiceTips) ||
+			!isPlainRecord(sg) ||
+			!isStringArray(sg.practiceTips) ||
 			!Array.isArray(sg.sections)
 		) {
 			throw new Error(`Invalid studyGuide in "${sourceLabel}".`);
 		}
+		assertStrings(
+			sg,
+			["vibeAndSound", "harmonyHook"],
+			`${sourceLabel}#studyGuide`,
+			true,
+		);
 		for (const sec of sg.sections) {
-			const s = sec as Record<string, unknown>;
 			if (
-				!s ||
-				typeof s !== "object" ||
-				typeof s.id !== "string" ||
-				typeof s.title !== "string" ||
-				typeof s.barRange !== "string" ||
-				typeof s.startStepIndex !== "number" ||
-				typeof s.endStepIndex !== "number" ||
-				typeof s.progressionTag !== "string" ||
-				typeof s.insight !== "string"
+				!isPlainRecord(sec) ||
+				!isNonNegInt(sec.startStepIndex) ||
+				!isNonNegInt(sec.endStepIndex)
 			) {
 				throw new Error(`Invalid studyGuide section in "${sourceLabel}".`);
 			}
+			assertStrings(
+				sec,
+				["id", "title", "barRange", "progressionTag", "insight"],
+				`${sourceLabel}#studyGuide.section`,
+				true,
+			);
 		}
 	}
-	if (meta.barNotes !== undefined) {
-		const bn = meta.barNotes as Record<string, unknown>;
-		if (!bn || typeof bn !== "object" || Array.isArray(bn)) {
+
+	if (raw.barNotes !== undefined) {
+		if (!isPlainRecord(raw.barNotes)) {
 			throw new Error(`Invalid barNotes in "${sourceLabel}".`);
 		}
-		for (const [barKey, noteObj] of Object.entries(bn)) {
+		for (const [barKey, noteObj] of Object.entries(raw.barNotes)) {
 			if (!/^\d+$/.test(barKey)) {
 				throw new Error(`Invalid bar number "${barKey}" in "${sourceLabel}".`);
 			}
-			const note = noteObj as Record<string, unknown>;
-			if (!note || typeof note !== "object" || Array.isArray(note)) {
+			if (!isPlainRecord(noteObj)) {
 				throw new Error(`Invalid barNotes[${barKey}] in "${sourceLabel}".`);
 			}
-			for (const k of [
-				"roleLabel",
-				"contextualRoman",
-				"cardSummary",
-				"whatItDoes",
-				"biggerPicture",
-				"whyItWorks",
-			] as const) {
-				if (note[k] !== undefined && typeof note[k] !== "string") {
-					throw new Error(
-						`Invalid barNotes[${barKey}].${k} in "${sourceLabel}".`,
-					);
-				}
-			}
-			if (
-				note.devices !== undefined &&
-				(!Array.isArray(note.devices) ||
-					note.devices.some((d) => typeof d !== "string"))
-			) {
+			assertStrings(
+				noteObj,
+				[
+					"roleLabel",
+					"contextualRoman",
+					"cardSummary",
+					"whatItDoes",
+					"biggerPicture",
+					"whyItWorks",
+				],
+				`${sourceLabel}#barNotes.${barKey}`,
+			);
+			if (noteObj.devices !== undefined && !isStringArray(noteObj.devices)) {
 				throw new Error(
 					`Invalid barNotes[${barKey}].devices in "${sourceLabel}".`,
 				);
 			}
 		}
 	}
-	return meta as MusicXmlImportOptions;
+	return raw as MusicXmlImportOptions;
 }
 
 export async function loadCuratedOverrides(
@@ -391,19 +426,26 @@ export async function loadCuratedOverrides(
 	try {
 		raw = await readFile(overridesPath, "utf8");
 	} catch (err) {
-		if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return {};
+		if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+			return Object.create(null) as CuratedOverridesMap;
+		}
 		throw err;
 	}
 	const parsed: unknown = JSON.parse(raw);
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+	if (!isPlainRecord(parsed)) {
 		throw new Error(
 			`Expected object map keyed by filename stem in "${overridesPath}".`,
 		);
 	}
-	const result: CuratedOverridesMap = {};
-	for (const [stem, entry] of Object.entries(
-		parsed as Record<string, unknown>,
-	)) {
+	const result = Object.create(null) as CuratedOverridesMap;
+	for (const [stem, entry] of Object.entries(parsed)) {
+		if (
+			stem === "__proto__" ||
+			stem === "constructor" ||
+			stem === "prototype"
+		) {
+			continue;
+		}
 		result[stem] = validateImportOptionsObject(
 			entry,
 			`${overridesPath}#${stem}`,
@@ -412,10 +454,23 @@ export async function loadCuratedOverrides(
 	return result;
 }
 
-export async function loadCuratedAnnotations(
+async function loadMergedCuratedOptions(
 	annotationsPath = ANNOTATIONS_PATH,
+	overridesPath = OVERRIDES_PATH,
 ): Promise<CuratedOverridesMap> {
-	return loadCuratedOverrides(annotationsPath);
+	const annotations = await loadCuratedOverrides(annotationsPath);
+	const overrides = await loadCuratedOverrides(overridesPath);
+	const merged = Object.create(null) as CuratedOverridesMap;
+	for (const [stem, entry] of Object.entries(annotations)) {
+		merged[stem] = entry;
+	}
+	for (const [stem, entry] of Object.entries(overrides)) {
+		merged[stem] = {
+			...(Object.hasOwn(merged, stem) ? merged[stem] : {}),
+			...entry,
+		};
+	}
+	return merged;
 }
 
 async function collectMusicXmlFiles(dir: string): Promise<string[]> {
@@ -477,7 +532,7 @@ export async function resolveImportOptions(
 	cliOverrides: MusicXmlImportOptions = {},
 ): Promise<MusicXmlImportOptions> {
 	const stem = basename(filePath, extname(filePath));
-	const curated = overrides[stem] ?? {};
+	const curated = Object.hasOwn(overrides, stem) ? overrides[stem] : {};
 	const sidecar = await readSidecarMeta(filePath);
 	return {
 		...stripUndefinedOptions(curated),
@@ -499,12 +554,14 @@ async function computeCompilerFingerprint(): Promise<string> {
 	const hasher = createHash("sha256");
 	hasher.update(COMPILER_FORMAT_VERSION);
 
-	const compilerFiles = (await readdir(COMPILER_SOURCE_DIR))
-		.filter((name) => name.endsWith(".ts"))
-		.sort((a, b) => a.localeCompare(b));
-	for (const file of compilerFiles) {
-		hasher.update(file);
-		hasher.update(await readFile(join(COMPILER_SOURCE_DIR, file)));
+	for (const dir of [COMPILER_SOURCE_DIR, THEORY_SOURCE_DIR]) {
+		const files = (await readdir(dir))
+			.filter((name) => name.endsWith(".ts"))
+			.sort((a, b) => a.localeCompare(b));
+		for (const file of files) {
+			hasher.update(`${basename(dir)}/${file}`);
+			hasher.update(await readFile(join(dir, file)));
+		}
 	}
 	hasher.update("songRuntime.ts");
 	hasher.update(await readFile(SONG_RUNTIME_PATH));
@@ -530,21 +587,22 @@ function stringArraysEqual(
 
 async function readMirrorManifest(manifestPath: string): Promise<string[]> {
 	try {
-		const raw = await readFile(manifestPath, "utf8");
-		const parsed: unknown = JSON.parse(raw);
+		const parsed: unknown = JSON.parse(await readFile(manifestPath, "utf8"));
 		if (
-			parsed &&
-			typeof parsed === "object" &&
-			Array.isArray((parsed as MirrorManifest).mirroredFiles)
+			isPlainRecord(parsed) &&
+			Array.isArray((parsed as unknown as MirrorManifest).mirroredFiles)
 		) {
-			return (parsed as MirrorManifest).mirroredFiles.filter(
+			return (parsed as unknown as MirrorManifest).mirroredFiles.filter(
 				(name): name is string =>
-					typeof name === "string" && !name.includes("/"),
+					typeof name === "string" &&
+					name.length > 0 &&
+					name !== "." &&
+					name !== ".." &&
+					!name.includes("/") &&
+					!name.includes("\\"),
 			);
 		}
-	} catch {
-		// Missing or unreadable manifest
-	}
+	} catch {}
 	return [];
 }
 
@@ -733,15 +791,10 @@ export async function syncFromMusicXmlFolder(options?: {
 	const catalogPath = options?.generatedCatalogPath ?? GENERATED_CATALOG_PATH;
 
 	const mirror = await mirrorSourceMusicXml(options?.sourceDir, musicXmlDir);
-	const annotations = await loadCuratedAnnotations(annotationsPath);
-	const overrides = await loadCuratedOverrides(overridesPath);
-	const mergedCurated: CuratedOverridesMap = { ...annotations };
-	for (const [stem, entry] of Object.entries(overrides)) {
-		mergedCurated[stem] = {
-			...(mergedCurated[stem] ?? {}),
-			...entry,
-		};
-	}
+	const mergedCurated = await loadMergedCuratedOptions(
+		annotationsPath,
+		overridesPath,
+	);
 	const files = await collectMusicXmlFiles(musicXmlDir);
 	await mkdir(generatedDir, { recursive: true });
 
@@ -762,6 +815,7 @@ export async function syncFromMusicXmlFolder(options?: {
 
 	let compiledCount = 0;
 	let cachedCount = 0;
+	const writtenModulePaths: string[] = [];
 
 	for (const filePath of files) {
 		const relPath = relative(musicXmlDir, filePath).replace(/\\/g, "/");
@@ -825,11 +879,14 @@ export async function syncFromMusicXmlFolder(options?: {
 			generatedDir,
 			join(generatedDir, moduleFile),
 		);
-		const moduleContent = formatWithBunFmt(
-			formatSongDocumentModule(finalDoc, exportName, "../songRuntime"),
-			modulePath,
+		const moduleContent = formatSongDocumentModule(
+			finalDoc,
+			exportName,
+			"../songRuntime",
 		);
-		await writeIfChanged(modulePath, moduleContent);
+		if (await writeIfChanged(modulePath, moduleContent)) {
+			writtenModulePaths.push(modulePath);
+		}
 
 		const catalogEntry: SongCatalogEntry = {
 			id: finalDoc.id,
@@ -863,6 +920,8 @@ export async function syncFromMusicXmlFolder(options?: {
 		};
 		compiledCount++;
 	}
+
+	formatFilesInPlace(writtenModulePaths);
 
 	let removedCount = 0;
 	for (const entry of existingGen) {
@@ -1115,10 +1174,11 @@ async function main(): Promise<void> {
 	const category = parseCategoryFlag(values.category);
 	const { partIndex, partId } = parsePartFlag(values.part);
 	const quantizeSubdivision =
-		values.quantize !== undefined
-			? Number.parseInt(values.quantize, 10)
-			: undefined;
-	if (quantizeSubdivision !== undefined && Number.isNaN(quantizeSubdivision)) {
+		values.quantize !== undefined ? Number(values.quantize) : undefined;
+	if (
+		quantizeSubdivision !== undefined &&
+		(!Number.isInteger(quantizeSubdivision) || quantizeSubdivision < 0)
+	) {
 		throw new Error(`Invalid --quantize value "${values.quantize}".`);
 	}
 
@@ -1135,15 +1195,7 @@ async function main(): Promise<void> {
 		quantizeSubdivision,
 		splitHalfBarHarmony: values["split-chords"] ? true : undefined,
 	};
-	const annotations = await loadCuratedAnnotations();
-	const overrides = await loadCuratedOverrides();
-	const mergedCurated: CuratedOverridesMap = { ...annotations };
-	for (const [stem, entry] of Object.entries(overrides)) {
-		mergedCurated[stem] = {
-			...(mergedCurated[stem] ?? {}),
-			...entry,
-		};
-	}
+	const mergedCurated = await loadMergedCuratedOptions();
 	const importOptions = await resolveImportOptions(
 		inputPath,
 		mergedCurated,

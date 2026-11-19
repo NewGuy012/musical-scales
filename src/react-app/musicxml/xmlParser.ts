@@ -61,13 +61,7 @@ export function decodeXmlBytes(bytes: Uint8Array): string {
 		return new TextDecoder("utf-16le").decode(bytes.subarray(2));
 	}
 	if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
-		const sub = bytes.subarray(2);
-		const swapped = new Uint8Array(sub.length);
-		for (let i = 0; i + 1 < sub.length; i += 2) {
-			swapped[i] = sub[i + 1];
-			swapped[i + 1] = sub[i];
-		}
-		return new TextDecoder("utf-16le").decode(swapped);
+		return new TextDecoder("utf-16be").decode(bytes.subarray(2));
 	}
 	return new TextDecoder("utf-8").decode(bytes);
 }
@@ -235,6 +229,9 @@ export function parseXml(xmlText: string): XmlNode {
 		) {
 			pos = skipDoctype(xmlText, lt + 9);
 			continue;
+		}
+		if (xmlText.startsWith("<!", lt)) {
+			throw new Error(`Unsupported XML declaration near position ${lt}.`);
 		}
 
 		if (xmlText.startsWith("</", lt)) {
