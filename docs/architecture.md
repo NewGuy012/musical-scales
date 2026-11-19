@@ -55,7 +55,7 @@ musical-scales/
 │   │   │   ├── MusicTeacherSection.tsx # Collapsible "Music Teacher" card ("Learn with Real Songs" + upload)
 │   │   │   ├── SongExamplesPanel.tsx # Bar-by-bar player, collapsible Bar Theory Coach, study guides & empty state
 │   │   │   ├── SectionHeader.tsx     # Shared collapsible card header
-│   │   │   └── Icons.tsx             # Inline SVG icons, SegmentedControl, SequencePlayButton, SongHitMarker
+│   │   │   └── Icons.tsx             # Inline SVG icons, SegmentedControl, SequencePlayButton, SongHitMarker, VoicingPillsRow
 │   │   ├── musicxml/                 # Lazy-loaded isomorphic MusicXML engine (browser + Bun CLI)
 │   │   │   ├── index.ts              # Public exports: parseMusicXmlDocument(), inspectMusicXml(), compileMusicXml()
 │   │   │   ├── xmlParser.ts          # Dependency-free XML parser (BOM, DOCTYPE, CDATA, entities, root/node limits)
@@ -127,7 +127,7 @@ flowchart TD
 ### 1. Music Theory Engine (`src/react-app/theory/`)
 
 - **[`circleOfFifths.ts`](../src/react-app/theory/circleOfFifths.ts)**:
-  - Exports shared note tables (`LETTERS`, `NATURAL_PC`, `SHARP_CHROMATIC`, `FLAT_CHROMATIC`, `READABLE_CHROMATIC`) and `CIRCLE_SLOTS`, supporting enharmonic spelling at slots `5`, `6`, and `7` (`C♯/D♭`, `F♯/G♭`, `C♭/B`) and accidental preferences (`standard`, `sharps`, `flats`).
+  - Exports shared note tables (`LETTERS`, `NATURAL_PC`, `SHARP_CHROMATIC`, `FLAT_CHROMATIC`, `READABLE_CHROMATIC`), `CIRCLE_SLOTS`, `normalizeAccidentals()`, `splitChordSymbol()`, and `tryNoteToPitchClass()`, supporting enharmonic spelling at slots `5`, `6`, and `7` (`C♯/D♭`, `F♯/G♭`, `C♭/B`) and accidental preferences (`standard`, `sharps`, `flats`).
   - `buildScale()` constructs 7-note diatonic scales with one note per letter name (`A–G`), computing exact accidentals (`♭`, `♯`, `𝄪`, `𝄫`), and `ascendingNotesToMidi()` maps ordered note spellings to MIDI pitches.
   - `analyzeKey()` returns the complete `KeyAnalysis` for any slot and mode: scale notes, MIDI pitches (`C4–B5`), 7 diatonic chords (grouped into 3 major, 3 minor, and 1 diminished), harmonic minor `V(7)`, relative/parallel keys, fifth/fourth neighbor diffs (which 6 notes stay shared and which single note shifts by a semitone), and curated `ChordProgression` sets (11 Major, 10 Minor).
 - **[`chromaticHarmony.ts`](../src/react-app/theory/chromaticHarmony.ts)**:
@@ -135,8 +135,8 @@ flowchart TD
 - **[`barTheoryAnalyzer.ts`](../src/react-app/theory/barTheoryAnalyzer.ts)**:
   - `analyzeSongBarTheory()` analyzes every linearized playback bar against its neighboring bars (`Prev → Current → Next`), producing plain-English slash-bass/inversion explanations, secondary-dominant & tritone-resolution mechanics, pedal/chromatic bass lines, intra-bar progressions, and three teaching lenses (_What it's doing_, _Bigger picture_, _Why it works_) merged with optional curated `songs/annotations.json` highlights.
 - **[`guitarFretboard.ts`](../src/react-app/theory/guitarFretboard.ts)**:
-  - Defines standard 6-string tuning (`E2–A2–D3–G3–B3–E4`) across 15 frets (`MAX_SONG_GUITAR_FRET = 22`) and 13 chord variations (`CHORD_VARIATION_SPECS`, `buildChordVariation()`).
-  - `getGuitarVoicings()` generates open and movable CAGED/shell voicings (`<= 4` fret span) across all 15 roots and 13 chord kinds, ranked by playability.
+  - Defines standard 6-string tuning (`E2–A2–D3–G3–B3–E4`) across 15 frets (`MAX_SONG_GUITAR_FRET = 22`) and 13 chord variations (`CHORD_VARIATION_SPECS`, `CHORD_VARIATION_BY_KIND`, `buildChordVariation()`).
+  - `getGuitarVoicings()` generates open and movable CAGED/shell voicings (`<= 4` fret span, rejecting out-of-range shifts) across all 15 roots and 13 chord kinds, ranked by playability.
   - `buildGuitarScalePassGuide()` derives key/chord pentatonic overlays, CAGED pockets, and playable chromatic passing phrases; `createPitchClassNameResolver()` handles enharmonic note naming across string instruments.
 - **[`celloFingerboard.ts`](../src/react-app/theory/celloFingerboard.ts)**:
   - Shares `getBowedFifthsVoicings()` and `getBowedVoicings()` across 4-string fifths-tuned instruments (`CELLO_TUNING`: `C2–G2–D3–A3`, `VIOLIN_TUNING`: `G3–D4–A4–E5`) over `MAX_BOWED_SEMITONE = 14` (`MAX_SONG_BOWED_SEMITONE = 24`).
@@ -145,8 +145,8 @@ flowchart TD
 ### 2. Song Runtime & Catalog (`src/react-app/songs/`, `songs/`)
 
 - **[`songRuntime.ts`](../src/react-app/songs/songRuntime.ts)**:
-  - Hydrates tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) via `hydrateSong()`, and supports practice speed scaling (`0.5x–2x`) via `scaleSongExampleSpeed()`.
-  - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
+  - Hydrates tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) via `hydrateSong()`, clamps practice speed (`0.25x..2.5x`) via `clampPlaybackSpeed()`, and scales speed via `scaleSongExampleSpeed()`.
+  - Flattens bar events via `flattenSongPlaybackSteps()` and provides shared sub-bar/section/timeline helpers (`resolveSubBarChordIndex()`, `findSongSectionForBar()`, `findPlaybackEventAtTime()`, `getSongBarStartTimes()`).
 - **[`songCatalog.ts`](../src/react-app/songs/songCatalog.ts)** & **[`songCatalog.generated.ts`](../src/react-app/songs/songCatalog.generated.ts)**:
   - Exposes repertoire metadata generated from `songs/musicxml/` and dynamically loads individual [`SongDocument`](../src/react-app/songs/songRuntime.ts) modules from `src/react-app/songs/generated/` on demand so each piece is code-split out of the initial client bundle.
 
@@ -186,8 +186,8 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 ### Ingestion Modules (`src/react-app/musicxml/`)
 
-- **[`xmlParser.ts`](../src/react-app/musicxml/xmlParser.ts)**: Bounded (`MAX_XML_DEPTH = 64`, `MAX_XML_CHARS = 16 MB`, `MAX_XML_NODES = 250_000`), single-root dependency-free XML parser supporting UTF-8/UTF-16 BOMs, `<!DOCTYPE>` internal subsets, comments, `CDATA`, null-prototype attribute maps, and valid Unicode code-point checks on numeric/named entities.
-- **[`mxlUnpack.ts`](../src/react-app/musicxml/mxlUnpack.ts)**: Reads `.mxl` ZIP central directory headers with entry-count (`128`), EOCD comment length & field-bounds checks, entry-path safety (`..`, leading `/` or `\`, and Windows drive-letter rejection), and streaming `DecompressionStream("deflate-raw")` size caps (`16 MB`), extracting only `META-INF/container.xml` and the target root score.
+- **[`xmlParser.ts`](../src/react-app/musicxml/xmlParser.ts)**: Bounded (`MAX_XML_DEPTH = 64`, `MAX_XML_CHARS = 16 MB`, `MAX_XML_NODES = 250_000`), single-root dependency-free XML parser supporting UTF-8/UTF-16 (`utf-16be` & `utf-16le`) BOMs, `<!DOCTYPE>` internal subsets, comments, `CDATA`, null-prototype attribute maps, explicit rejection of unsupported `<!...` declarations, and valid Unicode code-point checks on numeric/named entities.
+- **[`mxlUnpack.ts`](../src/react-app/musicxml/mxlUnpack.ts)**: Reads `.mxl` ZIP central directory headers with entry-count (`128`), `META-INF/container.xml` size limit (`256 KB`), EOCD comment length & field-bounds checks, entry-path normalization (`./` prefixes) and traversal safety (`..`, leading `/` or `\`, and Windows drive-letter rejection), and streaming `DecompressionStream("deflate-raw")` size caps (`16 MB`), extracting only `META-INF/container.xml` and the target root score.
 - **[`musicXmlToIr.ts`](../src/react-app/musicxml/musicXmlToIr.ts)**: Converts `score-partwise` (and `score-timewise`, preserving null-prototype attrs) parts into canonical `ScoreTrackIR`, providing `parseMusicXmlDocument()`, `inspectMusicXml()`, and single-pass `compileMusicXml()` with `preferredInstrument` auto-selection.
 - **[`ergonomicSolver.ts`](../src/react-app/musicxml/ergonomicSolver.ts)**: Uses Viterbi dynamic programming across playable left-hand fret/semitone positions (`MAX_SONG_GUITAR_FRET = 22`, `MAX_SONG_BOWED_SEMITONE = 24`) to minimize position jumps and string crossings when a stringed MusicXML part omits explicit `<technical>` stops.
 - **[`harmonicAnalyzer.ts`](../src/react-app/musicxml/harmonicAnalyzer.ts)**: Detects tonal center via Krumhansl-Schmuckler pitch-class correlation and infers or resolves bar/sub-bar Roman numerals and slash/extended chord symbols.
@@ -195,7 +195,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 ### CLI Ingestion Workflow (`scripts/ingest-songs.ts`)
 
-1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, category, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run (`slugifyId`, sidecar schema/instrument validation, and filesystem containment enforce valid inputs and keep writes within `songs/musicxml/` and `src/react-app/songs/generated/`):
+1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, category, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run (`slugifyId`, option/schema/CLI flag validation, null-prototype maps, compiler fingerprinting across `musicxml/`, `theory/*.ts`, and `songs/`, and filesystem containment enforce valid inputs and keep writes within `songs/musicxml/` and `src/react-app/songs/generated/`):
 
    ```bash
    bun run ingest-songs
@@ -240,8 +240,8 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 - **[`src/worker/index.ts`](../src/worker/index.ts)** uses Hono's `secureHeaders` middleware to attach `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-Permitted-Cross-Domain-Policies: none`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
 - All `/api/*` and unknown routes return `Cache-Control: no-store` with JSON `405` (with `Allow: GET, HEAD` for non-`GET`/`HEAD` on `/api/*`) or `404` responses.
-- **[`public/_headers`](../public/_headers)** applies matching `HSTS`, `COOP`/`CORP`, framing, `X-Permitted-Cross-Domain-Policies`, and hardened app `Content-Security-Policy` headers (`img-src 'self'`, `base-uri 'none'`) to static client assets served by Cloudflare.
-- **Parser & Tooling Safety**: Browser MusicXML uploads are capped at `10 MB`, `.mxl`/XML/repeat/offline-render bounds enforce entry/depth/node/bar/duration caps and null-prototype attribute/table lookups (`Object.hasOwn`), generated TS export identifiers are regex-validated, `.meta.json` sidecars are validated, and CLI file outputs check path containment.
+- **[`public/_headers`](../public/_headers)** applies matching `HSTS`, `COOP`/`CORP`, framing, `X-Permitted-Cross-Domain-Policies`, and strict `Content-Security-Policy` headers (`style-src 'self'`, `script-src 'self'`, `img-src 'self'`, `base-uri 'none'`) to static client assets served by Cloudflare.
+- **Parser & Tooling Safety**: Browser MusicXML uploads are capped at `10 MB`, `.mxl`/XML/repeat/offline-render bounds enforce entry/depth/node/bar/duration caps and null-prototype attribute/table lookups (`Object.hasOwn`), generated TS export identifiers are regex-validated, `.meta.json` sidecars & CLI flags are schema-validated, and CLI file outputs check path containment.
 
 ---
 
@@ -249,9 +249,10 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 Run via `bun test`:
 
-- **[`circleOfFifths.test.ts`](../tests/circleOfFifths.test.ts)**: Verifies enharmonic scale spelling, diatonic chord qualities, `6/7` shared-note neighbor invariants, progression validity, and MIDI range bounds (`C4..B5`).
+- **[`circleOfFifths.test.ts`](../tests/circleOfFifths.test.ts)**: Verifies enharmonic scale spelling, accidental/chord splitting (`normalizeAccidentals()`, `splitChordSymbol()`, `tryNoteToPitchClass()`), diatonic chord qualities, `6/7` shared-note neighbor invariants, progression validity, and MIDI range bounds (`C4..B5`).
 - **[`chromaticHarmony.test.ts`](../tests/chromaticHarmony.test.ts)**: Validates chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions across all 12 Circle slots in Major and Minor modes.
 - **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits (guitar, cello, and violin), plus guitar pentatonic/passing guides.
-- **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, safe handling of invalid MIDI inputs, and offline renderer duration/sample-rate clamping.
-- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs, numeric entity bounds, multi-root & `250k`-node cap rejection), compressed `.mxl` roundtrips and path-escape/EOCD rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, and offline WAV synthesis.
-- **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including polyphonic custom tunings, capo, harmonic stops, and mixed-stop onset alignment), transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, `Music Teacher -> Learn with Real Songs` section layout, and Hono Worker security headers / `404` / `405` routing.
+- **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, safe handling of invalid MIDI inputs, and offline renderer duration/sample-rate clamping + WAV encoding.
+- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs, numeric entity bounds, multi-root, unknown `<!...` declaration & `250k`-node cap rejection), compressed `.mxl` roundtrips and path-escape/EOCD rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, and CLI mirroring/caching/validation.
+- **[`barTheoryAnalyzer.test.ts`](../tests/barTheoryAnalyzer.test.ts)**: Verifies contextual bar-by-bar theory across the catalog (contiguous sections, non-redundant cues, Roman numeral alignment) plus curated landmark scores and zero-annotation local MusicXML imports.
+- **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including polyphonic custom tunings, capo, speed clamping, sub-bar chord lookup, harmonic stops, and mixed-stop onset alignment), transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, `Music Teacher -> Learn with Real Songs` section layout, and Hono Worker security headers / `404` / `405` routing.
