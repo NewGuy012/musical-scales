@@ -22,6 +22,7 @@ import {
 	IconPlay,
 	SegmentedControl,
 	SongHitMarker,
+	VoicingPillsRow,
 	getQualityClass,
 	handleSvgButtonKeyDown,
 } from "./Icons";
@@ -195,28 +196,13 @@ export function BowedFingerboard({
 				</div>
 			</div>
 
-			<div
-				className="voicing-pills-row"
-				role="group"
-				aria-label={`${instrumentTitle} chord voicings`}
-			>
-				<span className="voicing-row-label">Voicings:</span>
-				{voicings.map((voicing) => {
-					const isSelected = activeVoicing?.id === voicing.id;
-					return (
-						<button
-							key={voicing.id}
-							type="button"
-							className={`voicing-pill ${qualityClass}${isSelected ? " is-selected" : ""}`}
-							aria-pressed={isSelected}
-							onClick={() => onSelectVoicing(voicing)}
-						>
-							<span className="voicing-pill-name">{voicing.name}</span>
-							<span className="voicing-pill-meta">{voicing.positionLabel}</span>
-						</button>
-					);
-				})}
-			</div>
+			<VoicingPillsRow
+				voicings={voicings}
+				selectedId={activeVoicing?.id}
+				qualityClass={qualityClass}
+				ariaLabel={`${instrumentTitle} chord voicings`}
+				onSelectVoicing={onSelectVoicing}
+			/>
 
 			<div className="cello-neck-scroll">
 				<svg

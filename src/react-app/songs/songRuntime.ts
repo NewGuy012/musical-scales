@@ -725,19 +725,16 @@ function mergeOptionalStops<T>(
 	return a || b ? [...(a ?? []), ...(b ?? [])] : undefined;
 }
 
-function resolveSubBarChord(
+export function resolveSubBarChordIndex(
 	step: SongChordStep,
 	offsetMs: number,
-): SongSubBarChord | undefined {
+): number {
 	const changes = step.subBarChords;
-	if (!changes || changes.length === 0) return undefined;
-	let matched = changes[0];
-	for (const change of changes) {
-		if (change.offsetMs <= offsetMs + 0.5) {
-			matched = change;
-		} else {
-			break;
-		}
+	if (!changes || changes.length === 0) return -1;
+	let matched = 0;
+	for (let i = 0; i < changes.length; i++) {
+		if (changes[i].offsetMs <= offsetMs + 0.5) matched = i;
+		else break;
 	}
 	return matched;
 }
@@ -774,7 +771,9 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 						stopList,
 					)
 				: undefined;
-			const subBarChord = resolveSubBarChord(chordStep, offsetMs);
+			const subIdx = resolveSubBarChordIndex(chordStep, offsetMs);
+			const subBarChord =
+				subIdx >= 0 ? chordStep.subBarChords?.[subIdx] : undefined;
 			rawEvents.push({
 				atMs,
 				durationSec: evt.durationSec,

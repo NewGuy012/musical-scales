@@ -24,6 +24,7 @@ import {
 	IconPlay,
 	SegmentedControl,
 	SongHitMarker,
+	VoicingPillsRow,
 	getQualityClass,
 	handleSvgButtonKeyDown,
 } from "./Icons";
@@ -354,26 +355,13 @@ export function GuitarFretboard({
 			</div>
 
 			{voicings.length > 0 && (
-				<div
-					className="voicing-pills-row"
-					role="group"
-					aria-label="Chord fretboard voicings"
-				>
-					<span className="voicing-row-label">Voicings:</span>
-					{voicings.map((v) => (
-						<button
-							key={v.id}
-							type="button"
-							className={`voicing-pill ${qualityClass} ${
-								selectedVoicing?.id === v.id ? "is-selected" : ""
-							}`}
-							onClick={() => onSelectVoicing(v)}
-						>
-							<span className="voicing-pill-name">{v.name}</span>
-							<span className="voicing-pill-pos">{v.positionLabel}</span>
-						</button>
-					))}
-				</div>
+				<VoicingPillsRow
+					voicings={voicings}
+					selectedId={selectedVoicing?.id}
+					qualityClass={qualityClass}
+					ariaLabel="Chord fretboard voicings"
+					onSelectVoicing={onSelectVoicing}
+				/>
 			)}
 
 			<div className="fretboard-scroll">

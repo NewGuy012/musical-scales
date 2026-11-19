@@ -7,6 +7,7 @@ import {
 	flattenSongPlaybackSteps,
 	formatSongTime,
 	getSongBarStartTimes,
+	resolveSubBarChordIndex,
 } from "../songs/songRuntime";
 import { IconChevronDown, IconX, getQualityClass } from "./Icons";
 
@@ -251,20 +252,37 @@ function SongCard({
 			? (song.steps[activeStatusIndex + 1] ?? null)
 			: null;
 
-	let activeSubChordIdx = 0;
-	if (
-		isCuedThis &&
-		statusStep?.subBarChords &&
-		statusStep.subBarChords.length > 1
-	) {
-		const barStartMs = barStartTimes[activeBarIndex] ?? 0;
-		const elapsedInBarMs = Math.max(0, displayMs - barStartMs);
-		for (let i = 0; i < statusStep.subBarChords.length; i++) {
-			if (statusStep.subBarChords[i].offsetMs <= elapsedInBarMs + 0.5) {
-				activeSubChordIdx = i;
-			}
-		}
-	}
+	const activeSubChordIdx =
+		isCuedThis && statusStep
+			? Math.max(
+					0,
+					resolveSubBarChordIndex(
+						statusStep,
+						Math.max(0, displayMs - (barStartTimes[activeBarIndex] ?? 0)),
+					),
+				)
+			: 0;
+
+	const renderNeighborStep = (
+		step: (typeof song.steps)[number] | null,
+		targetIndex: number,
+		edgeLabel: string,
+	) =>
+		step ? (
+			<button
+				type="button"
+				className="coach-neighbor-btn"
+				onClick={() => onSelectSongChordStep(song, targetIndex)}
+				title={`Jump to ${step.barLabel}: ${step.chordSymbol}`}
+			>
+				<span className="coach-neighbor-bar">{step.barLabel}</span>
+				<span>
+					{step.chordSymbol} ({step.roman})
+				</span>
+			</button>
+		) : (
+			<span className="coach-context-edge">{edgeLabel}</span>
+		);
 
 	return (
 		<article
@@ -606,24 +624,10 @@ function SongCard({
 									role="group"
 									aria-label="Surrounding chord progression"
 								>
-									{prevStatusStep ? (
-										<button
-											type="button"
-											className="coach-neighbor-btn"
-											onClick={() =>
-												onSelectSongChordStep(song, activeStatusIndex - 1)
-											}
-											title={`Jump to ${prevStatusStep.barLabel}: ${prevStatusStep.chordSymbol}`}
-										>
-											<span className="coach-neighbor-bar">
-												{prevStatusStep.barLabel}
-											</span>
-											<span>
-												{prevStatusStep.chordSymbol} ({prevStatusStep.roman})
-											</span>
-										</button>
-									) : (
-										<span className="coach-context-edge">Start</span>
+									{renderNeighborStep(
+										prevStatusStep,
+										activeStatusIndex - 1,
+										"Start",
 									)}
 									<span className="coach-arrow" aria-hidden="true">
 										→
@@ -639,24 +643,10 @@ function SongCard({
 									<span className="coach-arrow" aria-hidden="true">
 										→
 									</span>
-									{nextStatusStep ? (
-										<button
-											type="button"
-											className="coach-neighbor-btn"
-											onClick={() =>
-												onSelectSongChordStep(song, activeStatusIndex + 1)
-											}
-											title={`Jump to ${nextStatusStep.barLabel}: ${nextStatusStep.chordSymbol}`}
-										>
-											<span className="coach-neighbor-bar">
-												{nextStatusStep.barLabel}
-											</span>
-											<span>
-												{nextStatusStep.chordSymbol} ({nextStatusStep.roman})
-											</span>
-										</button>
-									) : (
-										<span className="coach-context-edge">End</span>
+									{renderNeighborStep(
+										nextStatusStep,
+										activeStatusIndex + 1,
+										"End",
 									)}
 								</div>
 
@@ -693,24 +683,16 @@ function SongCard({
 								)}
 
 							<div className="song-coach-lenses">
-								<div className="coach-lens-card">
-									<span className="coach-lens-label">What it&apos;s doing</span>
-									<p className="coach-lens-text">
-										{statusStep.theory.whatItDoes}
-									</p>
-								</div>
-								<div className="coach-lens-card">
-									<span className="coach-lens-label">Bigger picture</span>
-									<p className="coach-lens-text">
-										{statusStep.theory.biggerPicture}
-									</p>
-								</div>
-								<div className="coach-lens-card">
-									<span className="coach-lens-label">Why it works</span>
-									<p className="coach-lens-text">
-										{statusStep.theory.whyItWorks}
-									</p>
-								</div>
+								{[
+									["What it's doing", statusStep.theory.whatItDoes],
+									["Bigger picture", statusStep.theory.biggerPicture],
+									["Why it works", statusStep.theory.whyItWorks],
+								].map(([label, text]) => (
+									<div key={label} className="coach-lens-card">
+										<span className="coach-lens-label">{label}</span>
+										<p className="coach-lens-text">{text}</p>
+									</div>
+								))}
 							</div>
 						</div>
 					)}

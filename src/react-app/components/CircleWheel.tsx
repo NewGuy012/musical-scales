@@ -273,6 +273,9 @@ export function CircleWheel({
 						>
 							{CIRCLE_SLOTS.map((slot) => {
 								const i = slot.index;
+								const counterRotateStyle = {
+									transform: `rotate(${-wheelRotation}deg)`,
+								};
 								const centerDeg = i * 30;
 								const startDeg = centerDeg - 14.3;
 								const endDeg = centerDeg + 14.3;
@@ -378,9 +381,7 @@ export function CircleWheel({
 													>
 														<g
 															className="label-counter-rotator"
-															style={{
-																transform: `rotate(${-wheelRotation}deg)`,
-															}}
+															style={counterRotateStyle}
 														>
 															<text
 																x="0"
@@ -416,7 +417,7 @@ export function CircleWheel({
 										>
 											<g
 												className="label-counter-rotator"
-												style={{ transform: `rotate(${-wheelRotation}deg)` }}
+												style={counterRotateStyle}
 											>
 												<text
 													x="0"
@@ -442,7 +443,7 @@ export function CircleWheel({
 											>
 												<g
 													className="label-counter-rotator"
-													style={{ transform: `rotate(${-wheelRotation}deg)` }}
+													style={counterRotateStyle}
 												>
 													<rect
 														x="-13"
@@ -525,97 +526,75 @@ export function CircleWheel({
 								stroke="var(--wheel-hub-border)"
 								strokeWidth="1.5"
 							/>
-							{highlightedChord ? (
-								<>
-									<text
-										x="0"
-										y="-30"
-										textAnchor="middle"
-										className="hub-eyebrow"
-									>
-										AUDITIONING · {highlightedChord.roman}
-									</text>
-									<text
-										x="0"
-										y="-2"
-										textAnchor="middle"
-										dominantBaseline="central"
-										className={`hub-key-name${
-											highlightedChord.symbol.length > 7
-												? " is-long"
-												: highlightedChord.symbol.length > 5
-													? " is-medium"
-													: ""
-										}`}
-									>
-										{highlightedChord.symbol}
-									</text>
-									<text
-										x="0"
-										y="24"
-										textAnchor="middle"
-										className="hub-subline"
-									>
-										{(highlightedNotes ?? []).join(" · ")}
-									</text>
-								</>
-							) : hoveredKey ? (
-								<>
-									<text
-										x="0"
-										y="-28"
-										textAnchor="middle"
-										className="hub-eyebrow"
-									>
-										CLICK TO EXPLORE
-									</text>
-									<text
-										x="0"
-										y="0"
-										textAnchor="middle"
-										dominantBaseline="central"
-										className="hub-key-name"
-									>
-										{hoveredKey.shortName}
-									</text>
-									<text
-										x="0"
-										y="25"
-										textAnchor="middle"
-										className="hub-subline"
-									>
-										{hoveredKey.ring === "major" ? "Major Key" : "Minor Key"}
-									</text>
-								</>
-							) : (
-								<>
-									<text
-										x="0"
-										y="-31"
-										textAnchor="middle"
-										className="hub-eyebrow"
-									>
-										{mode === "major" ? "MAJOR KEY" : "NATURAL MINOR"}
-									</text>
-									<text
-										x="0"
-										y="-4"
-										textAnchor="middle"
-										dominantBaseline="central"
-										className="hub-key-name"
-									>
-										{analysis.shortName}
-									</text>
-									<text
-										x="0"
-										y="22"
-										textAnchor="middle"
-										className="hub-subline"
-									>
-										{analysis.signatureLabel}
-									</text>
-								</>
-							)}
+							{(() => {
+								const hub = highlightedChord
+									? {
+											eyebrow: `AUDITIONING · ${highlightedChord.roman}`,
+											eyebrowY: -30,
+											title: highlightedChord.symbol,
+											titleY: -2,
+											sizeClass:
+												highlightedChord.symbol.length > 7
+													? " is-long"
+													: highlightedChord.symbol.length > 5
+														? " is-medium"
+														: "",
+											subline: (highlightedNotes ?? []).join(" · "),
+											sublineY: 24,
+										}
+									: hoveredKey
+										? {
+												eyebrow: "CLICK TO EXPLORE",
+												eyebrowY: -28,
+												title: hoveredKey.shortName,
+												titleY: 0,
+												sizeClass: "",
+												subline:
+													hoveredKey.ring === "major"
+														? "Major Key"
+														: "Minor Key",
+												sublineY: 25,
+											}
+										: {
+												eyebrow:
+													mode === "major" ? "MAJOR KEY" : "NATURAL MINOR",
+												eyebrowY: -31,
+												title: analysis.shortName,
+												titleY: -4,
+												sizeClass: "",
+												subline: analysis.signatureLabel,
+												sublineY: 22,
+											};
+								return (
+									<>
+										<text
+											x="0"
+											y={hub.eyebrowY}
+											textAnchor="middle"
+											className="hub-eyebrow"
+										>
+											{hub.eyebrow}
+										</text>
+										<text
+											x="0"
+											y={hub.titleY}
+											textAnchor="middle"
+											dominantBaseline="central"
+											className={`hub-key-name${hub.sizeClass}`}
+										>
+											{hub.title}
+										</text>
+										<text
+											x="0"
+											y={hub.sublineY}
+											textAnchor="middle"
+											className="hub-subline"
+										>
+											{hub.subline}
+										</text>
+									</>
+								);
+							})()}
 
 							<g
 								role="button"

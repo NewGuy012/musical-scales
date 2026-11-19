@@ -138,41 +138,40 @@ export function ColorHarmonyPanel({
 				</div>
 
 				<div className={compact ? "tritone-branches" : "tritone-ab-grid"}>
-					<div className="tritone-branch">
-						<div className="tritone-branch-head">
-							<span className="tritone-branch-label">
-								Standard V7 ({pair.originalDominant.symbol})
-							</span>
-							<SequencePlayButton
-								isPlaying={isPlayingOrig}
-								idleLabel="Hear V7"
-								onClick={() => onPlaySequence(origId, pair.originalProgression)}
-							/>
+					{[
+						{
+							id: origId,
+							isPlaying: isPlayingOrig,
+							className: "tritone-branch",
+							label: `Standard V7 (${pair.originalDominant.symbol})`,
+							idleLabel: "Hear V7",
+							steps: pair.originalProgression,
+						},
+						{
+							id: subId,
+							isPlaying: isPlayingSub,
+							className: "tritone-branch is-sub",
+							label: `Tritone Sub (${pair.tritoneSubChord.symbol})`,
+							idleLabel: "Hear ♭II7",
+							steps: pair.subProgression,
+						},
+					].map((b) => (
+						<div key={b.id} className={b.className}>
+							<div className="tritone-branch-head">
+								<span className="tritone-branch-label">{b.label}</span>
+								<SequencePlayButton
+									isPlaying={b.isPlaying}
+									idleLabel={b.idleLabel}
+									onClick={() => onPlaySequence(b.id, b.steps)}
+								/>
+							</div>
+							<div className="color-steps-row">
+								{b.steps.map((step, idx) =>
+									renderStepChip(step, b.id, idx, idx === 1),
+								)}
+							</div>
 						</div>
-						<div className="color-steps-row">
-							{pair.originalProgression.map((step, idx) =>
-								renderStepChip(step, origId, idx, idx === 1),
-							)}
-						</div>
-					</div>
-
-					<div className="tritone-branch is-sub">
-						<div className="tritone-branch-head">
-							<span className="tritone-branch-label">
-								Tritone Sub ({pair.tritoneSubChord.symbol})
-							</span>
-							<SequencePlayButton
-								isPlaying={isPlayingSub}
-								idleLabel="Hear ♭II7"
-								onClick={() => onPlaySequence(subId, pair.subProgression)}
-							/>
-						</div>
-						<div className="color-steps-row">
-							{pair.subProgression.map((step, idx) =>
-								renderStepChip(step, subId, idx, idx === 1),
-							)}
-						</div>
-					</div>
+					))}
 				</div>
 
 				<p className="color-pattern-desc">

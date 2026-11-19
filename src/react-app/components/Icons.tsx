@@ -332,3 +332,40 @@ export function SongHitMarker({
 		<circle cx={cx} cy={cy} r={radius} className="song-hit-halo" />
 	);
 }
+
+export function VoicingPillsRow<
+	T extends { id: string; name: string; positionLabel: string },
+>({
+	voicings,
+	selectedId,
+	qualityClass,
+	ariaLabel,
+	onSelectVoicing,
+}: {
+	voicings: readonly T[];
+	selectedId?: string;
+	qualityClass: string;
+	ariaLabel: string;
+	onSelectVoicing: (voicing: T) => void;
+}) {
+	return (
+		<div className="voicing-pills-row" role="group" aria-label={ariaLabel}>
+			<span className="voicing-row-label">Voicings:</span>
+			{voicings.map((v) => {
+				const isSelected = selectedId === v.id;
+				return (
+					<button
+						key={v.id}
+						type="button"
+						className={`voicing-pill ${qualityClass}${isSelected ? " is-selected" : ""}`}
+						aria-pressed={isSelected}
+						onClick={() => onSelectVoicing(v)}
+					>
+						<span className="voicing-pill-name">{v.name}</span>
+						<span className="voicing-pill-meta">{v.positionLabel}</span>
+					</button>
+				);
+			})}
+		</div>
+	);
+}

@@ -1524,6 +1524,28 @@ export function App() {
 		[resetSongContext],
 	);
 
+	const runImportTask = useCallback(
+		async (fallbackMsg: string, task: (requestId: number) => Promise<void>) => {
+			const requestId = ++importRequestIdRef.current;
+			setIsImportingMusicXml(true);
+			setMusicXmlImportError(null);
+			try {
+				await task(requestId);
+			} catch (err) {
+				if (importRequestIdRef.current === requestId) {
+					setMusicXmlImportError(
+						err instanceof Error ? err.message : fallbackMsg,
+					);
+				}
+			} finally {
+				if (importRequestIdRef.current === requestId) {
+					setIsImportingMusicXml(false);
+				}
+			}
+		},
+		[],
+	);
+
 	const handleImportMusicXmlFile = useCallback(
 		async (file: File) => {
 			const lowerName = file.name.toLowerCase();
@@ -1543,101 +1565,86 @@ export function App() {
 				);
 				return;
 			}
-			const requestId = ++importRequestIdRef.current;
-			setIsImportingMusicXml(true);
-			setMusicXmlImportError(null);
-			try {
-				const bytes = new Uint8Array(await file.arrayBuffer());
-				const { compileMusicXml, parseMusicXmlDocument } =
-					await import("./musicxml");
-				const xmlRoot = await parseMusicXmlDocument(bytes);
-				if (importRequestIdRef.current !== requestId) return;
+			await runImportTask(
+				"Failed to parse MusicXML file.",
+				async (requestId) => {
+					const bytes = new Uint8Array(await file.arrayBuffer());
+					const { compileMusicXml, parseMusicXmlDocument } =
+						await import("./musicxml");
+					const xmlRoot = await parseMusicXmlDocument(bytes);
+					if (importRequestIdRef.current !== requestId) return;
 
-				const slugBase = slugifyId(
-					file.name.replace(/\.(musicxml|xml|mxl)$/i, ""),
-					"musicxml",
-				);
-				const localId = `local-${slugBase}-${Date.now().toString(36)}`;
-				const { songDoc, selectedPart, availableParts } = await compileMusicXml(
-					xmlRoot,
-					{ id: localId, preferredInstrument: instrumentView },
-				);
-				if (importRequestIdRef.current !== requestId) return;
-
-				const playableParts = availableParts.filter(
-					(p) => !p.isPercussion && p.noteCount > 0,
-				);
-				const pool = playableParts.length > 0 ? playableParts : availableParts;
-				const targetInstrument = songDoc.instruments[0] ?? instrumentView;
-
-				applyLocalPreviewSong(songDoc, targetInstrument);
-
-				if (pool.length > 1) {
-					setPendingMusicXmlFile({
-						fileName: file.name,
-						xmlRoot,
-						title: songDoc.title,
-						parts: pool,
-						selectedPartId: selectedPart.partId,
-						instrument: targetInstrument,
-						localId,
-					});
-				} else {
-					setPendingMusicXmlFile(null);
-				}
-			} catch (err) {
-				if (importRequestIdRef.current === requestId) {
-					setMusicXmlImportError(
-						err instanceof Error
-							? err.message
-							: "Failed to parse MusicXML file.",
+					const slugBase = slugifyId(
+						file.name.replace(/\.(musicxml|xml|mxl)$/i, ""),
+						"musicxml",
 					);
-				}
-			} finally {
-				if (importRequestIdRef.current === requestId) {
-					setIsImportingMusicXml(false);
-				}
-			}
+					const localId = `local-${slugBase}-${Date.now().toString(36)}`;
+					const { songDoc, selectedPart, availableParts } =
+						await compileMusicXml(xmlRoot, {
+							id: localId,
+							preferredInstrument: instrumentView,
+						});
+					if (importRequestIdRef.current !== requestId) return;
+
+					const playableParts = availableParts.filter(
+						(p) => !p.isPercussion && p.noteCount > 0,
+					);
+					const pool =
+						playableParts.length > 0 ? playableParts : availableParts;
+					const targetInstrument = songDoc.instruments[0] ?? instrumentView;
+
+					applyLocalPreviewSong(songDoc, targetInstrument);
+
+					if (pool.length > 1) {
+						setPendingMusicXmlFile({
+							fileName: file.name,
+							xmlRoot,
+							title: songDoc.title,
+							parts: pool,
+							selectedPartId: selectedPart.partId,
+							instrument: targetInstrument,
+							localId,
+						});
+					} else {
+						setPendingMusicXmlFile(null);
+					}
+				},
+			);
 		},
-		[instrumentView, applyLocalPreviewSong],
+		[instrumentView, applyLocalPreviewSong, runImportTask],
 	);
 
 	const handleConfirmPartChoice = useCallback(
 		async (partId: string, targetInstrument: InstrumentTab) => {
 			if (!pendingMusicXmlFile) return;
-			const requestId = ++importRequestIdRef.current;
-			setIsImportingMusicXml(true);
-			setMusicXmlImportError(null);
-			try {
-				const { compileMusicXml } = await import("./musicxml");
-				const { songDoc } = await compileMusicXml(pendingMusicXmlFile.xmlRoot, {
-					id: pendingMusicXmlFile.localId,
-					partId,
-					instrument: targetInstrument,
-				});
-				if (importRequestIdRef.current !== requestId) return;
-
-				applyLocalPreviewSong(songDoc, targetInstrument);
-				setPendingMusicXmlFile((prev) =>
-					prev
-						? { ...prev, selectedPartId: partId, instrument: targetInstrument }
-						: null,
-				);
-			} catch (err) {
-				if (importRequestIdRef.current === requestId) {
-					setMusicXmlImportError(
-						err instanceof Error
-							? err.message
-							: "Failed to load selected MusicXML part.",
+			await runImportTask(
+				"Failed to load selected MusicXML part.",
+				async (requestId) => {
+					const { compileMusicXml } = await import("./musicxml");
+					const { songDoc } = await compileMusicXml(
+						pendingMusicXmlFile.xmlRoot,
+						{
+							id: pendingMusicXmlFile.localId,
+							partId,
+							instrument: targetInstrument,
+						},
 					);
-				}
-			} finally {
-				if (importRequestIdRef.current === requestId) {
-					setIsImportingMusicXml(false);
-				}
-			}
+					if (importRequestIdRef.current !== requestId) return;
+
+					applyLocalPreviewSong(songDoc, targetInstrument);
+					setPendingMusicXmlFile((prev) =>
+						prev
+							? {
+									...prev,
+									selectedPartId: partId,
+									instrument: targetInstrument,
+								}
+							: null,
+					);
+				},
+			);
 		},
-		[pendingMusicXmlFile, applyLocalPreviewSong],
+		[pendingMusicXmlFile, applyLocalPreviewSong, runImportTask],
 	);
 
 	const handleRemoveLocalPreview = useCallback(

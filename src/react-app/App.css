@@ -892,12 +892,6 @@
 	font-weight: 500;
 }
 
-.scale-notes-row {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 6px;
-}
-
 .scale-note-pill {
 	position: relative;
 	display: flex;
@@ -974,12 +968,6 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 5px;
-}
-
-.rel-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
 }
 
 .rel-card {
@@ -1241,12 +1229,6 @@
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-}
-
-.diatonic-chords-grid {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 6px;
 }
 
 .chords-footer-bar,
@@ -1624,10 +1606,11 @@
 	color: var(--text-primary);
 }
 
-.voicing-pill-pos {
-	font-size: 0.69rem;
+.voicing-pill-meta {
+	font-size: 0.68rem;
 	font-weight: 600;
 	color: var(--text-muted);
+	opacity: 0.9;
 }
 
 .q-major {
@@ -1653,11 +1636,6 @@
 	background: var(--q-soft, var(--color-tonic-soft));
 }
 
-.piano-badge {
-	background: var(--q-soft, var(--color-tonic-soft));
-	color: var(--q-color, var(--color-tonic));
-}
-
 .fretboard-scroll,
 .cello-neck-scroll {
 	width: 100%;
@@ -1665,13 +1643,17 @@
 	padding-bottom: 4px;
 }
 
-.fretboard-svg {
+.fretboard-svg,
+.cello-svg {
 	width: 100%;
-	min-width: 620px;
 	max-height: 192px;
 	height: auto;
 	display: block;
 	user-select: none;
+}
+
+.fretboard-svg {
+	min-width: 620px;
 }
 
 .fretboard-neck {
@@ -1695,7 +1677,8 @@
 	stroke-width: 1.5;
 }
 
-.fret-num-label {
+.fret-num-label,
+.cello-semi-label {
 	font-size: 9.5px;
 	font-weight: 600;
 	fill: var(--text-muted);
@@ -1723,7 +1706,8 @@
 	stroke: var(--fretboard-string);
 }
 
-.fret-hit-cell {
+.fret-hit-cell,
+.cello-hit-cell {
 	cursor: pointer;
 	outline: none;
 }
@@ -2198,19 +2182,8 @@
 	padding: 5px 10px;
 }
 
-.voicing-pill-meta {
-	font-size: 0.68rem;
-	font-weight: 600;
-	opacity: 0.78;
-}
-
 .cello-svg {
-	width: 100%;
 	min-width: 660px;
-	max-height: 192px;
-	height: auto;
-	display: block;
-	user-select: none;
 }
 
 .cello-hand-frame {
@@ -2239,13 +2212,6 @@
 	stroke-dasharray: 4 3;
 }
 
-.cello-semi-label {
-	font-size: 9.5px;
-	font-weight: 600;
-	fill: var(--text-muted);
-	font-variant-numeric: tabular-nums;
-}
-
 .cello-semi-label.is-guide {
 	font-weight: 700;
 	fill: var(--text-secondary);
@@ -2266,11 +2232,6 @@
 	font-size: 13px;
 	font-weight: 800;
 	fill: var(--color-dim);
-}
-
-.cello-hit-cell {
-	cursor: pointer;
-	outline: none;
 }
 
 .cello-hit-cell:hover .fret-dot-scale-bg,
@@ -2301,6 +2262,8 @@
 	font-weight: 700;
 	padding: 2px 8px;
 	border-radius: 999px;
+	background: var(--q-soft, var(--color-tonic-soft));
+	color: var(--q-color, var(--color-tonic));
 }
 
 .piano-svg {
@@ -2661,14 +2624,6 @@
 	color: var(--text-muted);
 }
 
-.color-cards-grid,
-.sec-dom-grid,
-.tritone-secondary-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-}
-
 .color-cards-grid > :last-child:nth-child(odd),
 .sec-dom-grid > :last-child:nth-child(odd),
 .tritone-secondary-grid > :last-child:nth-child(odd) {
@@ -2863,12 +2818,6 @@
 	color: var(--color-fourth);
 }
 
-.tritone-ab-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-}
-
 .tritone-branches {
 	display: grid;
 	grid-template-columns: 1fr;
@@ -2917,203 +2866,6 @@
 	font-size: 0.76rem;
 	font-weight: 750;
 	color: var(--text-secondary);
-}
-
-.song-play-btn.is-paused {
-	border-color: var(--color-tonic);
-	color: var(--color-tonic);
-	background: var(--color-tonic-soft);
-}
-
-.song-transport {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	align-items: center;
-	gap: 10px;
-	padding: 8px 10px;
-	border-radius: 10px;
-	background: var(--bg-card);
-	border: 1px solid var(--border-subtle);
-}
-
-.song-transport-controls {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-}
-
-.song-ctrl-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 30px;
-	height: 28px;
-	border-radius: 7px;
-	border: 1px solid var(--border-subtle);
-	background: var(--bg-elevated);
-	color: var(--text-primary);
-	font-size: 0.78rem;
-	font-weight: 700;
-	cursor: pointer;
-	transition:
-		background 120ms ease,
-		border-color 120ms ease,
-		transform 80ms ease;
-}
-
-.song-ctrl-btn:hover:not(:disabled) {
-	border-color: var(--color-fifth);
-	background: var(--color-fifth-soft);
-}
-
-.song-ctrl-btn:active:not(:disabled) {
-	transform: scale(0.95);
-}
-
-.song-ctrl-btn:disabled {
-	opacity: 0.38;
-	cursor: not-allowed;
-}
-
-.song-ctrl-btn.is-primary {
-	width: 34px;
-	border-color: var(--color-fifth);
-	color: var(--color-fifth);
-	background: var(--color-fifth-soft);
-}
-
-.song-ctrl-btn.is-primary.is-playing {
-	border-color: var(--color-tonic);
-	background: var(--color-tonic);
-	color: #090d14;
-}
-
-.song-scrubber-wrap {
-	display: flex;
-	align-items: center;
-	min-width: 0;
-}
-
-.song-scrubber {
-	width: 100%;
-	height: 6px;
-	border-radius: 999px;
-	appearance: none;
-	-webkit-appearance: none;
-	outline: none;
-	cursor: pointer;
-	background: linear-gradient(
-		90deg,
-		var(--color-fifth) 0%,
-		var(--color-fifth) var(--scrub-progress, 0%),
-		var(--border-subtle) var(--scrub-progress, 0%),
-		var(--border-subtle) 100%
-	);
-}
-
-.song-scrubber::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 14px;
-	height: 14px;
-	border-radius: 50%;
-	background: var(--color-tonic);
-	border: 2px solid var(--bg-card);
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
-	cursor: grab;
-	transition: transform 100ms ease;
-}
-
-.song-scrubber:active::-webkit-slider-thumb {
-	cursor: grabbing;
-	transform: scale(1.15);
-}
-
-.song-scrubber::-moz-range-thumb {
-	width: 14px;
-	height: 14px;
-	border-radius: 50%;
-	background: var(--color-tonic);
-	border: 2px solid var(--bg-card);
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
-	cursor: grab;
-}
-
-.song-scrubber:focus-visible {
-	box-shadow: 0 0 0 2px var(--color-fifth-soft);
-}
-
-.song-time-readout {
-	display: inline-flex;
-	align-items: center;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: 8px;
-	font-size: 0.74rem;
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
-}
-
-.song-speed-select {
-	font-family: inherit;
-	font-size: 0.72rem;
-	font-weight: 650;
-	font-variant-numeric: tabular-nums;
-	color: var(--text-primary);
-	background: var(--bg-elevated);
-	border: 1px solid var(--border-strong);
-	border-radius: 7px;
-	height: 26px;
-	padding: 2px 6px;
-	cursor: pointer;
-	transition: border-color 140ms ease;
-}
-
-.song-speed-select:hover,
-.song-speed-select:focus-visible {
-	border-color: var(--color-fifth);
-	outline: none;
-}
-
-.song-bar-counter {
-	font-weight: 700;
-	color: var(--text-primary);
-}
-
-.song-clock {
-	color: var(--text-secondary);
-}
-
-.song-live-status.is-paused .song-live-dot,
-.song-live-status.is-preview .song-live-dot {
-	animation: none;
-	opacity: 0.8;
-	background: var(--color-tonic);
-}
-
-.song-jump-play-btn {
-	margin-left: auto;
-	padding: 3px 9px;
-	border-radius: 999px;
-	border: 1px solid var(--color-fifth);
-	background: var(--color-fifth-soft);
-	color: var(--color-fifth);
-	font-size: 0.72rem;
-	font-weight: 700;
-	cursor: pointer;
-	white-space: nowrap;
-}
-
-.song-jump-play-btn:hover {
-	filter: brightness(1.12);
-}
-
-.song-timeline.is-long {
-	position: relative;
-	max-height: 360px;
-	overflow-y: auto;
-	padding: 2px 6px 2px 2px;
-	grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
 }
 
 /* Music Teacher -> Learn with Real Songs Section */
@@ -3391,6 +3143,12 @@
 	color: var(--color-tonic);
 }
 
+.song-play-btn.is-paused {
+	border-color: var(--color-tonic);
+	color: var(--color-tonic);
+	background: var(--color-tonic-soft);
+}
+
 .song-theory-note {
 	margin: 0;
 	font-size: 0.77rem;
@@ -3398,16 +3156,186 @@
 	color: var(--text-secondary);
 }
 
+.song-transport {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-subtle);
+}
+
+.song-transport-controls {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.song-ctrl-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 28px;
+	border-radius: 7px;
+	border: 1px solid var(--border-subtle);
+	background: var(--bg-elevated);
+	color: var(--text-primary);
+	font-size: 0.78rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition:
+		background 120ms ease,
+		border-color 120ms ease,
+		transform 80ms ease;
+}
+
+.song-ctrl-btn:hover:not(:disabled) {
+	border-color: var(--color-fifth);
+	background: var(--color-fifth-soft);
+}
+
+.song-ctrl-btn:active:not(:disabled) {
+	transform: scale(0.95);
+}
+
+.song-ctrl-btn:disabled {
+	opacity: 0.38;
+	cursor: not-allowed;
+}
+
+.song-ctrl-btn.is-primary {
+	width: 34px;
+	border-color: var(--color-fifth);
+	color: var(--color-fifth);
+	background: var(--color-fifth-soft);
+}
+
+.song-ctrl-btn.is-primary.is-playing {
+	border-color: var(--color-tonic);
+	background: var(--color-tonic);
+	color: #090d14;
+}
+
+.song-scrubber-wrap {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.song-scrubber {
+	width: 100%;
+	height: 6px;
+	border-radius: 999px;
+	appearance: none;
+	-webkit-appearance: none;
+	outline: none;
+	cursor: pointer;
+	background: linear-gradient(
+		90deg,
+		var(--color-fifth) 0%,
+		var(--color-fifth) var(--scrub-progress, 0%),
+		var(--border-subtle) var(--scrub-progress, 0%),
+		var(--border-subtle) 100%
+	);
+}
+
+.song-scrubber::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--color-tonic);
+	border: 2px solid var(--bg-card);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+	cursor: grab;
+	transition: transform 100ms ease;
+}
+
+.song-scrubber:active::-webkit-slider-thumb {
+	cursor: grabbing;
+	transform: scale(1.15);
+}
+
+.song-scrubber::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--color-tonic);
+	border: 2px solid var(--bg-card);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+	cursor: grab;
+}
+
+.song-scrubber:focus-visible {
+	box-shadow: 0 0 0 2px var(--color-fifth-soft);
+}
+
+.song-time-readout {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+	font-size: 0.74rem;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.song-speed-select {
+	font-family: inherit;
+	font-size: 0.72rem;
+	font-weight: 650;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-primary);
+	background: var(--bg-elevated);
+	border: 1px solid var(--border-strong);
+	border-radius: 7px;
+	height: 26px;
+	padding: 2px 6px;
+	cursor: pointer;
+	transition: border-color 140ms ease;
+}
+
+.song-speed-select:hover,
+.song-speed-select:focus-visible {
+	border-color: var(--color-fifth);
+	outline: none;
+}
+
+.song-bar-counter {
+	font-weight: 700;
+	color: var(--text-primary);
+}
+
+.song-clock {
+	color: var(--text-secondary);
+}
+
+.song-jump-play-btn {
+	margin-left: auto;
+	padding: 3px 9px;
+	border-radius: 999px;
+	border: 1px solid var(--color-fifth);
+	background: var(--color-fifth-soft);
+	color: var(--color-fifth);
+	font-size: 0.72rem;
+	font-weight: 700;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.song-jump-play-btn:hover {
+	filter: brightness(1.12);
+}
+
 /* Interactive Song Study Guide */
 .song-study-guide {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-}
-
-.song-guide-brief {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
 }
 
@@ -3616,6 +3544,13 @@
 	animation: song-pulse 1.1s ease-in-out infinite;
 }
 
+.song-live-status.is-paused .song-live-dot,
+.song-live-status.is-preview .song-live-dot {
+	animation: none;
+	opacity: 0.8;
+	background: var(--color-tonic);
+}
+
 .song-coach-body {
 	display: flex;
 	flex-direction: column;
@@ -3786,6 +3721,13 @@
 	gap: 9px;
 }
 
+.song-timeline.is-long {
+	position: relative;
+	max-height: 360px;
+	overflow-y: auto;
+	padding: 2px 6px 2px 2px;
+}
+
 .song-step-btn {
 	text-align: left;
 	padding: 10px 12px;
@@ -3883,17 +3825,34 @@
 	gap: 6px;
 }
 
-.song-guide-drawer {
+.song-guide-drawer,
+.guitar-details-drawer {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 
 .guitar-details-drawer {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
 	margin-top: 6px;
+}
+
+/* Shared Layout Grids */
+.scale-notes-row,
+.diatonic-chords-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.rel-grid,
+.color-cards-grid,
+.sec-dom-grid,
+.tritone-secondary-grid,
+.tritone-ab-grid,
+.song-guide-brief {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
 }
 
 /* Responsive Breakpoints */
@@ -3958,8 +3917,7 @@
 	.song-time-readout {
 		justify-self: end;
 	}
-	.song-timeline,
-	.song-timeline.is-long {
+	.song-timeline {
 		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
 	}
 	.song-timeline.is-long {
