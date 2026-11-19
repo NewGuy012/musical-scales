@@ -2,7 +2,6 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
 	type InstrumentTab,
 	type SongExample,
-	describeRomanFunction,
 	findPlaybackEventAtTime,
 	findSongSectionForBar,
 	flattenSongPlaybackSteps,
@@ -21,7 +20,7 @@ const PRACTICE_SPEED_OPTIONS = [
 	{ value: 2, label: "2x", title: "Practice speed 2x" },
 ] as const;
 
-export interface OtherInstrumentSongCount {
+interface OtherInstrumentSongCount {
 	instrument: InstrumentTab;
 	label: string;
 	count: number;
@@ -566,8 +565,7 @@ function SongCard({
 								</strong>{" "}
 								·{" "}
 								<span className="song-live-fn">
-									{statusStep.theory?.roleLabel ??
-										describeRomanFunction(statusStep.roman, statusStep.quality)}
+									{statusStep.theory?.roleLabel ?? statusStep.roman}
 								</span>
 								{liveStep && activeNoteLabel
 									? ` · Note: ${activeNoteLabel}`

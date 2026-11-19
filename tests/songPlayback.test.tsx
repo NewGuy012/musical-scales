@@ -16,7 +16,6 @@ import {
 } from "../src/react-app/songs/songCatalog";
 import {
 	type SongDocument,
-	describeRomanFunction,
 	findPlaybackEventAtTime,
 	flattenSongPlaybackSteps,
 	formatSongTime,
@@ -572,17 +571,6 @@ describe("songPlayback helpers and synchronized UI", () => {
 				expect(evt.midi[idx]).toBe(openMidi + offset);
 			});
 		}
-
-		expect(describeRomanFunction("I6", "major")).toContain("Tonic");
-		expect(describeRomanFunction("V7/vi", "major")).toContain(
-			"Secondary dominant",
-		);
-		expect(describeRomanFunction("i♭", "minor")).toContain("Borrowed");
-		expect(describeRomanFunction("i5", "minor")).toContain("Minor tonic");
-		expect(describeRomanFunction("♭VII5", "major")).toContain("Subtonic");
-		expect(describeRomanFunction("♯v°", "diminished")).toContain(
-			"leading-tone",
-		);
 
 		const polyDoc: SongDocument = {
 			version: 2,

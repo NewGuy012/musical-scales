@@ -1,9 +1,10 @@
-import type {
-	BarTheoryInsight,
-	BarTheoryOverride,
-	SongChordStep,
-	SongStudyGuide,
-	SongSubBarChord,
+import {
+	type BarTheoryInsight,
+	type BarTheoryOverride,
+	type SongChordStep,
+	type SongStudyGuide,
+	type SongSubBarChord,
+	findSongSectionForBar,
 } from "../songs/songRuntime";
 import {
 	type ChordQuality,
@@ -11,11 +12,12 @@ import {
 	type KeyMode,
 	analyzeKey,
 	mod12,
-	noteToPitchClass,
+	splitChordSymbol,
+	tryNoteToPitchClass,
 } from "./circleOfFifths";
 import type { GuitarChordKind } from "./guitarFretboard";
 
-export interface AnalyzeSongTheoryInput {
+interface AnalyzeSongTheoryInput {
 	keySlot: number;
 	keyMode: KeyMode;
 	keyLabel: string;
@@ -60,25 +62,46 @@ interface BarChordSpan {
 	atoms: ChordAtom[];
 }
 
-interface BassRunInfo {
+interface RunSpan {
 	startIdx: number;
 	endIdx: number;
 	length: number;
+}
+
+interface BassRunInfo extends RunSpan {
 	bassName: string;
 }
 
-const CHORD_ROOT_RE = /^([A-G][♯♭]?)(.*)$/;
-
-function normalizeAcc(raw: string): string {
-	return raw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
+interface BarAnalysisContext {
+	idx: number;
+	totalBars: number;
+	atom: ChordAtom;
+	lastAtom: ChordAtom;
+	subAtoms: readonly ChordAtom[];
+	prevLast: ChordAtom | null;
+	nextFirst: ChordAtom | null;
+	contextualRoman: string;
+	bassRun: BassRunInfo;
+	sameChordRun: RunSpan;
+	isCadenceArrival: boolean;
+	isPlagalArrival: boolean;
+	isMinorPlagal: boolean;
+	isDeceptiveArrival: boolean;
+	isHalfCadence: boolean;
+	isCadential64: boolean;
+	isPicardy: boolean;
+	isParallelMinor: boolean;
+	isSecondaryDom: boolean;
+	isTritoneSub: boolean;
+	isPassingDim: boolean;
+	isIiVI: boolean;
+	isChromaticBass: boolean;
+	hasTritoneRes: boolean;
+	sharedTonesCount: number;
 }
 
 function safePitchClass(note: string): number {
-	try {
-		return noteToPitchClass(note);
-	} catch {
-		return 0;
-	}
+	return tryNoteToPitchClass(note) ?? 0;
 }
 
 function parseChordAtom(
@@ -93,14 +116,14 @@ function parseChordAtom(
 	tonicPc: number,
 	scalePcSet: ReadonlySet<number>,
 ): ChordAtom {
-	const normalized = normalizeAcc(input.chordSymbol);
-	const [baseRaw, bassRaw] = normalized.split("/");
-	const baseSymbol = baseRaw?.trim() || normalized;
-	const bassNote = bassRaw?.trim() || null;
-
-	const match = CHORD_ROOT_RE.exec(baseSymbol);
-	const parsedRoot = match?.[1] ?? input.chordNotes?.[0] ?? keyAnalysis.root;
-	const suffix = match?.[2] ?? "";
+	const {
+		normalized,
+		baseSymbol,
+		bassNote,
+		rootName: matchedRoot,
+		suffix,
+	} = splitChordSymbol(input.chordSymbol);
+	const parsedRoot = matchedRoot ?? input.chordNotes?.[0] ?? keyAnalysis.root;
 	const rootName = input.chordNotes?.[0] || parsedRoot;
 	const rootPc = safePitchClass(parsedRoot);
 	const bassPc = bassNote ? safePitchClass(bassNote) : rootPc;
@@ -295,46 +318,24 @@ function deriveContextualRoman(
 	return currFirst.roman;
 }
 
-function computeBassRuns(spans: readonly BarChordSpan[]): BassRunInfo[] {
-	const runs: BassRunInfo[] = new Array(spans.length);
+function computeRuns<T, R extends RunSpan>(
+	items: readonly T[],
+	getKey: (item: T) => string | number,
+	buildRun: (span: RunSpan, first: T) => R,
+): R[] {
+	const runs: R[] = new Array(items.length);
 	let i = 0;
-	while (i < spans.length) {
-		const pc = spans[i].first.bassPc;
+	while (i < items.length) {
+		const key = getKey(items[i]);
 		let end = i;
-		while (end + 1 < spans.length && spans[end + 1].first.bassPc === pc) {
+		while (end + 1 < items.length && getKey(items[end + 1]) === key) {
 			end++;
 		}
-		const bassName = spans[i].first.bassNote ?? spans[i].first.rootName;
-		const info: BassRunInfo = {
-			startIdx: i,
-			endIdx: end,
-			length: end - i + 1,
-			bassName,
-		};
-		for (let k = i; k <= end; k++) {
-			runs[k] = info;
-		}
-		i = end + 1;
-	}
-	return runs;
-}
-
-function computeSameChordRuns(
-	spans: readonly BarChordSpan[],
-): Array<{ startIdx: number; endIdx: number; length: number }> {
-	const runs: Array<{ startIdx: number; endIdx: number; length: number }> =
-		new Array(spans.length);
-	let i = 0;
-	while (i < spans.length) {
-		const base = spans[i].first.baseSymbol;
-		let end = i;
-		while (end + 1 < spans.length && spans[end + 1].first.baseSymbol === base) {
-			end++;
-		}
-		const info = { startIdx: i, endIdx: end, length: end - i + 1 };
-		for (let k = i; k <= end; k++) {
-			runs[k] = info;
-		}
+		const info = buildRun(
+			{ startIdx: i, endIdx: end, length: end - i + 1 },
+			items[i],
+		);
+		for (let k = i; k <= end; k++) runs[k] = info;
 		i = end + 1;
 	}
 	return runs;
@@ -598,115 +599,71 @@ function summarizeSubBarSequence(
 	return `Inside this bar (${chain}): moves through ${atoms.length} chord shapes to keep harmonic motion active before the next barline.`;
 }
 
-function findCurrentSection(
-	studyGuide: SongStudyGuide | undefined,
-	stepIndex: number,
-) {
-	if (!studyGuide || studyGuide.sections.length === 0) return null;
-	return (
-		studyGuide.sections.find(
-			(s) => stepIndex >= s.startStepIndex && stepIndex <= s.endStepIndex,
-		) ?? null
-	);
-}
-
-function buildDevicesList(params: {
-	atom: ChordAtom;
-	contextualRoman: string;
-	bassRun: BassRunInfo;
-	isCadenceArrival: boolean;
-	isHalfCadence: boolean;
-	isDeceptiveArrival: boolean;
-	isMinorPlagal: boolean;
-	isCadential64: boolean;
-	isIiVI: boolean;
-	isChromaticBass: boolean;
-	isSecondaryDom: boolean;
-	hasTritoneRes: boolean;
-	sharedTonesCount: number;
-	hasSubBars: boolean;
-}): string[] {
+function buildDevicesList(ctx: BarAnalysisContext): string[] {
 	const tags: string[] = [];
-	if (params.bassRun.length >= 2) {
-		tags.push(`${params.bassRun.bassName} Bass Pedal`);
+	if (ctx.bassRun.length >= 2) {
+		tags.push(`${ctx.bassRun.bassName} Bass Pedal`);
 	}
-	if (params.atom.bassRole === "third") tags.push("3rd in Bass");
-	else if (params.atom.bassRole === "fifth") tags.push("5th in Bass");
-	else if (params.atom.bassRole === "seventh") tags.push("7th in Bass");
-	else if (params.atom.bassRole === "iv-over-5")
-		tags.push("IV/5 Dominant Susp.");
+	if (ctx.atom.bassRole === "third") tags.push("3rd in Bass");
+	else if (ctx.atom.bassRole === "fifth") tags.push("5th in Bass");
+	else if (ctx.atom.bassRole === "seventh") tags.push("7th in Bass");
+	else if (ctx.atom.bassRole === "iv-over-5") tags.push("IV/5 Dominant Susp.");
 
-	if (params.isSecondaryDom) {
-		tags.push(`Secondary Dom. (${params.contextualRoman})`);
+	if (ctx.isSecondaryDom) {
+		tags.push(`Secondary Dom. (${ctx.contextualRoman})`);
 	}
-	if (params.isMinorPlagal) tags.push("Minor Plagal (iv→I)");
-	else if (params.isCadential64) tags.push("Cadential I/5");
-	else if (params.isDeceptiveArrival) tags.push("Deceptive Cadence");
-	else if (params.isCadenceArrival) tags.push("Authentic Cadence");
-	else if (params.isHalfCadence) tags.push("Half Cadence");
+	if (ctx.isMinorPlagal) tags.push("Minor Plagal (iv→I)");
+	else if (ctx.isCadential64) tags.push("Cadential I/5");
+	else if (ctx.isDeceptiveArrival) tags.push("Deceptive Cadence");
+	else if (ctx.isCadenceArrival || ctx.isPlagalArrival)
+		tags.push("Authentic Cadence");
+	else if (ctx.isHalfCadence) tags.push("Half Cadence");
 
-	if (params.isIiVI) tags.push("ii–V–I Turnaround");
-	if (params.isChromaticBass) tags.push("Chromatic Bass Walk");
-	if (params.hasTritoneRes) tags.push("Tritone Resolution");
-	if (params.atom.outOfKeyNotes.length > 0) {
-		tags.push(`Chromatic: ${params.atom.outOfKeyNotes.join(", ")}`);
+	if (ctx.isIiVI) tags.push("ii–V–I Turnaround");
+	if (ctx.isChromaticBass) tags.push("Chromatic Bass Walk");
+	if (ctx.hasTritoneRes) tags.push("Tritone Resolution");
+	if (ctx.atom.outOfKeyNotes.length > 0) {
+		tags.push(`Chromatic: ${ctx.atom.outOfKeyNotes.join(", ")}`);
 	}
-	if (params.hasSubBars) tags.push("Multi-Chord Bar");
-	if (tags.length < 3 && params.sharedTonesCount > 0) {
+	if (ctx.subAtoms.length > 1) tags.push("Multi-Chord Bar");
+	if (tags.length < 3 && ctx.sharedTonesCount > 0) {
 		tags.push(
-			`${params.sharedTonesCount} Shared Tone${params.sharedTonesCount > 1 ? "s" : ""}`,
+			`${ctx.sharedTonesCount} Shared Tone${ctx.sharedTonesCount > 1 ? "s" : ""}`,
 		);
 	}
 	return tags.slice(0, 4);
 }
 
-function buildRoleLabel(params: {
-	idx: number;
-	totalBars: number;
-	atom: ChordAtom;
-	contextualRoman: string;
-	bassRun: BassRunInfo;
-	isCadenceArrival: boolean;
-	isPlagalArrival: boolean;
-	isMinorPlagal: boolean;
-	isDeceptiveArrival: boolean;
-	isHalfCadence: boolean;
-	isCadential64: boolean;
-	isPicardy: boolean;
-	isParallelMinor: boolean;
-	isSecondaryDom: boolean;
-	isTritoneSub: boolean;
-	isPassingDim: boolean;
-}): string {
-	const { atom, bassRun } = params;
+function buildRoleLabel(ctx: BarAnalysisContext): string {
+	const { atom, bassRun } = ctx;
 	const hasPedal = bassRun.length >= 2;
 	const pedalSuffix = hasPedal ? ` · ${bassRun.bassName} Pedal` : "";
 
-	if (params.isPicardy) return "Picardy Major Turn";
-	if (params.isParallelMinor) return "Parallel Minor Flip";
-	if (params.isMinorPlagal) return "Minor Plagal Cadence";
-	if (params.isDeceptiveArrival) return "Deceptive Cadence";
-	if (params.isCadenceArrival && params.idx === params.totalBars - 1) {
+	if (ctx.isPicardy) return "Picardy Major Turn";
+	if (ctx.isParallelMinor) return "Parallel Minor Flip";
+	if (ctx.isMinorPlagal) return "Minor Plagal Cadence";
+	if (ctx.isDeceptiveArrival) return "Deceptive Cadence";
+	if (ctx.isCadenceArrival && ctx.idx === ctx.totalBars - 1) {
 		return "Final Cadence Home";
 	}
-	if (params.isCadenceArrival) return `Cadence Arrival${pedalSuffix}`;
-	if (params.isPlagalArrival) return "Plagal Amen Cadence";
-	if (params.isCadential64)
+	if (ctx.isCadenceArrival) return `Cadence Arrival${pedalSuffix}`;
+	if (ctx.isPlagalArrival) return "Plagal Amen Cadence";
+	if (ctx.isCadential64)
 		return `Suspended Cadential ${atom.baseSymbol}/${atom.bassNote}`;
 	if (atom.bassRole === "iv-over-5") return "IV/5 Dominant Susp.";
-	if (params.isTritoneSub)
-		return `Tritone Sub → ${params.contextualRoman.split("/")[1] ?? "Target"}`;
-	if (params.isSecondaryDom) {
-		const target = params.contextualRoman.split("/")[1] ?? "Next";
+	if (ctx.isTritoneSub)
+		return `Tritone Sub → ${ctx.contextualRoman.split("/")[1] ?? "Target"}`;
+	if (ctx.isSecondaryDom) {
+		const target = ctx.contextualRoman.split("/")[1] ?? "Next";
 		return `Secondary Dom. → ${target}`;
 	}
-	if (params.isPassingDim) return "Passing Diminished Bridge";
-	if (params.idx === 0 && atom.keyOffset === 0) {
+	if (ctx.isPassingDim) return "Passing Diminished Bridge";
+	if (ctx.idx === 0 && atom.keyOffset === 0) {
 		return hasPedal
 			? `Tonic · Launches ${bassRun.bassName} Pedal`
 			: "Tonic Home Base";
 	}
-	if (params.isHalfCadence) return `Half Cadence · Pause on V${pedalSuffix}`;
+	if (ctx.isHalfCadence) return `Half Cadence · Pause on V${pedalSuffix}`;
 	if (isDominantFunction(atom)) {
 		if (atom.bassRole === "third") return "Dominant · Leading Bass";
 		return `Dominant Tension${pedalSuffix}`;
@@ -726,73 +683,58 @@ function buildRoleLabel(params: {
 	return `${atom.bassRole === "seventh" ? "3rd Inv. Bridge" : "Harmonic Bridge"}${pedalSuffix}`;
 }
 
-function buildCardSummary(params: {
-	idx: number;
-	totalBars: number;
-	atom: ChordAtom;
-	lastAtom: ChordAtom;
-	subAtoms: readonly ChordAtom[];
-	prevLast: ChordAtom | null;
-	nextFirst: ChordAtom | null;
-	contextualRoman: string;
-	bassRun: BassRunInfo;
-	sameChordRun: { startIdx: number; endIdx: number; length: number };
-	isCadenceArrival: boolean;
-	isPlagalArrival: boolean;
-	isMinorPlagal: boolean;
-	isDeceptiveArrival: boolean;
-	isHalfCadence: boolean;
-	isCadential64: boolean;
-	isPicardy: boolean;
-	isParallelMinor: boolean;
-	isSecondaryDom: boolean;
-	isTritoneSub: boolean;
-	isPassingDim: boolean;
-	isIiVI: boolean;
-}): string {
-	const { atom, prevLast, nextFirst, bassRun, sameChordRun } = params;
+function buildCardSummary(ctx: BarAnalysisContext): string {
+	const {
+		atom,
+		lastAtom,
+		subAtoms,
+		prevLast,
+		nextFirst,
+		bassRun,
+		sameChordRun,
+	} = ctx;
 
 	if (
-		params.subAtoms.length >= 3 &&
+		subAtoms.length >= 3 &&
 		atom.keyOffset === 0 &&
-		params.lastAtom.keyOffset === 0
+		lastAtom.keyOffset === 0
 	) {
-		return `Full ${atom.roman}–…–${params.lastAtom.roman} cadence inside one bar`;
+		return `Full ${atom.roman}–…–${lastAtom.roman} cadence inside one bar`;
 	}
-	if (params.isPicardy) return "Brightens minor key into major tonic";
-	if (params.isParallelMinor) return "Flips major tonic into parallel minor";
-	if (params.isMinorPlagal) {
+	if (ctx.isPicardy) return "Brightens minor key into major tonic";
+	if (ctx.isParallelMinor) return "Flips major tonic into parallel minor";
+	if (ctx.isMinorPlagal) {
 		return `Borrowed ${atom.baseSymbol} sighs softly home to ${nextFirst?.baseSymbol ?? "I"}`;
 	}
-	if (params.isCadential64 && nextFirst) {
+	if (ctx.isCadential64 && nextFirst) {
 		return `5th (${atom.bassNote}) in bass suspends arrival into ${nextFirst.chordSymbol}`;
 	}
 	if (atom.bassRole === "iv-over-5" && nextFirst) {
 		return `Lush IV over ${atom.bassNote} bass acts as suspended V`;
 	}
-	if (params.isDeceptiveArrival && prevLast) {
+	if (ctx.isDeceptiveArrival && prevLast) {
 		return `Surprises ${prevLast.baseSymbol} by landing on ${atom.baseSymbol} instead of home`;
 	}
-	if (params.isCadenceArrival && prevLast) {
-		if (params.idx === params.totalBars - 1) {
+	if (ctx.isCadenceArrival && prevLast) {
+		if (ctx.idx === ctx.totalBars - 1) {
 			return `Final release of ${prevLast.chordSymbol} tension home`;
 		}
 		return nextFirst
 			? `Resolves ${prevLast.chordSymbol} home; leads to ${nextFirst.chordSymbol}`
 			: `Resolves ${prevLast.chordSymbol} tension cleanly home`;
 	}
-	if (params.isPlagalArrival && prevLast) {
+	if (ctx.isPlagalArrival && prevLast) {
 		return `Warm plagal release from ${prevLast.chordSymbol} home`;
 	}
-	if (params.isTritoneSub && nextFirst) {
+	if (ctx.isTritoneSub && nextFirst) {
 		return `Half-step tritone sub sliding down into ${nextFirst.chordSymbol}`;
 	}
-	if (params.isSecondaryDom && nextFirst) {
+	if (ctx.isSecondaryDom && nextFirst) {
 		return atom.outOfKeyNotes.length > 0
 			? `Borrowed ${atom.outOfKeyNotes[0]} aims straight at ${nextFirst.chordSymbol}`
 			: `Fifth-pulling dominant aimed at ${nextFirst.chordSymbol}`;
 	}
-	if (params.isPassingDim && prevLast && nextFirst) {
+	if (ctx.isPassingDim && prevLast && nextFirst) {
 		return `Chromatic dim bridge (${prevLast.baseSymbol} → ${nextFirst.baseSymbol})`;
 	}
 	if (atom.bassRole === "seventh" && nextFirst) {
@@ -815,19 +757,19 @@ function buildCardSummary(params: {
 	) {
 		return `Holds ${atom.bassNote} bass pedal into ${nextFirst.chordSymbol}`;
 	}
-	if (params.idx === 0) {
+	if (ctx.idx === 0) {
 		return bassRun.length >= 2
 			? `Sets home key; starts ${bassRun.bassName} bass pedal`
 			: `Establishes home key (${atom.baseSymbol}) at the downbeat`;
 	}
-	if (sameChordRun.length >= 2 && params.idx > sameChordRun.startIdx) {
+	if (sameChordRun.length >= 2 && ctx.idx > sameChordRun.startIdx) {
 		if (atom.bassNote && prevLast?.bassNote !== atom.bassNote) {
 			return `Inverts ${atom.baseSymbol} over ${atom.bassNote} to keep motion alive`;
 		}
 		if (nextFirst && nextFirst.baseSymbol !== atom.baseSymbol) {
 			return `Holds ${atom.baseSymbol} before moving to ${nextFirst.chordSymbol}`;
 		}
-		return `Sustains ${atom.baseSymbol} (${params.idx - sameChordRun.startIdx + 1} of ${sameChordRun.length} bars)`;
+		return `Sustains ${atom.baseSymbol} (${ctx.idx - sameChordRun.startIdx + 1} of ${sameChordRun.length} bars)`;
 	}
 	if (prevLast?.baseSymbol === atom.baseSymbol) {
 		if (atom.bassNote && prevLast.bassNote !== atom.bassNote) {
@@ -838,10 +780,10 @@ function buildCardSummary(params: {
 		}
 		return `Continues ${atom.baseSymbol} across the barline`;
 	}
-	if (params.isHalfCadence && nextFirst) {
+	if (ctx.isHalfCadence && nextFirst) {
 		return `Holds dominant tension before shifting to ${nextFirst.chordSymbol}`;
 	}
-	if (params.isIiVI && nextFirst) {
+	if (ctx.isIiVI && nextFirst) {
 		return `Pre-dominant step leaning into ${nextFirst.chordSymbol}`;
 	}
 	if (atom.outOfKeyNotes.length > 0 && nextFirst) {
@@ -856,7 +798,7 @@ function buildCardSummary(params: {
 	if (nextFirst) {
 		return `Sets up ${nextFirst.chordSymbol} (${nextFirst.roman})`;
 	}
-	return `Closes on ${atom.chordSymbol} (${params.contextualRoman})`;
+	return `Closes on ${atom.chordSymbol} (${ctx.contextualRoman})`;
 }
 
 /**
@@ -892,8 +834,19 @@ export function analyzeSongBarTheory(
 		};
 	});
 
-	const bassRuns = computeBassRuns(spans);
-	const sameChordRuns = computeSameChordRuns(spans);
+	const bassRuns = computeRuns(
+		spans,
+		(s) => s.first.bassPc,
+		(span, first) => ({
+			...span,
+			bassName: first.first.bassNote ?? first.first.rootName,
+		}),
+	);
+	const sameChordRuns = computeRuns(
+		spans,
+		(s) => s.first.baseSymbol,
+		(span) => span,
+	);
 	const contextualRomans = spans.map((span, idx) =>
 		deriveContextualRoman(
 			span.first,
@@ -1036,7 +989,7 @@ export function analyzeSongBarTheory(
 					mod12(nextFirst.bassPc - last.bassPc) === 11)),
 		);
 
-		const section = findCurrentSection(studyGuide, idx);
+		const section = findSongSectionForBar(studyGuide, idx, false);
 		const hasMultipleSections = (studyGuide?.sections.length ?? 0) > 1;
 		const subBarFlow = summarizeSubBarSequence(span.atoms, keyMode);
 
@@ -1204,26 +1157,7 @@ export function analyzeSongBarTheory(
 		}
 		const whyItWorks = whyParts.slice(0, 2).join(" ");
 
-		const roleLabel = buildRoleLabel({
-			idx,
-			totalBars: steps.length,
-			atom: first,
-			contextualRoman,
-			bassRun,
-			isCadenceArrival,
-			isPlagalArrival,
-			isMinorPlagal,
-			isDeceptiveArrival,
-			isHalfCadence,
-			isCadential64,
-			isPicardy,
-			isParallelMinor,
-			isSecondaryDom,
-			isTritoneSub,
-			isPassingDim,
-		});
-
-		const cardSummary = buildCardSummary({
+		const ctx: BarAnalysisContext = {
 			idx,
 			totalBars: steps.length,
 			atom: first,
@@ -1246,35 +1180,25 @@ export function analyzeSongBarTheory(
 			isTritoneSub,
 			isPassingDim,
 			isIiVI,
-		});
-
-		const devices = buildDevicesList({
-			atom: first,
-			contextualRoman,
-			bassRun,
-			isCadenceArrival: isCadenceArrival || isPlagalArrival,
-			isHalfCadence,
-			isDeceptiveArrival,
-			isMinorPlagal,
-			isCadential64,
-			isIiVI,
 			isChromaticBass,
-			isSecondaryDom,
 			hasTritoneRes: Boolean(tritoneToNext || tritoneFromPrev),
 			sharedTonesCount: Math.max(sharedPrev.length, sharedNext.length),
-			hasSubBars,
-		});
+		};
 
-		const override = barNotes?.[String(idx + 1)];
+		const barKey = String(idx + 1);
+		const override =
+			barNotes && Object.hasOwn(barNotes, barKey)
+				? barNotes[barKey]
+				: undefined;
 		return {
-			roleLabel: override?.roleLabel ?? roleLabel,
+			roleLabel: override?.roleLabel ?? buildRoleLabel(ctx),
 			contextualRoman: override?.contextualRoman ?? contextualRoman,
-			cardSummary: override?.cardSummary ?? cardSummary,
+			cardSummary: override?.cardSummary ?? buildCardSummary(ctx),
 			whatItDoes: override?.whatItDoes ?? whatItDoes,
 			biggerPicture: override?.biggerPicture ?? biggerPicture,
 			whyItWorks: override?.whyItWorks ?? whyItWorks,
 			...(subBarFlow ? { subBarFlow } : {}),
-			devices: override?.devices ?? devices,
+			devices: override?.devices ?? buildDevicesList(ctx),
 		};
 	});
 }

@@ -83,8 +83,10 @@ import {
 	mod12,
 	noteToPitchClass,
 	pcToCircleIndex,
+	tryNoteToPitchClass,
 } from "./theory/circleOfFifths";
 import {
+	CHORD_VARIATION_BY_KIND,
 	CHORD_VARIATION_SPECS,
 	GuitarChordKind,
 	GuitarVoicing,
@@ -803,7 +805,7 @@ export function App() {
 				variation.quality,
 			);
 
-			const spec = CHORD_VARIATION_SPECS.find((s) => s.kind === kind);
+			const spec = CHORD_VARIATION_BY_KIND[kind];
 			setAuditionOverride({
 				id: `var-${activeRootNote}-${kind}`,
 				label: variation.symbol,
@@ -1034,7 +1036,9 @@ export function App() {
 			.map((s) => scaleSongExampleSpeed(s, songPlaybackSpeed));
 		const catalogSongs = getCatalogStubSongsForInstrument(instrumentView).map(
 			(stub) => {
-				const loaded = loadedSongsById[stub.id];
+				const loaded = Object.hasOwn(loadedSongsById, stub.id)
+					? loadedSongsById[stub.id]
+					: undefined;
 				return loaded ? scaleSongExampleSpeed(loaded, songPlaybackSpeed) : stub;
 			},
 		);
@@ -1064,11 +1068,13 @@ export function App() {
 			const localMatch = localPreviewSongs.find((s) => s.id === songId);
 			if (localMatch)
 				return scaleSongExampleSpeed(localMatch, songPlaybackSpeed);
-			const cached = loadedSongsById[songId];
+			const cached = Object.hasOwn(loadedSongsById, songId)
+				? loadedSongsById[songId]
+				: undefined;
 			if (cached) return scaleSongExampleSpeed(cached, songPlaybackSpeed);
 			const loaded = await loadSongById(songId);
 			setLoadedSongsById((prev) =>
-				prev[songId] ? prev : { ...prev, [songId]: loaded },
+				Object.hasOwn(prev, songId) ? prev : { ...prev, [songId]: loaded },
 			);
 			return scaleSongExampleSpeed(loaded, songPlaybackSpeed);
 		},
@@ -1091,13 +1097,17 @@ export function App() {
 				subBarChord?.circleSlotIndex ?? step.circleSlotIndex;
 
 			const candidateChord = songAnalysis.chords[effectiveDegree - 1] ?? null;
+			const candidateRootPc = tryNoteToPitchClass(
+				candidateChord?.triadNotes[0] ?? "",
+			);
+			const effectiveRootPc = tryNoteToPitchClass(effectiveNotes[0] ?? "");
 			const isDiatonicCardMatch =
 				candidateChord !== null &&
 				candidateChord.quality === effectiveQuality &&
 				(effectiveSlotIndex === undefined ||
 					candidateChord.circleIndex === effectiveSlotIndex) &&
-				noteToPitchClass(candidateChord.triadNotes[0] ?? "") ===
-					noteToPitchClass(effectiveNotes[0] ?? "");
+				candidateRootPc !== null &&
+				candidateRootPc === effectiveRootPc;
 
 			const wheelHighlight: WheelChordHighlight | null = isDiatonicCardMatch
 				? candidateChord
@@ -1454,7 +1464,7 @@ export function App() {
 	useEffect(() => {
 		if (
 			!selectedSongId ||
-			loadedSongsById[selectedSongId] ||
+			Object.hasOwn(loadedSongsById, selectedSongId) ||
 			localPreviewSongs.some((s) => s.id === selectedSongId)
 		) {
 			return;
@@ -1464,7 +1474,9 @@ export function App() {
 			.then((loaded) => {
 				if (!cancelled) {
 					setLoadedSongsById((prev) =>
-						prev[selectedSongId] ? prev : { ...prev, [selectedSongId]: loaded },
+						Object.hasOwn(prev, selectedSongId)
+							? prev
+							: { ...prev, [selectedSongId]: loaded },
 					);
 				}
 			})
@@ -1653,7 +1665,9 @@ export function App() {
 			if (!activeId) return;
 			const baseSong =
 				localPreviewSongs.find((s) => s.id === activeId) ??
-				loadedSongsById[activeId];
+				(Object.hasOwn(loadedSongsById, activeId)
+					? loadedSongsById[activeId]
+					: undefined);
 			if (!baseSong) return;
 			const scaledSong = scaleSongExampleSpeed(baseSong, clamped);
 			const scaledPosMs = Math.max(0, songPositionMsRef.current * ratio);
@@ -1723,8 +1737,17 @@ export function App() {
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
-			const tag = (e.target as HTMLElement | null)?.tagName;
-			if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+			if (e.metaKey || e.ctrlKey || e.altKey) return;
+			const el = e.target as HTMLElement | null;
+			const tag = el?.tagName;
+			if (
+				tag === "INPUT" ||
+				tag === "TEXTAREA" ||
+				tag === "SELECT" ||
+				el?.isContentEditable
+			) {
+				return;
+			}
 
 			if (e.key === "Escape") {
 				if (openPopover !== null) {

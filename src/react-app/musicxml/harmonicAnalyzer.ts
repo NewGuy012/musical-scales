@@ -7,12 +7,15 @@ import {
 	SHARP_CHROMATIC,
 	analyzeKey,
 	mod12,
+	normalizeAccidentals,
 	noteToPitchClass,
 	pcToCircleIndex,
 	resolveSlotVariant,
+	splitChordSymbol,
 } from "../theory/circleOfFifths";
 import {
 	CHORD_INTERVAL_MAP,
+	CHORD_VARIATION_BY_KIND,
 	type GuitarChordKind,
 	buildChordVariation,
 } from "../theory/guitarFretboard";
@@ -128,7 +131,7 @@ export function resolveKeySignatureFromRootPc(
 export function parseExplicitKeyOption(
 	keyRaw: string,
 ): KeySignatureResolution | null {
-	const cleaned = keyRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
+	const cleaned = normalizeAccidentals(keyRaw);
 	const match = /^([A-G][♯♭]?)\s*(major|maj|minor|min|m)?$/i.exec(cleaned);
 	if (!match) return null;
 	const [, rootToken, modeToken] = match;
@@ -218,14 +221,7 @@ export function detectKeyFromEvents(
 		if (!parsed) continue;
 		const isPowerOrSus =
 			parsed.suffix === "5" || parsed.suffix.startsWith("sus");
-		const quality: ChordQuality =
-			parsed.kind === "minor" || parsed.kind === "m7" || parsed.kind === "madd9"
-				? "minor"
-				: parsed.kind === "diminished" ||
-					  parsed.kind === "dim7" ||
-					  parsed.kind === "m7♭5"
-					? "diminished"
-					: "major";
+		const quality = CHORD_VARIATION_BY_KIND[parsed.kind].quality;
 		parsedHarmonies.push({
 			rootPc: parsed.rootPc,
 			quality,
@@ -626,13 +622,9 @@ function parseChordSymbolBase(symbolRaw: string): {
 	isPower: boolean;
 	isSus: boolean;
 } | null {
-	const normalized = symbolRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
-	const clean = normalized.split("/")[0]?.trim();
-	if (!clean) return null;
-
-	const match = /^([A-G][♯♭]?)(.*)$/.exec(clean);
-	if (!match) return null;
-	const [, rootName, suffix] = match;
+	const { normalized, baseSymbol, rootName, suffix } =
+		splitChordSymbol(symbolRaw);
+	if (!baseSymbol || !rootName) return null;
 	const rootPc = noteToPitchClass(rootName);
 
 	let kind: GuitarChordKind = Object.hasOwn(EXPLICIT_SUFFIX_MAP, suffix)

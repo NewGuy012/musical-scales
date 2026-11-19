@@ -167,6 +167,10 @@ export const CHORD_VARIATION_SPECS: readonly ChordVariationSpec[] = [
 	},
 ];
 
+export const CHORD_VARIATION_BY_KIND = Object.fromEntries(
+	CHORD_VARIATION_SPECS.map((spec) => [spec.kind, spec]),
+) as Record<GuitarChordKind, ChordVariationSpec>;
+
 type FretTuple = [number, number, number, number, number, number];
 
 interface GuitarStringInfo {
@@ -391,9 +395,7 @@ export function buildChordVariation(
 	notes: string[];
 	midi: number[];
 } {
-	const spec =
-		CHORD_VARIATION_SPECS.find((s) => s.kind === kind) ??
-		CHORD_VARIATION_SPECS[0];
+	const spec = CHORD_VARIATION_BY_KIND[kind] ?? CHORD_VARIATION_SPECS[0];
 	const majorScale = buildScale(rootNote, "major");
 	const fallbackPalette =
 		preferFlats || rootNote.includes("♭") ? FLAT_CHROMATIC : SHARP_CHROMATIC;
@@ -475,6 +477,7 @@ function buildVoicing(
 	kind: GuitarChordKind,
 	resolveNoteName: (pc: number) => string,
 ): GuitarVoicing | null {
+	if (frets.some((f) => f < -1)) return null;
 	const nonZeroFrets = frets.filter((f) => f > 0);
 	const maxFret = Math.max(0, ...frets);
 	if (maxFret > MAX_GUITAR_FRET) return null;
@@ -538,6 +541,17 @@ export function getGuitarVoicings(
 	const openMatch = OPEN_SHAPES[kind]?.[rootPc];
 	if (openMatch) candidates.push(openMatch);
 
+	const addShape = (
+		id: string,
+		name: string,
+		template: FretTuple,
+		offset: number,
+	) => {
+		if (offset >= 0) {
+			candidates.push([id, name, offsetFrets(template, offset)]);
+		}
+	};
+
 	const f6 = movableFret(rootPc, 4, 1);
 	const f5 = movableFret(rootPc, 9, 1);
 	const f4 = movableFret(rootPc, 2, 1);
@@ -547,234 +561,117 @@ export function getGuitarVoicings(
 
 	switch (kind) {
 		case "major":
-			candidates.push(
-				["e-shape", "E-Shape Barre", offsetFrets([0, 2, 2, 1, 0, 0], f6)],
-				["a-shape", "A-Shape Barre", offsetFrets([-1, 0, 2, 2, 2, 0], f5)],
-				[
-					"c-shape",
-					"C-Shape",
-					offsetFrets([-1, 3, 2, 0, 1, 0], movableFret(rootPc, 0, 1)),
-				],
-				[
-					"g-shape",
-					"G-Shape",
-					offsetFrets([3, 2, 0, 0, 0, -1], movableFret(rootPc, 7, 1)),
-				],
-				["d-shape", "D-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 2], f4)],
+			addShape("e-shape", "E-Shape Barre", [0, 2, 2, 1, 0, 0], f6);
+			addShape("a-shape", "A-Shape Barre", [-1, 0, 2, 2, 2, 0], f5);
+			addShape(
+				"c-shape",
+				"C-Shape",
+				[-1, 3, 2, 0, 1, 0],
+				movableFret(rootPc, 0, 1),
 			);
+			addShape(
+				"g-shape",
+				"G-Shape",
+				[3, 2, 0, 0, 0, -1],
+				movableFret(rootPc, 7, 1),
+			);
+			addShape("d-shape", "D-Shape Upper", [-1, -1, 0, 2, 3, 2], f4);
 			break;
 		case "minor":
-			candidates.push(
-				["em-shape", "Em-Shape Barre", offsetFrets([0, 2, 2, 0, 0, 0], f6)],
-				["am-shape", "Am-Shape Barre", offsetFrets([-1, 0, 2, 2, 1, 0], f5)],
-				[
-					"cm-shape",
-					"Cm-Shape",
-					offsetFrets([-1, 3, 1, 0, 1, -1], mod12(rootPc)),
-				],
-				[
-					"gm-shape",
-					"Gm-Shape",
-					offsetFrets([3, 1, 0, 0, -1, -1], mod12(rootPc - 7)),
-				],
-				["dm-shape", "Dm-Shape Upper", offsetFrets([-1, -1, 0, 2, 3, 1], f4)],
-			);
+			addShape("em-shape", "Em-Shape Barre", [0, 2, 2, 0, 0, 0], f6);
+			addShape("am-shape", "Am-Shape Barre", [-1, 0, 2, 2, 1, 0], f5);
+			addShape("cm-shape", "Cm-Shape", [-1, 3, 1, 0, 1, -1], mod12(rootPc));
+			addShape("gm-shape", "Gm-Shape", [3, 1, 0, 0, -1, -1], mod12(rootPc - 7));
+			addShape("dm-shape", "Dm-Shape Upper", [-1, -1, 0, 2, 3, 1], f4);
 			break;
 		case "7":
-			candidates.push(
-				["e7-shape", "E7-Shape Barre", offsetFrets([0, 2, 0, 1, 0, 0], f6)],
-				["a7-shape", "A7-Shape Barre", offsetFrets([-1, 0, 2, 0, 2, 0], f5)],
-				[
-					"c7-shape",
-					"C7-Shape",
-					offsetFrets([-1, 3, 2, 3, 1, -1], movableFret(rootPc, 0, 1)),
-				],
-				["d7-shape", "D7-Shape Upper", offsetFrets([-1, -1, 0, 2, 1, 2], f4)],
+			addShape("e7-shape", "E7-Shape Barre", [0, 2, 0, 1, 0, 0], f6);
+			addShape("a7-shape", "A7-Shape Barre", [-1, 0, 2, 0, 2, 0], f5);
+			addShape(
+				"c7-shape",
+				"C7-Shape",
+				[-1, 3, 2, 3, 1, -1],
+				movableFret(rootPc, 0, 1),
 			);
+			addShape("d7-shape", "D7-Shape Upper", [-1, -1, 0, 2, 1, 2], f4);
 			break;
 		case "maj7":
-			candidates.push(
-				["shell6-maj7", "6th-Str Maj7", offsetFrets([0, -1, 1, 1, 0, -1], f6)],
-				["a-maj7-shape", "A-Shape Maj7", offsetFrets([-1, 0, 2, 1, 2, 0], f5)],
-				["d-maj7-shape", "D-Shape Maj7", offsetFrets([-1, -1, 0, 2, 2, 2], f4)],
-			);
+			addShape("shell6-maj7", "6th-Str Maj7", [0, -1, 1, 1, 0, -1], f6);
+			addShape("a-maj7-shape", "A-Shape Maj7", [-1, 0, 2, 1, 2, 0], f5);
+			addShape("d-maj7-shape", "D-Shape Maj7", [-1, -1, 0, 2, 2, 2], f4);
 			break;
 		case "m7":
-			candidates.push(
-				["em7-shape", "Em7-Shape Barre", offsetFrets([0, 2, 0, 0, 0, 0], f6)],
-				["shell6-m7", "6th-Str Jazz m7", offsetFrets([0, -1, 0, 0, 0, -1], f6)],
-				["am7-shape", "Am7-Shape Barre", offsetFrets([-1, 0, 2, 0, 1, 0], f5)],
-				["dm7-shape", "Dm7-Shape Upper", offsetFrets([-1, -1, 0, 2, 1, 1], f4)],
-			);
+			addShape("em7-shape", "Em7-Shape Barre", [0, 2, 0, 0, 0, 0], f6);
+			addShape("shell6-m7", "6th-Str Jazz m7", [0, -1, 0, 0, 0, -1], f6);
+			addShape("am7-shape", "Am7-Shape Barre", [-1, 0, 2, 0, 1, 0], f5);
+			addShape("dm7-shape", "Dm7-Shape Upper", [-1, -1, 0, 2, 1, 1], f4);
 			break;
 		case "diminished":
-			candidates.push(
-				["dim-6", "6th-Str Dim", offsetFrets([0, 1, 2, 0, -1, -1], d6)],
-				["dim-5", "5th-Str Dim", offsetFrets([-1, 0, 1, 2, 1, -1], d5)],
-				["dim-4", "4th-Str Dim", offsetFrets([-1, -1, 0, 1, 3, 1], d4)],
-			);
-			if (d6 <= 2) {
-				candidates.push([
-					"dim-6-hi",
-					"6th-Str High",
-					offsetFrets([0, 1, 2, 0, -1, -1], d6 + 12),
-				]);
-			}
-			if (d5 <= 2) {
-				candidates.push([
-					"dim-5-hi",
-					"5th-Str High",
-					offsetFrets([-1, 0, 1, 2, 1, -1], d5 + 12),
-				]);
-			}
+			addShape("dim-6", "6th-Str Dim", [0, 1, 2, 0, -1, -1], d6);
+			addShape("dim-5", "5th-Str Dim", [-1, 0, 1, 2, 1, -1], d5);
+			addShape("dim-4", "4th-Str Dim", [-1, -1, 0, 1, 3, 1], d4);
+			addShape("dim-6-hi", "6th-Str High", [0, 1, 2, 0, -1, -1], d6 + 12);
+			addShape("dim-5-hi", "5th-Str High", [-1, 0, 1, 2, 1, -1], d5 + 12);
 			break;
 		case "m7♭5":
-			candidates.push(
-				["halfdim-6", "6th-Str m7♭5", [f6, -1, f6, f6, f6 - 1, -1]],
-				["halfdim-5", "5th-Str m7♭5", offsetFrets([-1, 0, 1, 0, 1, -1], d5)],
-				["halfdim-4", "4th-Str m7♭5", offsetFrets([-1, -1, 0, 1, 1, 1], d4)],
-			);
-			if (d5 <= 2) {
-				candidates.push([
-					"halfdim-5-hi",
-					"5th-Str High",
-					offsetFrets([-1, 0, 1, 0, 1, -1], d5 + 12),
-				]);
-			}
+			addShape("halfdim-6", "6th-Str m7♭5", [1, -1, 1, 1, 0, -1], f6 - 1);
+			addShape("halfdim-5", "5th-Str m7♭5", [-1, 0, 1, 0, 1, -1], d5);
+			addShape("halfdim-4", "4th-Str m7♭5", [-1, -1, 0, 1, 1, 1], d4);
+			addShape("halfdim-5-hi", "5th-Str High", [-1, 0, 1, 0, 1, -1], d5 + 12);
 			break;
 		case "aug":
-			candidates.push(
-				["aug-6", "6th-Str Aug", [f6, -1, f6 + 2, f6 + 1, f6 + 1, -1]],
-				["aug-5", "5th-Str Aug", [-1, f5, f5 + 3, f5 + 2, f5 + 2, -1]],
-				["aug-4", "4th-Str Aug", [-1, -1, f4, f4 + 3, f4 + 3, f4 + 2]],
-			);
-			if (f5 >= 2) {
-				candidates.push([
-					"aug-5-comp",
-					"5th-Str Close",
-					[-1, f5, f5 - 1, f5 - 2, f5 - 2, -1],
-				]);
-			}
-			if (f4 >= 2) {
-				candidates.push([
-					"aug-4-comp",
-					"4th-Str Close",
-					[-1, -1, f4, f4 - 1, f4 - 1, f4 - 2],
-				]);
-			}
+			addShape("aug-6", "6th-Str Aug", [0, -1, 2, 1, 1, -1], f6);
+			addShape("aug-5", "5th-Str Aug", [-1, 0, 3, 2, 2, -1], f5);
+			addShape("aug-4", "4th-Str Aug", [-1, -1, 0, 3, 3, 2], f4);
+			addShape("aug-5-comp", "5th-Str Close", [-1, 2, 1, 0, 0, -1], f5 - 2);
+			addShape("aug-4-comp", "4th-Str Close", [-1, -1, 2, 1, 1, 0], f4 - 2);
 			break;
 		case "dim7":
-			candidates.push(
-				["dim7-6", "6th-Str Dim7", [f6, -1, f6 - 1, f6, f6 - 1, -1]],
-				["dim7-5", "5th-Str Dim7", [-1, f5, f5 + 1, f5 - 1, f5 + 1, -1]],
-				["dim7-4", "4th-Str Dim7", [-1, -1, f4, f4 + 1, f4, f4 + 1]],
-			);
-			if (f6 <= 3) {
-				candidates.push([
-					"dim7-6-hi",
-					"6th-Str High",
-					[f6 + 12, -1, f6 + 11, f6 + 12, f6 + 11, -1],
-				]);
-			}
-			if (f5 <= 2) {
-				candidates.push([
-					"dim7-5-hi",
-					"5th-Str High",
-					[-1, f5 + 12, f5 + 13, f5 + 11, f5 + 13, -1],
-				]);
-			}
+			addShape("dim7-6", "6th-Str Dim7", [1, -1, 0, 1, 0, -1], f6 - 1);
+			addShape("dim7-5", "5th-Str Dim7", [-1, 1, 2, 0, 2, -1], f5 - 1);
+			addShape("dim7-4", "4th-Str Dim7", [-1, -1, 0, 1, 0, 1], f4);
+			addShape("dim7-6-hi", "6th-Str High", [1, -1, 0, 1, 0, -1], f6 + 11);
+			addShape("dim7-5-hi", "5th-Str High", [-1, 1, 2, 0, 2, -1], f5 + 11);
 			break;
-		case "add9":
-			candidates.push(
-				["add9-6", "6th-Str Add9", [f6, -1, f6 + 2, f6 + 1, f6, f6 + 2]],
-				["add9-5", "5th-Str Add9", [-1, f5, f5 - 1, f5 + 2, f5, f5]],
-			);
-			if (f5 >= 3) {
-				candidates.push([
-					"add9-5-c",
-					"C-Shape Add9",
-					[-1, f5, f5 - 1, f5 - 3, f5, -1],
-				]);
-			}
-			if (f5 <= 11) {
-				candidates.push([
-					"add9-5-spread",
-					"5th-Str Spread",
-					[-1, f5, f5 + 2, f5 + 4, f5 + 2, -1],
-				]);
-			}
-			if (f6 <= 11) {
-				candidates.push([
-					"add9-6-spread",
-					"6th-Str Spread",
-					[f6, f6 + 2, f6 + 4, f6 + 1, f6, -1],
-				]);
-			}
+		case "add9": {
 			const f4Add = f4 >= 2 ? f4 : f4 + 12;
-			if (f4Add <= MAX_GUITAR_FRET) {
-				candidates.push([
-					f4 >= 2 ? "add9-4" : "add9-4-hi",
-					f4 >= 2 ? "4th-Str Add9" : "4th-Str High",
-					[-1, -1, f4Add, f4Add - 1, f4Add - 2, f4Add],
-				]);
-			}
-			break;
-		case "madd9":
-			candidates.push([
-				"madd9-6",
-				"6th-Str m(add9)",
-				[f6, -1, f6 + 2, f6, f6, f6 + 2],
-			]);
-			if (f5 >= 2) {
-				candidates.push([
-					"madd9-5",
-					"5th-Str m(add9)",
-					[-1, f5, f5 - 2, f5 + 2, f5, f5],
-				]);
-			}
-			if (f5 <= 11) {
-				candidates.push([
-					"madd9-5-spread",
-					"5th-Str Spread",
-					[-1, f5, f5 + 2, f5 + 4, f5 + 1, -1],
-				]);
-			}
-			if (f6 <= 11) {
-				candidates.push([
-					"madd9-6-spread",
-					"6th-Str Spread",
-					[f6, f6 + 2, f6 + 4, f6, f6, -1],
-				]);
-			}
-			const f4Madd = f4 >= 2 ? f4 : f4 + 12;
-			if (f4Madd <= MAX_GUITAR_FRET) {
-				candidates.push([
-					f4 >= 2 ? "madd9-4" : "madd9-4-hi",
-					f4 >= 2 ? "4th-Str m(add9)" : "4th-Str High",
-					[-1, -1, f4Madd, f4Madd - 2, f4Madd - 2, f4Madd],
-				]);
-			}
-			break;
-		case "sus4":
-			candidates.push(
-				["sus4-6", "6th-Str Sus4", [f6, f6 + 2, f6 + 2, f6 + 2, f6, f6]],
-				["sus4-5", "5th-Str Sus4", [-1, f5, f5 + 2, f5 + 2, f5 + 3, f5]],
-				["sus4-4", "4th-Str Sus4", [-1, -1, f4, f4 + 2, f4 + 3, f4 + 3]],
+			addShape("add9-6", "6th-Str Add9", [0, -1, 2, 1, 0, 2], f6);
+			addShape("add9-5", "5th-Str Add9", [-1, 1, 0, 3, 1, 1], f5 - 1);
+			addShape("add9-5-c", "C-Shape Add9", [-1, 3, 2, 0, 3, -1], f5 - 3);
+			addShape("add9-5-spread", "5th-Str Spread", [-1, 0, 2, 4, 2, -1], f5);
+			addShape("add9-6-spread", "6th-Str Spread", [0, 2, 4, 1, 0, -1], f6);
+			addShape(
+				f4 >= 2 ? "add9-4" : "add9-4-hi",
+				f4 >= 2 ? "4th-Str Add9" : "4th-Str High",
+				[-1, -1, 2, 1, 0, 2],
+				f4Add - 2,
 			);
+			break;
+		}
+		case "madd9": {
+			const f4Madd = f4 >= 2 ? f4 : f4 + 12;
+			addShape("madd9-6", "6th-Str m(add9)", [0, -1, 2, 0, 0, 2], f6);
+			addShape("madd9-5", "5th-Str m(add9)", [-1, 2, 0, 4, 2, 2], f5 - 2);
+			addShape("madd9-5-spread", "5th-Str Spread", [-1, 0, 2, 4, 1, -1], f5);
+			addShape("madd9-6-spread", "6th-Str Spread", [0, 2, 4, 0, 0, -1], f6);
+			addShape(
+				f4 >= 2 ? "madd9-4" : "madd9-4-hi",
+				f4 >= 2 ? "4th-Str m(add9)" : "4th-Str High",
+				[-1, -1, 2, 0, 0, 2],
+				f4Madd - 2,
+			);
+			break;
+		}
+		case "sus4":
+			addShape("sus4-6", "6th-Str Sus4", [0, 2, 2, 2, 0, 0], f6);
+			addShape("sus4-5", "5th-Str Sus4", [-1, 0, 2, 2, 3, 0], f5);
+			addShape("sus4-4", "4th-Str Sus4", [-1, -1, 0, 2, 3, 3], f4);
 			break;
 		case "sus2":
-			candidates.push(
-				["sus2-6", "6th-Str Sus2", [f6, -1, f6 + 2, f6 - 1, f6, f6]],
-				["sus2-5", "5th-Str Sus2", [-1, f5, f5 + 2, f5 + 2, f5, f5]],
-				["sus2-4", "4th-Str Sus2", [-1, -1, f4, f4 + 2, f4 + 3, f4]],
-			);
-			if (f6 <= 11) {
-				candidates.push([
-					"sus2-6-power",
-					"6th-Str Open-Top",
-					[f6, f6 + 2, f6 + 4, f6 + 4, -1, -1],
-				]);
-			}
+			addShape("sus2-6", "6th-Str Sus2", [1, -1, 3, 0, 1, 1], f6 - 1);
+			addShape("sus2-5", "5th-Str Sus2", [-1, 0, 2, 2, 0, 0], f5);
+			addShape("sus2-4", "4th-Str Sus2", [-1, -1, 0, 2, 3, 0], f4);
+			addShape("sus2-6-power", "6th-Str Open-Top", [0, 2, 4, 4, -1, -1], f6);
 			break;
 	}
 

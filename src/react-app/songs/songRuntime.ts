@@ -22,7 +22,7 @@ export function isInstrumentTab(raw: string): raw is InstrumentTab {
 	return INSTRUMENT_TABS.includes(raw as InstrumentTab);
 }
 
-export const SONG_CATEGORIES = ["classical", "modern"] as const;
+const SONG_CATEGORIES = ["classical", "modern"] as const;
 export type SongCategory = (typeof SONG_CATEGORIES)[number];
 
 export function isSongCategory(raw: string): raw is SongCategory {
@@ -441,7 +441,7 @@ export function hydrateSong(
 	doc: SongDocument,
 	options?: { speed?: number },
 ): SongExample {
-	const speed = options?.speed ?? 1;
+	const speed = clampPlaybackSpeed(options?.speed ?? 1);
 	const ticksToMs = buildTempoTicksToMs(doc.tpq, doc.tempoMap, speed);
 	const initialBpm = Math.max(
 		1,
@@ -908,91 +908,12 @@ export function formatSongTime(ms: number): string {
 export function findSongSectionForBar(
 	studyGuide: SongStudyGuide | undefined,
 	stepIndex: number,
+	fallbackToFirst = true,
 ): SongSectionGuide | null {
 	if (!studyGuide || studyGuide.sections.length === 0) return null;
 	return (
 		studyGuide.sections.find(
 			(s) => stepIndex >= s.startStepIndex && stepIndex <= s.endStepIndex,
-		) ??
-		studyGuide.sections[0] ??
-		null
+		) ?? (fallbackToFirst ? (studyGuide.sections[0] ?? null) : null)
 	);
-}
-
-export function describeRomanFunction(
-	roman: string,
-	quality: ChordQuality,
-): string {
-	if (
-		roman.includes("/vi") ||
-		roman.includes("/V") ||
-		roman.includes("/IV") ||
-		roman.includes("/ii") ||
-		roman.includes("/iii") ||
-		roman.includes("/iv") ||
-		roman.includes("/VI")
-	) {
-		return "Secondary dominant · pulls to next chord";
-	}
-	if (
-		roman.includes("♯iv") ||
-		roman.includes("♯v") ||
-		roman.includes("♯i") ||
-		roman.includes("vii°")
-	) {
-		return "Chromatic / leading-tone tension";
-	}
-	if (roman.includes("Picardy")) {
-		return "Picardy third · minor turns major";
-	}
-	if (roman.startsWith("i♭") || roman.startsWith("i♯")) {
-		return "Borrowed parallel minor color";
-	}
-	if (roman.startsWith("♭II")) {
-		return "Neapolitan (♭II) · dramatic half-step pull";
-	}
-	if (roman.startsWith("♭VII")) {
-		return "Subtonic (♭VII) · borrowed modal lift";
-	}
-	if (roman.startsWith("♭VI") || roman.startsWith("♭III")) {
-		return "Borrowed modal color · warm dark lift";
-	}
-	if (roman.startsWith("iv")) {
-		return "Minor subdominant · bittersweet lift";
-	}
-	if (
-		roman === "i" ||
-		roman === "i7" ||
-		roman === "i5" ||
-		roman.startsWith("isus") ||
-		roman.startsWith("i6")
-	) {
-		return "Minor tonic · home base";
-	}
-	if (roman.startsWith("III")) {
-		return "Relative major (III) · bright lift";
-	}
-	if (roman.startsWith("VI")) {
-		return "Submediant (VI) · warm major color";
-	}
-	if (roman.startsWith("IV")) {
-		return "Subdominant (4th) · warm harmonic lift";
-	}
-	if (roman.startsWith("V")) {
-		return "Dominant (5th) · pulls strongly home";
-	}
-	if (roman.startsWith("ii")) {
-		return "Pre-dominant · sets up V";
-	}
-	if (roman.startsWith("vi") || roman.startsWith("iii")) {
-		return "Relative minor color";
-	}
-	if (roman.startsWith("I")) {
-		return roman.includes("6")
-			? "Tonic inversion · gentle home"
-			: "Tonic · home base";
-	}
-	if (quality === "diminished") return "Diminished · passing tension";
-	if (quality === "minor") return "Minor color";
-	return "Harmonic anchor";
 }

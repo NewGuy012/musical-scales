@@ -601,12 +601,43 @@ export function noteOffset(note: string): number {
 	return offset;
 }
 
-export function noteToPitchClass(note: string): number {
+export function normalizeAccidentals(raw: string): string {
+	return raw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
+}
+
+export function splitChordSymbol(raw: string): {
+	normalized: string;
+	baseSymbol: string;
+	bassNote: string | null;
+	rootName: string | null;
+	suffix: string;
+} {
+	const normalized = normalizeAccidentals(raw);
+	const [baseRaw, bassRaw] = normalized.split("/");
+	const baseSymbol = baseRaw?.trim() || normalized;
+	const bassNote = bassRaw?.trim() || null;
+	const match = /^([A-G][♯♭]?)(.*)$/.exec(baseSymbol);
+	return {
+		normalized,
+		baseSymbol,
+		bassNote,
+		rootName: match?.[1] ?? null,
+		suffix: match?.[2] ?? "",
+	};
+}
+
+export function tryNoteToPitchClass(note: string): number | null {
 	const key = note[0];
-	if (!key || !Object.hasOwn(NATURAL_PC, key)) {
+	if (!key || !Object.hasOwn(NATURAL_PC, key)) return null;
+	return mod12(NATURAL_PC[key] + noteOffset(note));
+}
+
+export function noteToPitchClass(note: string): number {
+	const pc = tryNoteToPitchClass(note);
+	if (pc === null) {
 		throw new Error(`Invalid note name: ${note}`);
 	}
-	return mod12(NATURAL_PC[key] + noteOffset(note));
+	return pc;
 }
 
 function formatKeyIdentity(root: string, mode: KeyMode) {
