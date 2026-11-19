@@ -8,8 +8,11 @@ import { SongExamplesPanel } from "../src/react-app/components/SongExamplesPanel
 import { compileMusicXml } from "../src/react-app/musicxml";
 import {
 	SONG_CATALOG,
+	clearSongCache,
 	createCatalogStubSong,
 	getCatalogEntriesForInstrument,
+	loadSongById,
+	subscribeSongCatalogUpdates,
 } from "../src/react-app/songs/songCatalog";
 import {
 	type SongDocument,
@@ -593,5 +596,54 @@ describe("songPlayback helpers and synchronized UI", () => {
 		});
 		expect(stub.barCount).toBe(16);
 		expect(stub.steps).toEqual([]);
+	});
+
+	test("invalidates song cache cleanly and compiles direct Bun HMR calls without indirectHot access", async () => {
+		let notifications = 0;
+		const unsubscribe = subscribeSongCatalogUpdates(() => {
+			notifications++;
+		});
+		const firstPromise = loadSongById("lagrima-guitar");
+		expect(loadSongById("lagrima-guitar")).toBe(firstPromise);
+
+		clearSongCache();
+		expect(notifications).toBe(1);
+		const reloadedPromise = loadSongById("lagrima-guitar");
+		expect(reloadedPromise).not.toBe(firstPromise);
+		await reloadedPromise;
+
+		unsubscribe();
+		clearSongCache();
+		expect(notifications).toBe(1);
+
+		const htmlEntryPath = "../index.html";
+		const { default: indexHtml } = (await import(htmlEntryPath)) as {
+			default: Parameters<typeof Bun.serve>[0] extends {
+				routes?: Record<string, infer R>;
+			}
+				? R
+				: never;
+		};
+		const server = Bun.serve({
+			port: 0,
+			routes: { "/": indexHtml },
+			development: { hmr: true },
+		});
+		try {
+			const html = await (await fetch(server.url)).text();
+			const scriptMatch = html.match(/src="(\/_bun\/client\/[^"]+)"/);
+			expect(scriptMatch).not.toBeNull();
+			if (!scriptMatch) return;
+
+			const bundleJs = await (
+				await fetch(new URL(scriptMatch[1], server.url))
+			).text();
+			expect([...bundleJs.matchAll(/indirectHot\s*\??\./g)]).toHaveLength(0);
+			expect(bundleJs).toContain("hmr.dispose?.(");
+			expect(bundleJs).toContain('hmr.on?.("bun:beforeUpdate"');
+			expect(bundleJs).toContain('hmr.on?.("bun:afterUpdate"');
+		} finally {
+			await server.stop(true);
+		}
 	});
 });

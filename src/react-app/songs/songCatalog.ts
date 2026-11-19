@@ -78,15 +78,22 @@ interface BunHotModule {
 	on?(event: string, cb: () => void): void;
 }
 
-const hot = (import.meta as ImportMeta & { hot?: BunHotModule }).hot;
-if (hot) {
-	hot.dispose?.(() => {
+declare global {
+	interface ImportMeta {
+		readonly hot?: BunHotModule;
+	}
+}
+
+// Bun requires direct `import.meta.hot.<method>` access so its bundler can
+// rewrite HMR hooks in dev and strip them in production builds.
+if (import.meta.hot) {
+	import.meta.hot.dispose?.(() => {
 		songCache.clear();
 	});
-	hot.on?.("bun:beforeUpdate", () => {
+	import.meta.hot.on?.("bun:beforeUpdate", () => {
 		songCache.clear();
 	});
-	hot.on?.("bun:afterUpdate", () => {
+	import.meta.hot.on?.("bun:afterUpdate", () => {
 		clearSongCache();
 	});
 }
