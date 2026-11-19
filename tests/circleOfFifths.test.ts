@@ -4,7 +4,10 @@ import {
 	analyzeKey,
 	ascendingNotesToMidi,
 	buildScale,
+	normalizeAccidentals,
 	noteToPitchClass,
+	splitChordSymbol,
+	tryNoteToPitchClass,
 } from "../src/react-app/theory/circleOfFifths";
 
 describe("Circle of Fifths music theory engine", () => {
@@ -191,5 +194,28 @@ describe("Circle of Fifths music theory engine", () => {
 				}
 			}
 		}
+	});
+
+	test("tryNoteToPitchClass, normalizeAccidentals, and splitChordSymbol handle accidentals & invalid inputs safely", () => {
+		expect(normalizeAccidentals("F#m/C#")).toBe("F♯m/C♯");
+		expect(normalizeAccidentals("Bb7")).toBe("B♭7");
+		expect(tryNoteToPitchClass("F#")).toBe(6);
+		expect(tryNoteToPitchClass("C♭")).toBe(11);
+		expect(tryNoteToPitchClass("invalid")).toBeNull();
+		expect(noteToPitchClass("G♯")).toBe(8);
+		expect(splitChordSymbol("Dm7/C")).toEqual({
+			normalized: "Dm7/C",
+			baseSymbol: "Dm7",
+			bassNote: "C",
+			rootName: "D",
+			suffix: "m7",
+		});
+		expect(splitChordSymbol("invalid")).toEqual({
+			normalized: "invalid",
+			baseSymbol: "invalid",
+			bassNote: null,
+			rootName: null,
+			suffix: "",
+		});
 	});
 });

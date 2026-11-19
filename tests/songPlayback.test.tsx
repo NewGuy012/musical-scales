@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { playTimedSequence } from "../src/react-app/audio/synth";
 import { BowedFingerboard } from "../src/react-app/components/BowedFingerboard";
@@ -21,6 +22,7 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 	hydrateSong,
+	resolveSubBarChordIndex,
 	scaleSongExampleSpeed,
 } from "../src/react-app/songs/songRuntime";
 import { getBowedVoicings } from "../src/react-app/theory/celloFingerboard";
@@ -31,6 +33,24 @@ import {
 } from "../src/react-app/theory/guitarFretboard";
 
 const noop = () => {};
+
+function renderSongPanel(
+	overrides: Partial<ComponentProps<typeof SongExamplesPanel>> & {
+		songs: ComponentProps<typeof SongExamplesPanel>["songs"];
+	},
+) {
+	return renderToStaticMarkup(
+		<SongExamplesPanel
+			playingSongId={null}
+			activeChordStepIndex={null}
+			activeNoteLabel={null}
+			selectedPreviewStepId={null}
+			onTogglePlaySong={noop}
+			onSelectSongChordStep={noop}
+			{...overrides}
+		/>,
+	);
+}
 
 function buildSampleCelloXml(barsCount = 16): string {
 	const measures = Array.from({ length: barsCount }, (_, i) => {
@@ -111,22 +131,14 @@ describe("songPlayback helpers and synchronized UI", () => {
 	});
 
 	test("SongExamplesPanel renders empty MusicXML prompt, transport bar, local preview badge, and speed controls", async () => {
-		const emptyHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[]}
-				activeInstrumentLabel="Guitar"
-				otherInstrumentsWithSongs={[
-					{ instrument: "piano", label: "Piano", count: 2 },
-				]}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onSelectInstrument={noop}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const emptyHtml = renderSongPanel({
+			songs: [],
+			activeInstrumentLabel: "Guitar",
+			otherInstrumentsWithSongs: [
+				{ instrument: "piano", label: "Piano", count: 2 },
+			],
+			onSelectInstrument: noop,
+		});
 		expect(emptyHtml).toContain("No Guitar scores yet");
 		expect(emptyHtml).toContain(".musicxml, .xml, or .mxl");
 		expect(emptyHtml).not.toContain("Load MusicXML File");
@@ -139,26 +151,18 @@ describe("songPlayback helpers and synchronized UI", () => {
 		const flat = flattenSongPlaybackSteps(celloSong);
 		const barStarts = getSongBarStartTimes(celloSong);
 
-		const idleHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[celloSong]}
-				playingSongId={null}
-				cuedSongId={null}
-				songPositionMs={0}
-				playbackSpeed={0.75}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onRemoveLocalPreview={noop}
-				onChangePlaybackSpeed={noop}
-				onTogglePlaySong={noop}
-				onStopSong={noop}
-				onSeekSong={noop}
-				onSkipSongBar={noop}
-				onPlayFromSongBar={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const idleHtml = renderSongPanel({
+			songs: [celloSong],
+			cuedSongId: null,
+			songPositionMs: 0,
+			playbackSpeed: 0.75,
+			onRemoveLocalPreview: noop,
+			onChangePlaybackSpeed: noop,
+			onStopSong: noop,
+			onSeekSong: noop,
+			onSkipSongBar: noop,
+			onPlayFromSongBar: noop,
+		});
 		expect(idleHtml).toContain("16 Bars");
 		expect(idleHtml).toContain("Local Preview");
 		expect(idleHtml).toContain("Remove");
@@ -187,37 +191,24 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(idleHtml).toContain("song-step-role");
 		expect(idleHtml).not.toContain(">G (I)<");
 
-		const fastHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[celloSong]}
-				playingSongId={null}
-				cuedSongId={null}
-				songPositionMs={0}
-				playbackSpeed={2}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onChangePlaybackSpeed={noop}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const fastHtml = renderSongPanel({
+			songs: [celloSong],
+			cuedSongId: null,
+			songPositionMs: 0,
+			playbackSpeed: 2,
+			onChangePlaybackSpeed: noop,
+		});
 		expect(fastHtml).toContain('title="Practice speed 2x"');
 		expect(fastHtml).toContain('<option value="2" selected="">2x</option>');
 
-		const playingHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[celloSong]}
-				playingSongId={celloSong.id}
-				cuedSongId={celloSong.id}
-				songPositionMs={barStarts[4]}
-				activeChordStepIndex={4}
-				activeNoteLabel="D3 (Open II)"
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const playingHtml = renderSongPanel({
+			songs: [celloSong],
+			playingSongId: celloSong.id,
+			cuedSongId: celloSong.id,
+			songPositionMs: barStarts[4],
+			activeChordStepIndex: 4,
+			activeNoteLabel: "D3 (Open II)",
+		});
 		expect(playingHtml).toContain("song-card is-playing");
 		expect(playingHtml).toContain("❚❚ Pause");
 		expect(playingHtml).toContain("Playing");
@@ -230,39 +221,26 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(playingHtml).toContain("Bigger picture");
 		expect(playingHtml).toContain("Why it works");
 
-		const pausedHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[celloSong]}
-				playingSongId={null}
-				cuedSongId={celloSong.id}
-				songPositionMs={barStarts[8]}
-				activeChordStepIndex={8}
-				activeNoteLabel="B3"
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const pausedHtml = renderSongPanel({
+			songs: [celloSong],
+			cuedSongId: celloSong.id,
+			songPositionMs: barStarts[8],
+			activeChordStepIndex: 8,
+			activeNoteLabel: "B3",
+		});
 		expect(pausedHtml).toContain("song-card is-paused");
 		expect(pausedHtml).toContain("▶ Resume");
 		expect(pausedHtml).toContain("Paused");
 		expect(pausedHtml).toContain("Bar 9/16");
 		expect(pausedHtml).toContain("song-live-coach");
 
-		const previewHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[celloSong]}
-				playingSongId={null}
-				cuedSongId={null}
-				songPositionMs={0}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={celloSong.steps[2].id}
-				onTogglePlaySong={noop}
-				onPlayFromSongBar={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const previewHtml = renderSongPanel({
+			songs: [celloSong],
+			cuedSongId: null,
+			songPositionMs: 0,
+			selectedPreviewStepId: celloSong.steps[2].id,
+			onPlayFromSongBar: noop,
+		});
 		expect(previewHtml).toContain("Previewing");
 		expect(previewHtml).toContain("Play from Bar 3");
 		expect(previewHtml).toContain("Sound &amp; Feel");
@@ -277,19 +255,14 @@ describe("songPlayback helpers and synchronized UI", () => {
 		);
 		const chopinBarStarts = getSongBarStartTimes(chopinSong);
 		const chopinBeat3Ms = (chopinBarStarts[0] ?? 0) + 1100;
-		const chopinHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={[chopinSong]}
-				playingSongId={chopinSong.id}
-				cuedSongId={chopinSong.id}
-				songPositionMs={chopinBeat3Ms}
-				activeChordStepIndex={0}
-				activeNoteLabel="G4"
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
+		const chopinHtml = renderSongPanel({
+			songs: [chopinSong],
+			playingSongId: chopinSong.id,
+			cuedSongId: chopinSong.id,
+			songPositionMs: chopinBeat3Ms,
+			activeChordStepIndex: 0,
+			activeNoteLabel: "G4",
+		});
 		expect(chopinHtml).toContain("Inside this bar:");
 		expect(chopinHtml).toContain('coach-subbar-chip is-current-sub">G (V)');
 		expect(chopinHtml).toContain("→ Fm7 → G → Cm");
@@ -633,6 +606,18 @@ describe("songPlayback helpers and synchronized UI", () => {
 
 		const polySong = hydrateSong(polyDoc);
 		expect(getSongBarStartTimes(polySong)).toEqual([0, 1500]);
+		expect(resolveSubBarChordIndex(polySong.steps[0], 0)).toBe(0);
+		expect(resolveSubBarChordIndex(polySong.steps[0], 750)).toBe(1);
+		expect(resolveSubBarChordIndex(polySong.steps[1], 0)).toBe(-1);
+		expect(getSongBarStartTimes(hydrateSong(polyDoc, { speed: 99 }))).toEqual(
+			getSongBarStartTimes(hydrateSong(polyDoc, { speed: 2.5 })),
+		);
+		expect(getSongBarStartTimes(hydrateSong(polyDoc, { speed: -5 }))).toEqual(
+			getSongBarStartTimes(hydrateSong(polyDoc, { speed: 0.25 })),
+		);
+		expect(
+			getSongBarStartTimes(hydrateSong(polyDoc, { speed: Number.NaN })),
+		).toEqual(getSongBarStartTimes(polySong));
 		const flat = flattenSongPlaybackSteps(polySong);
 		expect(flat.totalDurationMs).toBe(2500);
 		expect(flat.events[0].midi).toEqual([43, 67]);
@@ -668,38 +653,10 @@ describe("songPlayback helpers and synchronized UI", () => {
 		const guitarStubs = getCatalogEntriesForInstrument("guitar").map(
 			createCatalogStubSong,
 		);
-		const guitarSelectHtml = renderToStaticMarkup(
-			<SongExamplesPanel
-				songs={guitarStubs}
-				playingSongId={null}
-				activeChordStepIndex={null}
-				activeNoteLabel={null}
-				selectedPreviewStepId={null}
-				onTogglePlaySong={noop}
-				onSelectSongChordStep={noop}
-			/>,
-		);
-		expect(guitarSelectHtml).toContain(
-			"1. Lágrima — Francisco Tárrega (E Major · 3/4 · 32 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"2. Étude No. 1 in E Minor — Heitor Villa-Lobos (E Minor · 4/4 · 61 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"3. How Deep Is Your Love — Bee Gees (Arr. Den Vichakyothin) (B Major · 4/4 · 74 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"4. Amazing Grace — John Newton (Arr. Tommy Emmanuel) (E Major · 9/8 · 77 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"5. Windy and Warm — John D. Loudermilk (A Minor · 4/4 · 84 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"6. Cannonball Rag — Merle Travis (G Major · 4/4 · 113 bars)",
-		);
-		expect(guitarSelectHtml).toContain(
-			"7. Classical Gas — Mason Williams (A Minor · 4/4 · 165 bars)",
-		);
+		const guitarSelectHtml = renderSongPanel({ songs: guitarStubs });
+		for (const [idx, stub] of guitarStubs.entries()) {
+			expect(guitarSelectHtml).toContain(`${idx + 1}. ${stub.title}`);
+		}
 	});
 
 	test("invalidates song cache cleanly and compiles direct Bun HMR calls without indirectHot access", async () => {

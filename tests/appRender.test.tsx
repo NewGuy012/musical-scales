@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { App } from "../src/react-app/App";
 import { BowedFingerboard } from "../src/react-app/components/BowedFingerboard";
@@ -15,6 +16,23 @@ import { getGuitarVoicings } from "../src/react-app/theory/guitarFretboard";
 import workerApp from "../src/worker/index";
 
 const noop = () => {};
+
+function renderBowed(
+	overrides: Omit<
+		ComponentProps<typeof BowedFingerboard>,
+		"preferFlats" | "onSelectVoicing" | "onRollVoicing" | "onPlayNote"
+	>,
+) {
+	return renderToStaticMarkup(
+		<BowedFingerboard
+			preferFlats={false}
+			onSelectVoicing={noop}
+			onRollVoicing={noop}
+			onPlayNote={noop}
+			{...overrides}
+		/>,
+	);
+}
 
 describe("Musical Scales UI rendering", () => {
 	test("renders App with Instruments dock, collapsed Chords workspace below it, and collapsed Music Teacher -> Learn with Real Songs at bottom", () => {
@@ -347,23 +365,17 @@ describe("Musical Scales UI rendering", () => {
 			tonic.triadNotes,
 			false,
 		);
-		const cHtml = renderToStaticMarkup(
-			<BowedFingerboard
-				instrument="cello"
-				chordLabel="C (I)"
-				chordQuality="major"
-				chordKind="major"
-				chordNotes={tonic.triadNotes}
-				scaleNotes={cMaj.scaleNotes}
-				keyRootName="C"
-				preferFlats={false}
-				voicings={cVoicings}
-				activeVoicing={cVoicings[0]}
-				onSelectVoicing={noop}
-				onRollVoicing={noop}
-				onPlayNote={noop}
-			/>,
-		);
+		const cHtml = renderBowed({
+			instrument: "cello",
+			chordLabel: "C (I)",
+			chordQuality: "major",
+			chordKind: "major",
+			chordNotes: tonic.triadNotes,
+			scaleNotes: cMaj.scaleNotes,
+			keyRootName: "C",
+			voicings: cVoicings,
+			activeVoicing: cVoicings[0],
+		});
 		expect(cHtml).toContain("Open 4-Str");
 		expect(cHtml).toContain("1st Inv (3rd Bass)");
 		expect(cHtml).toContain("Voicing");
@@ -385,23 +397,17 @@ describe("Musical Scales UI rendering", () => {
 			amTonic.seventhNotes,
 			false,
 		);
-		const dmHtml = renderToStaticMarkup(
-			<BowedFingerboard
-				instrument="cello"
-				chordLabel="Am7 (i)"
-				chordQuality="minor"
-				chordKind="m7"
-				chordNotes={amTonic.seventhNotes}
-				scaleNotes={aMin.scaleNotes}
-				keyRootName="A"
-				preferFlats={false}
-				voicings={m7Voicings}
-				activeVoicing={m7Voicings[0]}
-				onSelectVoicing={noop}
-				onRollVoicing={noop}
-				onPlayNote={noop}
-			/>,
-		);
+		const dmHtml = renderBowed({
+			instrument: "cello",
+			chordLabel: "Am7 (i)",
+			chordQuality: "minor",
+			chordKind: "m7",
+			chordNotes: amTonic.seventhNotes,
+			scaleNotes: aMin.scaleNotes,
+			keyRootName: "A",
+			voicings: m7Voicings,
+			activeVoicing: m7Voicings[0],
+		});
 		expect(dmHtml).toContain("5th-Bass m7");
 		expect(dmHtml).toContain("Upper Shell (R-♭7-♭3)");
 		expect(dmHtml).toContain("LH Frame");
@@ -417,23 +423,17 @@ describe("Musical Scales UI rendering", () => {
 			dTonic.triadNotes,
 			false,
 		);
-		const dHtml = renderToStaticMarkup(
-			<BowedFingerboard
-				instrument="violin"
-				chordLabel="D (I)"
-				chordQuality="major"
-				chordKind="major"
-				chordNotes={dTonic.triadNotes}
-				scaleNotes={dMaj.scaleNotes}
-				keyRootName="D"
-				preferFlats={false}
-				voicings={dVoicings}
-				activeVoicing={dVoicings[0] ?? null}
-				onSelectVoicing={noop}
-				onRollVoicing={noop}
-				onPlayNote={noop}
-			/>,
-		);
+		const dHtml = renderBowed({
+			instrument: "violin",
+			chordLabel: "D (I)",
+			chordQuality: "major",
+			chordKind: "major",
+			chordNotes: dTonic.triadNotes,
+			scaleNotes: dMaj.scaleNotes,
+			keyRootName: "D",
+			voicings: dVoicings,
+			activeVoicing: dVoicings[0] ?? null,
+		});
 		expect(dHtml).toContain("Open D-Str");
 		expect(dHtml).toContain("G3");
 		expect(dHtml).toContain("D4");

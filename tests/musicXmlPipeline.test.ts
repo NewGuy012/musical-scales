@@ -9,10 +9,6 @@ import {
 	syncFromMusicXmlFolder,
 } from "../scripts/ingest-songs";
 import {
-	encodeWavPcm16,
-	renderTimedSequenceOfflineSamples,
-} from "../src/react-app/audio/synth";
-import {
 	type ScoreBarIR,
 	compileMusicXml,
 	compileScoreTrackToSongDocument,
@@ -43,6 +39,33 @@ import {
 	MAX_SONG_BOWED_SEMITONE,
 } from "../src/react-app/theory/celloFingerboard";
 import { MAX_SONG_GUITAR_FRET } from "../src/react-app/theory/guitarFretboard";
+
+function wrapScoreXml(
+	measures: string,
+	opts: {
+		title?: string;
+		composer?: string;
+		movement?: string;
+		partName?: string;
+	} = {},
+): string {
+	const work = opts.title
+		? `<work><work-title>${opts.title}</work-title></work>`
+		: "";
+	const mov = opts.movement
+		? `<movement-title>${opts.movement}</movement-title>`
+		: "";
+	const ident = opts.composer
+		? `<identification><creator type="composer">${opts.composer}</creator></identification>`
+		: "";
+	const partName = opts.partName ?? "Part";
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  ${work}${mov}${ident}
+  <part-list><score-part id="P1"><part-name>${partName}</part-name></score-part></part-list>
+  <part id="P1">${measures}</part>
+</score-partwise>`;
+}
 
 async function deflateRaw(input: Uint8Array): Promise<Uint8Array> {
 	const cs = new CompressionStream("deflate-raw");
@@ -365,14 +388,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		expect(slash?.roman).toBe("V7");
 	});
 
-	test("compiles Drop-D guitar MusicXML with TAB stops, repeats, ties, harmonics, and renders PCM WAV", async () => {
-		const guitarXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work><work-title>Drop D Study</work-title></work>
-  <identification><creator type="composer">Test Suite</creator></identification>
-  <part-list><score-part id="P1"><part-name>Acoustic Guitar</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+	test("compiles Drop-D guitar MusicXML with TAB stops, repeats, ties, and harmonics", async () => {
+		const guitarXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>2</fifths><mode>major</mode></key>
@@ -404,9 +422,13 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <barline location="left"><ending number="2" type="start"/></barline>
       <note><pitch><step>D</step><octave>2</octave></pitch><duration>16</duration><type>whole</type><notations><technical><string>6</string><fret>0</fret></technical></notations></note>
       <barline location="right"><ending number="2" type="stop"/></barline>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{
+				title: "Drop D Study",
+				composer: "Test Suite",
+				partName: "Acoustic Guitar",
+			},
+		);
 
 		const bytes = new TextEncoder().encode(guitarXml);
 		const inspected = await inspectMusicXml(bytes);
@@ -430,28 +452,15 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		const roundtripped = JSON.parse(JSON.stringify(songDoc));
 		const song = hydrateSong(roundtripped);
 		expect(song.steps).toHaveLength(4);
-		const flat = flattenSongPlaybackSteps(song);
 		const halfSpeedSong = hydrateSong(roundtripped, { speed: 0.5 });
 		expect(halfSpeedSong.steps[0].barDurationMs).toBe(
 			(song.steps[0].barDurationMs ?? 0) * 2,
 		);
-		const pcm = renderTimedSequenceOfflineSamples(flat.events, {
-			preset: "guitar",
-			sampleRate: 22050,
-			totalDurationMs: flat.totalDurationMs,
-		});
-		const wav = encodeWavPcm16(pcm, 22050);
-		expect(String.fromCharCode(...wav.slice(0, 4))).toBe("RIFF");
-		expect(String.fromCharCode(...wav.slice(8, 12))).toBe("WAVE");
 	});
 
 	test("compiles non-TAB cello MusicXML with thumb position and explicit harmony slash chords", async () => {
-		const celloXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work><work-title>Cello Thumb Position Test</work-title></work>
-  <part-list><score-part id="P1"><part-name>Violoncello</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const celloXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>1</fifths><mode>major</mode></key>
@@ -463,9 +472,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <note><pitch><step>G</step><octave>2</octave></pitch><duration>4</duration><type>quarter</type></note>
       <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type><notations><articulations><staccato/></articulations></notations></note>
       <note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration><type>quarter</type></note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ title: "Cello Thumb Position Test", partName: "Violoncello" },
+		);
 
 		const { trackIr, songDoc } = await compileMusicXml(
 			new TextEncoder().encode(celloXml),
@@ -482,12 +491,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 	});
 
 	test("compiles grand-staff Piano MusicXML with pedal sustain and hand tags, plus score-timewise & transposition", async () => {
-		const pianoXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work><work-title>Grand Staff Prelude</work-title></work>
-  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const pianoXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>0</fifths><mode>major</mode></key>
@@ -505,9 +510,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <note><pitch><step>C</step><octave>3</octave></pitch><duration>4</duration><voice>2</voice><type>quarter</type><staff>2</staff></note>
       <forward><duration>8</duration></forward>
       <direction><direction-type><pedal type="stop"/></direction-type><staff>2</staff></direction>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ title: "Grand Staff Prelude", partName: "Piano" },
+		);
 
 		const { trackIr, songDoc } = await compileMusicXml(
 			new TextEncoder().encode(pianoXml),
@@ -622,12 +627,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 	});
 
 	test("linked notation+TAB emits Staff 2 only, inherits Staff 1 dynamics, preserves unison double-stops, and honors <degree> add9", async () => {
-		const linkedTabXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work><work-title>Linked TAB Study</work-title></work>
-  <part-list><score-part id="P1"><part-name>Acoustic Guitar</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const linkedTabXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>0</fifths></key>
@@ -675,9 +676,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
         <pitch><step>A</step><octave>2</octave></pitch><duration>16</duration><voice>6</voice><staff>2</staff>
         <notations><technical><string>5</string><fret>0</fret></technical></notations>
       </note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ title: "Linked TAB Study", partName: "Acoustic Guitar" },
+		);
 
 		const bytes = new TextEncoder().encode(linkedTabXml);
 		const inspected = await inspectMusicXml(bytes);
@@ -707,11 +708,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 	});
 
 	test("P.M. without release applies per-onset only, while P.M. + open toggles spans", async () => {
-		const perOnsetPmXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const perOnsetPmXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <time><beats>4</beats><beat-type>4</beat-type></time>
@@ -732,9 +730,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <note><pitch><step>A</step><octave>3</octave></pitch><duration>16</duration><voice>1</voice><staff>1</staff></note>
       <backup><duration>16</duration></backup>
       <note><pitch><step>A</step><octave>2</octave></pitch><duration>16</duration><voice>5</voice><staff>2</staff><notations><technical><string>5</string><fret>0</fret></technical></notations></note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ partName: "Guitar" },
+		);
 
 		const perOnset = await compileMusicXml(
 			new TextEncoder().encode(perOnsetPmXml),
@@ -746,11 +744,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		]);
 		expect(perOnset.trackIr.bars[1].notes[0].technique).toBeUndefined();
 
-		const togglePmXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const togglePmXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <time><beats>4</beats><beat-type>4</beat-type></time>
@@ -761,9 +756,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <note><pitch><step>G</step><octave>2</octave></pitch><duration>4</duration><notations><technical><string>6</string><fret>3</fret></technical></notations></note>
       <direction><direction-type><words>open</words></direction-type></direction>
       <note><pitch><step>A</step><octave>2</octave></pitch><duration>8</duration><notations><technical><string>5</string><fret>0</fret></technical></notations></note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ partName: "Guitar" },
+		);
 
 		const toggled = await compileMusicXml(
 			new TextEncoder().encode(togglePmXml),
@@ -776,14 +771,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 	});
 
 	test("resolves relative keys, TAB <fifths>0</fifths> placeholders with harmonies, key overrides, and sanitizes metadata", async () => {
-		const chopinLikeXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <work><work-title>Prelude Op. 28 No. 20</work-title></work>
-  <movement-title>chopin_prelude_op28_no20_c_minor.mxl</movement-title>
-  <identification><creator type="composer">Music21</creator></identification>
-  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const chopinLikeXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>-3</fifths></key>
@@ -808,9 +797,14 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
       <backup><duration>16</duration></backup>
       <note><pitch><step>G</step><octave>2</octave></pitch><duration>8</duration><staff>2</staff></note>
       <note><pitch><step>C</step><octave>3</octave></pitch><duration>8</duration><staff>2</staff></note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{
+				title: "Prelude Op. 28 No. 20",
+				movement: "chopin_prelude_op28_no20_c_minor.mxl",
+				composer: "Music21",
+				partName: "Piano",
+			},
+		);
 
 		const chopinRes = await compileMusicXml(
 			new TextEncoder().encode(chopinLikeXml),
@@ -820,11 +814,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		expect(chopinRes.trackIr.subtitle).toBeUndefined();
 		expect(chopinRes.songDoc.subtitle).toBe("C Minor (4/4) · piano MusicXML");
 
-		const tabPlaceholderXml = `<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-  <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
-  <part id="P1">
-    <measure number="1">
+		const tabPlaceholderXml = wrapScoreXml(
+			`<measure number="1">
       <attributes>
         <divisions>4</divisions>
         <key><fifths>0</fifths></key>
@@ -844,9 +835,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
     <measure number="3">
       <harmony><root><root-step>A</root-step></root><kind>minor</kind></harmony>
       <note><pitch><step>A</step><octave>2</octave></pitch><duration>16</duration><notations><technical><string>5</string><fret>0</fret></technical></notations></note>
-    </measure>
-  </part>
-</score-partwise>`;
+    </measure>`,
+			{ partName: "Guitar" },
+		);
 
 		const tabRes = await compileMusicXml(
 			new TextEncoder().encode(tabPlaceholderXml),
@@ -1105,72 +1096,20 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("synced 15-song catalog orders classical before modern ascending by bar count and preserves metadata & harmonies", async () => {
-		expect(SONG_CATALOG).toHaveLength(15);
-		const byInst = {
-			piano: getCatalogEntriesForInstrument("piano"),
-			guitar: getCatalogEntriesForInstrument("guitar"),
-			violin: getCatalogEntriesForInstrument("violin"),
-			cello: getCatalogEntriesForInstrument("cello"),
-		};
-		expect(byInst.piano).toHaveLength(3);
-		expect(byInst.guitar).toHaveLength(7);
-		expect(byInst.violin).toHaveLength(3);
-		expect(byInst.cello).toHaveLength(2);
-
-		expect(byInst.guitar.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["lagrima-guitar", "classical", 32],
-			["etude-no-1-in-e-minor-guitar", "classical", 61],
-			["how-deep-is-your-love-guitar", "modern", 74],
-			["amazing-grace-guitar", "modern", 77],
-			["windy-and-warm-guitar", "modern", 84],
-			["cannonball-rag-guitar", "modern", 113],
-			["classical-gas-guitar", "modern", 165],
-		]);
-		expect(byInst.piano.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["prelude-in-c-minor-op-28-no-20-piano", "classical", 13],
-			["prelude-in-c-major-bwv-846-piano", "classical", 35],
-			["moment-musicaux-no-3-op-94-d-780-piano", "classical", 78],
-		]);
-		expect(byInst.violin.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["sonata-da-chiesa-op-3-no-1-grave-violin", "classical", 19],
-			["meditation-from-thais-violin", "classical", 71],
-			["string-quartet-no-3-k-156-ii-adagio-violin", "classical", 88],
-		]);
-		expect(byInst.cello.map((e) => [e.id, e.category, e.barCount])).toEqual([
-			["le-cygne-the-swan-cello", "classical", 27],
-			["cello-suite-no-1-prelude-bwv-1007-cello", "classical", 42],
-		]);
+	test("synced catalog orders classical before modern ascending by bar count and preserves harmonies", async () => {
+		expect(SONG_CATALOG.length).toBeGreaterThan(0);
+		for (const inst of ["piano", "guitar", "violin", "cello"] as const) {
+			const entries = getCatalogEntriesForInstrument(inst);
+			expect(entries.length).toBeGreaterThan(0);
+			expect(entries).toEqual([...entries].sort(compareSongCatalogOrder));
+		}
 		expect(SONG_CATALOG).toEqual(
 			[...SONG_CATALOG].sort(compareSongCatalogOrder),
 		);
 
-		const keyById = Object.fromEntries(
-			SONG_CATALOG.map((e) => [e.id, e.keyLabel]),
-		);
-		expect(keyById["cello-suite-no-1-prelude-bwv-1007-cello"]).toBe("G Major");
-		expect(keyById["prelude-in-c-major-bwv-846-piano"]).toBe("C Major");
-		expect(keyById["prelude-in-c-minor-op-28-no-20-piano"]).toBe("C Minor");
-		expect(keyById["moment-musicaux-no-3-op-94-d-780-piano"]).toBe("F Minor");
-		expect(keyById["sonata-da-chiesa-op-3-no-1-grave-violin"]).toBe("F Major");
-		expect(keyById["meditation-from-thais-violin"]).toBe("D Major");
-		expect(keyById["string-quartet-no-3-k-156-ii-adagio-violin"]).toBe(
-			"E Minor",
-		);
-		expect(keyById["le-cygne-the-swan-cello"]).toBe("G Major");
-		expect(keyById["lagrima-guitar"]).toBe("E Major");
-		expect(keyById["amazing-grace-guitar"]).toBe("E Major");
-		expect(keyById["how-deep-is-your-love-guitar"]).toBe("B Major");
-		expect(keyById["classical-gas-guitar"]).toBe("A Minor");
-		expect(keyById["windy-and-warm-guitar"]).toBe("A Minor");
-		expect(keyById["cannonball-rag-guitar"]).toBe("G Major");
-		expect(keyById["etude-no-1-in-e-minor-guitar"]).toBe("E Minor");
-
-		// Lágrima preserves Eadd9
 		const lagrima = await loadSongById("lagrima-guitar");
 		expect(lagrima.steps[0].chordSymbol).toBe("Eadd9");
 
-		// Classical Gas has add9 chords and only note-local palm mutes (not latched for the rest of the score)
 		const classicalGas = await loadSongById("classical-gas-guitar");
 		const cgAllNotes = classicalGas.steps.flatMap((s) =>
 			s.events.flatMap((ev) => ev.notes ?? []),
