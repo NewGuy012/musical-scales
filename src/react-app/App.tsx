@@ -92,6 +92,7 @@ import {
 	getGuitarVoicings,
 	inferGuitarChordKind,
 } from "./theory/guitarFretboard";
+import logoUrl from "../../public/logo.png";
 import "./App.css";
 
 interface ActiveVoicing {
@@ -1803,7 +1804,7 @@ export function App() {
 				<div className="brand-cluster">
 					<div className="brand-emblem">
 						<img
-							src="/logo.png"
+							src={logoUrl}
 							alt="Musical Scales logo"
 							className="brand-logo-img"
 						/>
