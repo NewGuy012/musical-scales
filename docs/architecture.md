@@ -1,6 +1,6 @@
 # Architecture & MusicXML Ingestion Overview
 
-**Musical Scales** (`musical-scales`) is an interactive music theory, chord voicing, synthesis, and MusicXML repertoire studio built with React 19, TypeScript, Vite, Web Audio API, and Cloudflare Workers (Hono).
+**Musical Scales** (`musical-scales`) is an interactive music theory, chord voicing, synthesis, and MusicXML repertoire studio built with React 19, TypeScript, Bun, Web Audio API, and Cloudflare Workers (Hono).
 
 ---
 
@@ -10,7 +10,7 @@
 - **Audio**: Native browser Web Audio API (zero external sample files)
 - **Score Standard**: Zero-dependency isomorphic MusicXML (`.musicxml`, `.xml`, `.mxl`) parser & compiler
 - **Edge Runtime**: Cloudflare Workers + Hono (`src/worker/index.ts`)
-- **Runtime, Package Manager & Tooling**: Bun (`bun install`, `bun test`, `bun check`, `bun fmt`, `bun lint`), Vite 8, Wrangler
+- **Runtime, Package Manager, Bundler & Tooling**: Bun (`bun install`, `bun dev`, `bun build`, `bun test`, `bun check`, `bun fmt`, `bun lint`), Wrangler
 
 ---
 
@@ -30,13 +30,15 @@ musical-scales/
 │   ├── songs.txt                     # Plain-text song registry ([PENDING] backlog & [INGESTED] songs)
 │   └── musicxml/                     # Drop .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
-│   └── ingest-songs.ts               # CLI MusicXML folder sync, single-file import & WAV preview
+│   ├── ingest-songs.ts               # CLI MusicXML folder sync, single-file import & WAV preview
+│   └── preview.ts                    # Local Bun.serve production preview (dist/client + Worker /api/*)
 ├── src/
 │   ├── react-app/
 │   │   ├── App.tsx                   # Root state container, instrument dock, Chords & Music Teacher sections
 │   │   ├── App.css                   # Layout, theme tokens, and SVG component styles
 │   │   ├── index.css                 # Base styles & CSS custom properties
 │   │   ├── main.tsx                  # React DOM entry point
+│   │   ├── assets.d.ts               # Ambient module declarations for CSS and PNG imports
 │   │   ├── audio/
 │   │   │   └── synth.ts              # Web Audio synthesizer (Piano, Guitar, Violin, Cello, Pad) & scheduler
 │   │   ├── components/
@@ -63,7 +65,7 @@ musical-scales/
 │   │   ├── songs/
 │   │   │   ├── songRuntime.ts        # SongDocument hydrator, speed clamping/scaler & playback flattener
 │   │   │   ├── songCatalog.ts        # Repertoire metadata lookup & lazy chunk loader
-│   │   │   ├── songCatalog.generated.ts # Auto-generated catalog & Vite dynamic import() switch
+│   │   │   ├── songCatalog.generated.ts # Auto-generated catalog & dynamic import() switch
 │   │   │   ├── songRegistry.ts       # Parser/formatter/sync logic for songs/songs.txt
 │   │   │   └── generated/            # Auto-generated SongDocument TS chunks from songs/musicxml/
 │   │   └── theory/

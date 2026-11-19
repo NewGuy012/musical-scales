@@ -59,7 +59,7 @@ export function getCatalogStubSongsForInstrument(
 const songCache = new Map<string, Promise<SongExample>>();
 
 /**
- * Dynamically imports and hydrates a single ingested song on demand so Vite
+ * Dynamically imports and hydrates a single ingested song on demand so Bun
  * code-splits each MusicXML-derived score out of the main application bundle.
  */
 export function loadSongById(id: string): Promise<SongExample> {

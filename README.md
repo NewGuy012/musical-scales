@@ -86,10 +86,10 @@ bun dev       # open http://localhost:5173
 
 | Command                | Description                                                                            |
 | :--------------------- | :------------------------------------------------------------------------------------- |
-| `bun dev`              | Start the Vite client development server                                               |
+| `bun dev`              | Start the Bun client development server                                                |
 | `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests                                       |
 | `bun fmt`              | Format codebase with Bun                                                               |
-| `bun check -b`         | Typecheck app, Node, and Worker projects                                               |
+| `bun check -b`         | Typecheck app and Worker projects                                                      |
 | `bun lint`             | Run typecheck and format verification                                                  |
 | `bun run build`        | Typecheck and build client bundle into `dist/client/`                                  |
 | `bun run preview`      | Build and preview production bundle locally                                            |
