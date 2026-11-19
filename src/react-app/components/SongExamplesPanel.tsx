@@ -101,6 +101,7 @@ function SongCard({
 	const scrubCleanupRef = useRef<(() => void) | null>(null);
 	const [studyGuideOpen, setStudyGuideOpen] = useState(false);
 	const [tipsOpen, setTipsOpen] = useState(false);
+	const [coachCollapsed, setCoachCollapsed] = useState(false);
 
 	const playbackPlan = useMemo(() => flattenSongPlaybackSteps(song), [song]);
 	const barStartTimes = useMemo(() => getSongBarStartTimes(song), [song]);
@@ -227,10 +228,44 @@ function SongCard({
 			: "▶ Play Song";
 	const canStop = isCuedThis || displayMs > 0;
 	const statusStep = liveStep ?? previewStep;
+	const activeStatusIndex = liveStep ? activeBarIndex : previewIndex;
+	const hasStatusStep = Boolean(statusStep);
 	const hasSteps = song.steps.length > 0;
 	const totalBars = song.steps.length || song.barCount || 0;
 	const isLongTimeline = totalBars > 12;
 	const activeSection = findSongSectionForBar(song.studyGuide, activeBarIndex);
+
+	useEffect(() => {
+		if (!hasStatusStep) {
+			setCoachCollapsed(false);
+		}
+	}, [hasStatusStep]);
+
+	const prevStatusStep =
+		statusStep && activeStatusIndex > 0
+			? (song.steps[activeStatusIndex - 1] ?? null)
+			: null;
+	const nextStatusStep =
+		statusStep &&
+		activeStatusIndex >= 0 &&
+		activeStatusIndex + 1 < song.steps.length
+			? (song.steps[activeStatusIndex + 1] ?? null)
+			: null;
+
+	let activeSubChordIdx = 0;
+	if (
+		isCuedThis &&
+		statusStep?.subBarChords &&
+		statusStep.subBarChords.length > 1
+	) {
+		const barStartMs = barStartTimes[activeBarIndex] ?? 0;
+		const elapsedInBarMs = Math.max(0, displayMs - barStartMs);
+		for (let i = 0; i < statusStep.subBarChords.length; i++) {
+			if (statusStep.subBarChords[i].offsetMs <= elapsedInBarMs + 0.5) {
+				activeSubChordIdx = i;
+			}
+		}
+	}
 
 	return (
 		<article
@@ -510,35 +545,178 @@ function SongCard({
 			</div>
 
 			{statusStep && (
-				<div
-					className={`song-live-status${
+				<section
+					className={`song-live-status song-live-coach${
 						liveStep ? (isPausedThis ? " is-paused" : "") : " is-preview"
-					}`}
-					aria-live="polite"
+					}${coachCollapsed ? " is-collapsed" : ""}`}
+					aria-label={`${statusStep.barLabel} music theory coach`}
 				>
-					<span className="song-live-dot" aria-hidden="true" />
-					<span>
-						{liveStep ? (isPlayingThis ? "Playing" : "Paused") : "Previewing"}{" "}
-						<strong>{statusStep.barLabel}</strong> ·{" "}
-						<strong>
-							{statusStep.chordSymbol} ({statusStep.roman})
-						</strong>{" "}
-						·{" "}
-						<span className="song-live-fn">
-							{describeRomanFunction(statusStep.roman, statusStep.quality)}
-						</span>
-						{liveStep && activeNoteLabel ? ` · Note: ${activeNoteLabel}` : ""}
-					</span>
-					{!liveStep && onPlayFromSongBar && (
-						<button
-							type="button"
-							className="song-jump-play-btn"
-							onClick={() => onPlayFromSongBar(song, previewIndex)}
-						>
-							▶ Play from {statusStep.barLabel}
-						</button>
+					<div className="song-live-status-row">
+						<div className="song-live-status-main" aria-live="polite">
+							<span className="song-live-dot" aria-hidden="true" />
+							<span>
+								{liveStep
+									? isPlayingThis
+										? "Playing"
+										: "Paused"
+									: "Previewing"}{" "}
+								<strong>{statusStep.barLabel}</strong> ·{" "}
+								<strong>
+									{statusStep.chordSymbol} ({statusStep.roman})
+								</strong>{" "}
+								·{" "}
+								<span className="song-live-fn">
+									{statusStep.theory?.roleLabel ??
+										describeRomanFunction(statusStep.roman, statusStep.quality)}
+								</span>
+								{liveStep && activeNoteLabel
+									? ` · Note: ${activeNoteLabel}`
+									: ""}
+							</span>
+						</div>
+
+						<div className="song-coach-actions">
+							{!liveStep && onPlayFromSongBar && (
+								<button
+									type="button"
+									className="song-jump-play-btn"
+									onClick={() => onPlayFromSongBar(song, previewIndex)}
+								>
+									▶ Play from {statusStep.barLabel}
+								</button>
+							)}
+							{statusStep.theory && (
+								<button
+									type="button"
+									className="drawer-toggle-btn"
+									aria-expanded={!coachCollapsed}
+									aria-controls={`song-coach-body-${song.id}`}
+									onClick={() => setCoachCollapsed((c) => !c)}
+								>
+									<span>{coachCollapsed ? "Show Theory" : "Hide Theory"}</span>
+									<IconChevronDown size={12} />
+								</button>
+							)}
+						</div>
+					</div>
+
+					{statusStep.theory && !coachCollapsed && (
+						<div id={`song-coach-body-${song.id}`} className="song-coach-body">
+							<div className="song-coach-context-row">
+								<div
+									className="song-coach-progression"
+									role="group"
+									aria-label="Surrounding chord progression"
+								>
+									{prevStatusStep ? (
+										<button
+											type="button"
+											className="coach-neighbor-btn"
+											onClick={() =>
+												onSelectSongChordStep(song, activeStatusIndex - 1)
+											}
+											title={`Jump to ${prevStatusStep.barLabel}: ${prevStatusStep.chordSymbol}`}
+										>
+											<span className="coach-neighbor-bar">
+												{prevStatusStep.barLabel}
+											</span>
+											<span>
+												{prevStatusStep.chordSymbol} ({prevStatusStep.roman})
+											</span>
+										</button>
+									) : (
+										<span className="coach-context-edge">Start</span>
+									)}
+									<span className="coach-arrow" aria-hidden="true">
+										→
+									</span>
+									<span className="coach-current-pill">
+										<span className="coach-neighbor-bar">
+											{statusStep.barLabel}
+										</span>
+										<strong>
+											{statusStep.chordSymbol} ({statusStep.roman})
+										</strong>
+									</span>
+									<span className="coach-arrow" aria-hidden="true">
+										→
+									</span>
+									{nextStatusStep ? (
+										<button
+											type="button"
+											className="coach-neighbor-btn"
+											onClick={() =>
+												onSelectSongChordStep(song, activeStatusIndex + 1)
+											}
+											title={`Jump to ${nextStatusStep.barLabel}: ${nextStatusStep.chordSymbol}`}
+										>
+											<span className="coach-neighbor-bar">
+												{nextStatusStep.barLabel}
+											</span>
+											<span>
+												{nextStatusStep.chordSymbol} ({nextStatusStep.roman})
+											</span>
+										</button>
+									) : (
+										<span className="coach-context-edge">End</span>
+									)}
+								</div>
+
+								{statusStep.theory.devices.length > 0 && (
+									<div className="song-coach-tags">
+										{statusStep.theory.devices.map((tag) => (
+											<span key={tag} className="coach-device-tag">
+												{tag}
+											</span>
+										))}
+									</div>
+								)}
+							</div>
+
+							{statusStep.subBarChords &&
+								statusStep.subBarChords.length > 1 && (
+									<div className="song-coach-subbar-strip">
+										<span className="coach-subbar-label">Inside this bar:</span>
+										<div className="coach-subbar-chips">
+											{statusStep.subBarChords.map((sub, subIdx) => (
+												<span
+													key={`${sub.chordSymbol}-${sub.offsetMs}-${subIdx}`}
+													className={`coach-subbar-chip${
+														isCuedThis && subIdx === activeSubChordIdx
+															? " is-current-sub"
+															: ""
+													}`}
+												>
+													{sub.chordSymbol} ({sub.roman})
+												</span>
+											))}
+										</div>
+									</div>
+								)}
+
+							<div className="song-coach-lenses">
+								<div className="coach-lens-card">
+									<span className="coach-lens-label">What it&apos;s doing</span>
+									<p className="coach-lens-text">
+										{statusStep.theory.whatItDoes}
+									</p>
+								</div>
+								<div className="coach-lens-card">
+									<span className="coach-lens-label">Bigger picture</span>
+									<p className="coach-lens-text">
+										{statusStep.theory.biggerPicture}
+									</p>
+								</div>
+								<div className="coach-lens-card">
+									<span className="coach-lens-label">Why it works</span>
+									<p className="coach-lens-text">
+										{statusStep.theory.whyItWorks}
+									</p>
+								</div>
+							</div>
+						</div>
 					)}
-				</div>
+				</section>
 			)}
 
 			<div
@@ -558,6 +736,13 @@ function SongCard({
 							!isCuedThis && selectedPreviewStepId === step.id;
 						const isHighlighted = isLiveActive || isSelectedPreview;
 						const qualityClass = getQualityClass(step.quality);
+						const subFlow =
+							step.subBarChords && step.subBarChords.length > 1
+								? step.subBarChords
+										.slice(1)
+										.map((sub) => sub.chordSymbol)
+										.join(" → ")
+								: null;
 
 						return (
 							<button
@@ -576,10 +761,20 @@ function SongCard({
 									<span className="song-step-bar">{step.barLabel}</span>
 									<span className="song-step-roman">{step.roman}</span>
 								</span>
-								<span className="song-step-chord">{step.chordSymbol}</span>
+								<span className="song-step-chord-row">
+									<span className="song-step-chord">{step.chordSymbol}</span>
+									{subFlow && (
+										<span className="song-step-subflow">→ {subFlow}</span>
+									)}
+								</span>
 								<span className="song-step-notes">
 									{step.chordNotes.join(" · ")}
 								</span>
+								{step.theory?.roleLabel && (
+									<span className="song-step-role">
+										{step.theory.roleLabel}
+									</span>
+								)}
 								<span className="song-step-cue">{step.cue}</span>
 							</button>
 						);
