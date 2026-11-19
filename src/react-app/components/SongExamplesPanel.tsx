@@ -9,12 +9,7 @@ import {
 	formatSongTime,
 	getSongBarStartTimes,
 } from "../songs/songRuntime";
-import {
-	IconChevronDown,
-	IconX,
-	SegmentedControl,
-	getQualityClass,
-} from "./Icons";
+import { IconChevronDown, IconX, getQualityClass } from "./Icons";
 
 const PRACTICE_SPEED_OPTIONS = [
 	{ value: 0.5, label: "0.5x", title: "Practice speed 0.5x" },
@@ -117,6 +112,13 @@ function SongCard({
 		if (!selectedPreviewStepId) return -1;
 		return song.steps.findIndex((s) => s.id === selectedPreviewStepId);
 	}, [song.steps, selectedPreviewStepId]);
+
+	const selectedSpeedOption =
+		PRACTICE_SPEED_OPTIONS.find(
+			(o) => Math.abs(o.value - playbackSpeed) < 0.01,
+		) ??
+		PRACTICE_SPEED_OPTIONS.find((o) => o.value === 1) ??
+		PRACTICE_SPEED_OPTIONS[0];
 
 	const displayMs = useMemo(() => {
 		if (isCuedThis) {
@@ -488,17 +490,19 @@ function SongCard({
 						{formatSongTime(displayMs)} / {formatSongTime(totalDurationMs)}
 					</span>
 					{onChangePlaybackSpeed && (
-						<SegmentedControl
-							ariaLabel={`${song.title} practice speed`}
-							className="song-speed-group"
-							value={
-								PRACTICE_SPEED_OPTIONS.find(
-									(o) => Math.abs(o.value - playbackSpeed) < 0.01,
-								)?.value ?? 1
-							}
-							onChange={onChangePlaybackSpeed}
-							options={PRACTICE_SPEED_OPTIONS}
-						/>
+						<select
+							className="song-speed-select"
+							aria-label={`${song.title} practice speed`}
+							title={selectedSpeedOption.title}
+							value={String(selectedSpeedOption.value)}
+							onChange={(e) => onChangePlaybackSpeed(Number(e.target.value))}
+						>
+							{PRACTICE_SPEED_OPTIONS.map((opt) => (
+								<option key={opt.value} value={String(opt.value)}>
+									{opt.label}
+								</option>
+							))}
+						</select>
 					)}
 				</div>
 			</div>

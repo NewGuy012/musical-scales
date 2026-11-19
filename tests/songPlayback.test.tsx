@@ -170,7 +170,12 @@ describe("songPlayback helpers and synchronized UI", () => {
 			`0:00 / ${formatSongTime(flat.totalDurationMs)}`,
 		);
 		expect(idleHtml).toContain("song-timeline is-long");
+		expect(idleHtml).toContain("<select");
+		expect(idleHtml).toContain("song-speed-select");
 		expect(idleHtml).toContain("practice speed");
+		expect(idleHtml).toContain(
+			'<option value="0.75" selected="">0.75x</option>',
+		);
 		expect(idleHtml).toContain("0.5x");
 		expect(idleHtml).toContain("0.75x");
 		expect(idleHtml).toContain("1.25x");
@@ -191,9 +196,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(fastHtml).toContain(
-			'aria-pressed="true" title="Practice speed 1.5x"',
-		);
+		expect(fastHtml).toContain('title="Practice speed 1.5x"');
+		expect(fastHtml).toContain('<option value="1.5" selected="">1.5x</option>');
 
 		const playingHtml = renderToStaticMarkup(
 			<SongExamplesPanel
