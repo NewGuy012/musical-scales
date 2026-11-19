@@ -92,7 +92,7 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		C7: {
-			roman: "i7",
+			roman: "I7",
 			quality: "major",
 			notes: ["C", "E", "G", "B♭"],
 			degree: 1,
@@ -107,7 +107,7 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 			slot: 8,
 		},
 		D7: {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["D", "F♯", "A", "C"],
 			degree: 2,
@@ -115,7 +115,7 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		Bm: {
-			roman: "vii°",
+			roman: "vii",
 			quality: "minor",
 			notes: ["B", "D", "F♯"],
 			degree: 7,

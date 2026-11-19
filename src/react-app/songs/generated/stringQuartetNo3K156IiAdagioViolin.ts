@@ -135,7 +135,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			slot: 1,
 		},
 		A7: {
-			roman: "iv7",
+			roman: "IV7",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 4,
@@ -158,7 +158,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			slot: 0,
 		},
 		"Fdim/G♯": {
-			roman: "♭II",
+			roman: "♭ii°",
 			quality: "diminished",
 			notes: ["F", "A♭", "C♭"],
 			degree: 2,
@@ -188,7 +188,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"A♯m": {
-			roman: "♯iv°",
+			roman: "♯iv",
 			quality: "minor",
 			notes: ["A♯", "C♯", "E♯"],
 			degree: 4,
@@ -202,7 +202,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			slot: 2,
 		},
 		"F♯7/C♯": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -224,7 +224,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			slot: 5,
 		},
 		"F♯m7/E": {
-			roman: "ii°",
+			roman: "ii7",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯", "E"],
 			degree: 2,
@@ -240,7 +240,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"Edim/A♯": {
-			roman: "i",
+			roman: "i°",
 			quality: "diminished",
 			notes: ["E", "G", "B♭"],
 			degree: 1,
@@ -307,7 +307,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			slot: 1,
 		},
 		"F♯7": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -315,7 +315,7 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"F♯7/A♯": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,

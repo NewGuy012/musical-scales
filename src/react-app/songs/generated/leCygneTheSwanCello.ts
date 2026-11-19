@@ -121,7 +121,7 @@ export const LE_CYGNE_THE_SWAN_CELLO_SPEC: SongDocument = {
 			slot: 10,
 		},
 		"F♯7": {
-			roman: "vii°",
+			roman: "V7/iii",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 7,
@@ -247,7 +247,7 @@ export const LE_CYGNE_THE_SWAN_CELLO_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		E7: {
-			roman: "V/ii",
+			roman: "V7/ii",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 6,

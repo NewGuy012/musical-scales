@@ -878,11 +878,18 @@ export function describeRomanFunction(
 		roman.includes("/V") ||
 		roman.includes("/IV") ||
 		roman.includes("/ii") ||
-		roman.includes("/iii")
+		roman.includes("/iii") ||
+		roman.includes("/iv") ||
+		roman.includes("/VI")
 	) {
 		return "Secondary dominant · pulls to next chord";
 	}
-	if (roman.includes("♯iv") || roman.includes("vii°")) {
+	if (
+		roman.includes("♯iv") ||
+		roman.includes("♯v") ||
+		roman.includes("♯i") ||
+		roman.includes("vii°")
+	) {
 		return "Chromatic / leading-tone tension";
 	}
 	if (roman.includes("Picardy")) {
@@ -891,10 +898,25 @@ export function describeRomanFunction(
 	if (roman.startsWith("i♭") || roman.startsWith("i♯")) {
 		return "Borrowed parallel minor color";
 	}
+	if (roman.startsWith("♭II")) {
+		return "Neapolitan (♭II) · dramatic half-step pull";
+	}
+	if (roman.startsWith("♭VII")) {
+		return "Subtonic (♭VII) · borrowed modal lift";
+	}
+	if (roman.startsWith("♭VI") || roman.startsWith("♭III")) {
+		return "Borrowed modal color · warm dark lift";
+	}
 	if (roman.startsWith("iv")) {
 		return "Minor subdominant · bittersweet lift";
 	}
-	if (roman === "i" || roman.startsWith("i6")) {
+	if (
+		roman === "i" ||
+		roman === "i7" ||
+		roman === "i5" ||
+		roman.startsWith("isus") ||
+		roman.startsWith("i6")
+	) {
 		return "Minor tonic · home base";
 	}
 	if (roman.startsWith("III")) {

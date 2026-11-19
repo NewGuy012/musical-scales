@@ -48,7 +48,7 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 			slot: 8,
 		},
 		"B♭7": {
-			roman: "iv7",
+			roman: "IV7",
 			quality: "major",
 			notes: ["B♭", "D", "F", "A♭"],
 			degree: 4,
@@ -94,7 +94,7 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 			guitarKind: "add9",
 		},
 		"B♭add9": {
-			roman: "iv",
+			roman: "IV",
 			quality: "major",
 			notes: ["B♭", "D", "F", "C"],
 			degree: 4,
@@ -161,7 +161,7 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 			slot: 4,
 		},
 		"G7/B": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["G", "B", "D", "F"],
 			degree: 2,
@@ -183,7 +183,7 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 			slot: 0,
 		},
 		F: {
-			roman: "i",
+			roman: "I",
 			quality: "major",
 			notes: ["F", "A", "C"],
 			degree: 1,
@@ -198,7 +198,7 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"E♭dim7": {
-			roman: "VII°7",
+			roman: "vii°7",
 			quality: "diminished",
 			notes: ["E♭", "G♭", "A", "C"],
 			degree: 7,

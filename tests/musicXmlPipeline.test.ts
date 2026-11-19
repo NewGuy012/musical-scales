@@ -339,10 +339,30 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		const cSharpDim = resolveExplicitChordSymbol("C#dim7", 1, "major");
 		expect(cSharpDim?.chordSymbol).toBe("C♯dim7");
 		expect(cSharpDim?.quality).toBe("diminished");
+		expect(cSharpDim?.roman).toBe("♯iv°7");
+
+		const fSharp7InG = resolveExplicitChordSymbol("F#7", 1, "major");
+		expect(fSharp7InG?.roman).toBe("V7/iii");
+		expect(fSharp7InG?.quality).toBe("major");
+
+		const dSharpDimInG = resolveExplicitChordSymbol("D#dim", 1, "major");
+		expect(dSharpDimInG?.roman).toBe("♯v°");
+		expect(dSharpDimInG?.quality).toBe("diminished");
+
+		const a5InAmin = resolveExplicitChordSymbol("A5", 0, "minor");
+		expect(a5InAmin?.roman).toBe("i5");
+		expect(a5InAmin?.quality).toBe("minor");
+		expect(a5InAmin?.chordNotes).toEqual(["A", "E"]);
+		expect(a5InAmin?.circleSlotIndex).toBe(0);
+
+		const d7InAmin = resolveExplicitChordSymbol("D7", 0, "minor");
+		expect(d7InAmin?.roman).toBe("IV7");
+		expect(d7InAmin?.quality).toBe("major");
 
 		const slash = resolveExplicitChordSymbol("D7/F#", 1, "major");
 		expect(slash?.chordSymbol).toBe("D7/F♯");
 		expect(slash?.guitarKind).toBe("7");
+		expect(slash?.roman).toBe("V7");
 	});
 
 	test("compiles Drop-D guitar MusicXML with TAB stops, repeats, ties, harmonics, and renders PCM WAV", async () => {

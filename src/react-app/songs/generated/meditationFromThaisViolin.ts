@@ -179,7 +179,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"A♯m/C♯": {
-			roman: "♭vi",
+			roman: "♯v",
 			quality: "minor",
 			notes: ["A♯", "C♯", "E♯"],
 			degree: 6,
@@ -215,7 +215,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		Bsus4: {
-			roman: "V/ii",
+			roman: "VIsus4",
 			quality: "major",
 			notes: ["B", "E", "F♯"],
 			degree: 6,
@@ -223,7 +223,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "sus4",
 		},
 		"F♯7": {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 3,
@@ -231,7 +231,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"F♯7/A♯": {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 3,
@@ -304,7 +304,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			slot: 8,
 		},
 		"A♯m": {
-			roman: "♭vi",
+			roman: "♯v",
 			quality: "minor",
 			notes: ["A♯", "C♯", "E♯"],
 			degree: 6,
@@ -318,14 +318,14 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			slot: 8,
 		},
 		"A♯m/F": {
-			roman: "♭vi",
+			roman: "♯v",
 			quality: "minor",
 			notes: ["A♯", "C♯", "E♯"],
 			degree: 6,
 			slot: 7,
 		},
 		"A♯dim": {
-			roman: "♭VI",
+			roman: "♯v°",
 			quality: "diminished",
 			notes: ["A♯", "C♯", "E"],
 			degree: 6,
@@ -346,7 +346,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			slot: 2,
 		},
 		"C♯7": {
-			roman: "vii°",
+			roman: "V7/iii",
 			quality: "major",
 			notes: ["C♯", "E♯", "G♯", "B"],
 			degree: 7,
@@ -354,7 +354,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"C♯7/B": {
-			roman: "vii°",
+			roman: "V7/iii",
 			quality: "major",
 			notes: ["C♯", "E♯", "G♯", "B"],
 			degree: 7,
@@ -362,7 +362,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"D♯7": {
-			roman: "♭II7",
+			roman: "♯I7",
 			quality: "major",
 			notes: ["D♯", "G", "A♯", "C♯"],
 			degree: 2,
@@ -370,7 +370,7 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"Gdim/A♯": {
-			roman: "IV",
+			roman: "iv°",
 			quality: "diminished",
 			notes: ["G", "B♭", "D♭"],
 			degree: 4,

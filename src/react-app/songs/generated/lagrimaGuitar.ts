@@ -90,7 +90,7 @@ export const LAGRIMA_GUITAR_SPEC: SongDocument = {
 			slot: 3,
 		},
 		"F♯7/B♭": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,

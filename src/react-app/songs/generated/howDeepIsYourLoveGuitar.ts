@@ -81,9 +81,9 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"F♯5": {
-			roman: "V",
+			roman: "V5",
 			quality: "major",
-			notes: ["F♯", "A♯", "C♯"],
+			notes: ["F♯", "C♯"],
 			degree: 5,
 			slot: 6,
 		},
@@ -95,7 +95,7 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			slot: 5,
 		},
 		"E♭7": {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["E♭", "G", "B♭", "D♭"],
 			degree: 3,
@@ -179,7 +179,7 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		"C♯7/B": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["C♯", "E♯", "G♯", "B"],
 			degree: 2,
@@ -239,9 +239,9 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			slot: 6,
 		},
 		A5: {
-			roman: "♭VII",
+			roman: "♭VII5",
 			quality: "major",
-			notes: ["A", "C♯", "E"],
+			notes: ["A", "E"],
 			degree: 7,
 			slot: 3,
 		},
@@ -253,7 +253,7 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			slot: 3,
 		},
 		"A♭7": {
-			roman: "V/ii",
+			roman: "V7/ii",
 			quality: "major",
 			notes: ["A♭", "C", "E♭", "G♭"],
 			degree: 6,
@@ -269,7 +269,7 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "add9",
 		},
 		"F♯sus4": {
-			roman: "V",
+			roman: "Vsus4",
 			quality: "major",
 			notes: ["F♯", "B", "C♯"],
 			degree: 5,
@@ -277,7 +277,7 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "sus4",
 		},
 		"F♯sus2": {
-			roman: "V",
+			roman: "Vsus2",
 			quality: "major",
 			notes: ["F♯", "G♯", "C♯"],
 			degree: 5,
@@ -285,9 +285,9 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "sus2",
 		},
 		B5: {
-			roman: "I",
+			roman: "I5",
 			quality: "major",
-			notes: ["B", "D♯", "F♯"],
+			notes: ["B", "F♯"],
 			degree: 1,
 			slot: 5,
 		},

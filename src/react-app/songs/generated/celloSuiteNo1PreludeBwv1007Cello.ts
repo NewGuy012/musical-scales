@@ -71,7 +71,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			slot: 1,
 		},
 		"A7/C♯": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 2,
@@ -108,7 +108,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"E7/D": {
-			roman: "V/ii",
+			roman: "V7/ii",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 6,
@@ -123,7 +123,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			slot: 0,
 		},
 		"D♯dim": {
-			roman: "♭VI",
+			roman: "♯v°",
 			quality: "diminished",
 			notes: ["D♯", "F♯", "A"],
 			degree: 6,
@@ -177,7 +177,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "maj7",
 		},
 		"F♯m7/C♯": {
-			roman: "vii°",
+			roman: "vii7",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯", "E"],
 			degree: 7,
@@ -216,7 +216,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			slot: 1,
 		},
 		"A♯m7/G♯": {
-			roman: "♭iii7",
+			roman: "♯ii7",
 			quality: "minor",
 			notes: ["A♯", "C♯", "E♯", "G♯"],
 			degree: 3,
@@ -224,7 +224,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		A7: {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 2,
@@ -232,7 +232,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"A7/E": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 2,
@@ -248,7 +248,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"F♯m7/A": {
-			roman: "vii°",
+			roman: "vii7",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯", "E"],
 			degree: 7,
@@ -256,7 +256,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"F♯m7/E": {
-			roman: "vii°",
+			roman: "vii7",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯", "E"],
 			degree: 7,
@@ -295,7 +295,7 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 			slot: 11,
 		},
 		Dsus4: {
-			roman: "V",
+			roman: "Vsus4",
 			quality: "major",
 			notes: ["D", "G", "A"],
 			degree: 5,

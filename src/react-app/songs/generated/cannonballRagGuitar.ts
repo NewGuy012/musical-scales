@@ -63,7 +63,7 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		A7: {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 2,
@@ -86,14 +86,14 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"F♯m/A": {
-			roman: "vii°",
+			roman: "vii",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯"],
 			degree: 7,
 			slot: 3,
 		},
 		"B7/A": {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["B", "D♯", "F♯", "A"],
 			degree: 3,
@@ -108,7 +108,7 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			slot: 1,
 		},
 		"F♯m7/A": {
-			roman: "vii°",
+			roman: "vii7",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯", "E"],
 			degree: 7,
@@ -130,7 +130,7 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			slot: 7,
 		},
 		"E7/B": {
-			roman: "V/ii",
+			roman: "V7/ii",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 6,
@@ -138,7 +138,7 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"B♭dim": {
-			roman: "♭III",
+			roman: "♭iii°",
 			quality: "diminished",
 			notes: ["B♭", "D♭", "F♭"],
 			degree: 3,
@@ -181,9 +181,9 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			slot: 0,
 		},
 		D5: {
-			roman: "V",
+			roman: "V5",
 			quality: "major",
-			notes: ["D", "F♯", "A"],
+			notes: ["D", "A"],
 			degree: 5,
 			slot: 2,
 		},
@@ -210,9 +210,9 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		G5: {
-			roman: "I",
+			roman: "I5",
 			quality: "major",
-			notes: ["G", "B", "D"],
+			notes: ["G", "D"],
 			degree: 1,
 			slot: 1,
 		},
@@ -233,7 +233,7 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 			guitarKind: "add9",
 		},
 		"F♯7": {
-			roman: "vii°",
+			roman: "V7/iii",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 7,

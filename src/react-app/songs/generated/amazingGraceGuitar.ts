@@ -95,7 +95,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		"Eaug/G♯": {
-			roman: "I",
+			roman: "I+",
 			quality: "major",
 			notes: ["E", "G♯", "B♯"],
 			degree: 1,
@@ -111,7 +111,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "add9",
 		},
 		"A♯dim7": {
-			roman: "♯iv°",
+			roman: "♯iv°7",
 			quality: "diminished",
 			notes: ["A♯", "C♯", "E", "G"],
 			degree: 4,
@@ -158,7 +158,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			slot: 5,
 		},
 		Eaug: {
-			roman: "I",
+			roman: "I+",
 			quality: "major",
 			notes: ["E", "G♯", "B♯"],
 			degree: 1,
@@ -188,7 +188,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		Cdim7: {
-			roman: "♭VI°7",
+			roman: "♭vi°7",
 			quality: "diminished",
 			notes: ["C", "E♭", "G♭", "A"],
 			degree: 6,
@@ -204,7 +204,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"F♯9": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -212,7 +212,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		Asus2: {
-			roman: "IV",
+			roman: "IVsus2",
 			quality: "major",
 			notes: ["A", "B", "E"],
 			degree: 4,
@@ -242,7 +242,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		"G♯°": {
-			roman: "iii",
+			roman: "iii°",
 			quality: "diminished",
 			notes: ["G♯", "B", "D"],
 			degree: 3,
@@ -257,7 +257,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"G♯7": {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["G♯", "B♯", "D♯", "F♯"],
 			degree: 3,
@@ -288,7 +288,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		Esus2: {
-			roman: "I",
+			roman: "Isus2",
 			quality: "major",
 			notes: ["E", "F♯", "B"],
 			degree: 1,
@@ -326,7 +326,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"F♯7": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -358,7 +358,7 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		Gdim7: {
-			roman: "♭III°7",
+			roman: "♭iii°7",
 			quality: "diminished",
 			notes: ["G", "B♭", "D♭", "F♭"],
 			degree: 3,

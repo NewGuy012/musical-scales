@@ -276,35 +276,79 @@ export function detectKeyFromEvents(
 	return resolveKeySignatureFromRootPc(bestPc, bestMode, preferFlats);
 }
 
-const MAJOR_ROMAN_BY_OFFSET: Record<number, string> = {
+const MAJOR_ROMAN_UPPER_BY_OFFSET: Record<number, string> = {
 	0: "I",
 	1: "♭II",
-	2: "ii",
+	2: "II",
 	3: "♭III",
-	4: "iii",
+	4: "III",
 	5: "IV",
-	6: "♯iv°",
+	6: "♯IV",
 	7: "V",
 	8: "♭VI",
-	9: "vi",
+	9: "VI",
 	10: "♭VII",
-	11: "vii°",
+	11: "VII",
 };
 
-const MINOR_ROMAN_BY_OFFSET: Record<number, string> = {
-	0: "i",
+const MINOR_ROMAN_UPPER_BY_OFFSET: Record<number, string> = {
+	0: "I",
 	1: "♭II",
-	2: "ii°",
+	2: "II",
 	3: "III",
-	4: "♯iii",
-	5: "iv",
-	6: "♯iv°",
-	7: "v",
+	4: "♯III",
+	5: "IV",
+	6: "♯IV",
+	7: "V",
 	8: "VI",
-	9: "♯vi",
+	9: "♯VI",
 	10: "VII",
-	11: "vii°",
+	11: "VII",
 };
+
+const DEGREE_NUMERALS_UPPER = [
+	"I",
+	"II",
+	"III",
+	"IV",
+	"V",
+	"VI",
+	"VII",
+] as const;
+
+const CHROMATIC_OFFSETS = new Set([1, 3, 6, 8, 10]);
+
+function toLowerRomanPreservingAccidentals(romanUpper: string): string {
+	return romanUpper.replace(/[IV]+/g, (m) => m.toLowerCase());
+}
+
+function resolveBaseUpperRoman(
+	offset: number,
+	keyMode: KeyMode,
+	quality: ChordQuality,
+	rootName?: string,
+	keyAnalysis?: KeyAnalysis,
+): string {
+	if (rootName && keyAnalysis && CHROMATIC_OFFSETS.has(offset)) {
+		const rootLetter = rootName[0];
+		const degIdx = keyAnalysis.scaleNotes.findIndex((n) => n[0] === rootLetter);
+		if (degIdx >= 0) {
+			const scalePc = noteToPitchClass(keyAnalysis.scaleNotes[degIdx]);
+			const delta = mod12(
+				offset - mod12(scalePc - noteToPitchClass(keyAnalysis.root)),
+			);
+			if (delta === 1) return `♯${DEGREE_NUMERALS_UPPER[degIdx]}`;
+			if (delta === 11) return `♭${DEGREE_NUMERALS_UPPER[degIdx]}`;
+		}
+	}
+	if (keyMode === "major") {
+		if (offset === 1 && quality === "diminished") return "♯I";
+		if (offset === 8 && quality === "diminished") return "♯V";
+		return MAJOR_ROMAN_UPPER_BY_OFFSET[offset] ?? "I";
+	}
+	if (offset === 1 && quality === "diminished") return "♯I";
+	return MINOR_ROMAN_UPPER_BY_OFFSET[offset] ?? "I";
+}
 
 function inferRomanNumeral(
 	tonicPc: number,
@@ -312,7 +356,13 @@ function inferRomanNumeral(
 	rootPc: number,
 	quality: ChordQuality,
 	kind: GuitarChordKind,
-): { roman: string; circleDegree: number } {
+	options?: {
+		rootName?: string;
+		keyAnalysis?: KeyAnalysis;
+		isPower?: boolean;
+		isSus?: boolean;
+	},
+): { roman: string; circleDegree: number; effectiveQuality: ChordQuality } {
 	const offset = mod12(rootPc - tonicPc);
 	const degreeMap: Record<number, number> = {
 		0: 1,
@@ -329,41 +379,98 @@ function inferRomanNumeral(
 		11: 7,
 	};
 	const circleDegree = degreeMap[offset] ?? 1;
-	const base =
-		keyMode === "major"
-			? (MAJOR_ROMAN_BY_OFFSET[offset] ?? "I")
-			: (MINOR_ROMAN_BY_OFFSET[offset] ?? "i");
 
-	let roman = base;
-	if (quality === "major" && roman === roman.toLowerCase() && offset === 2) {
-		roman = "V/V";
-	} else if (
-		quality === "major" &&
-		roman === roman.toLowerCase() &&
-		offset === 9 &&
-		keyMode === "major"
-	) {
-		roman = "V/ii";
-	} else if (
-		quality === "major" &&
-		roman === roman.toLowerCase() &&
-		offset === 4 &&
-		keyMode === "major"
-	) {
-		roman = "V/vi";
-	} else if (keyMode === "minor" && offset === 7 && quality === "major") {
-		roman = "V";
-	} else if (quality === "minor") {
-		roman = roman.toLowerCase();
+	// Power chords (5) and suspended chords (sus4/sus2) have no 3rd; align
+	// their UI quality and Roman case with minor-key tonic/subdominant context.
+	const isThirdless = Boolean(options?.isPower || options?.isSus);
+	let effectiveQuality: ChordQuality = quality;
+	if (isThirdless && keyMode === "minor" && (offset === 0 || offset === 5)) {
+		effectiveQuality = "minor";
 	}
 
-	if (!roman.includes("°")) {
-		if (kind === "7" && !roman.includes("/")) roman = `${roman}7`;
-		else if (kind === "maj7") roman = `${roman}maj7`;
-		else if (kind === "m7") roman = `${roman}7`;
-		else if (kind === "dim7") roman = `${roman}°7`;
+	const baseUpper = resolveBaseUpperRoman(
+		offset,
+		keyMode,
+		effectiveQuality,
+		options?.rootName,
+		options?.keyAnalysis,
+	);
+
+	if (options?.isPower) {
+		const stem =
+			effectiveQuality === "minor"
+				? toLowerRomanPreservingAccidentals(baseUpper)
+				: baseUpper;
+		return { roman: `${stem}5`, circleDegree, effectiveQuality };
 	}
-	return { roman, circleDegree };
+
+	if (options?.isSus) {
+		const susSuffix = kind === "sus2" ? "sus2" : "sus4";
+		const stem =
+			effectiveQuality === "minor"
+				? toLowerRomanPreservingAccidentals(baseUpper)
+				: baseUpper;
+		return { roman: `${stem}${susSuffix}`, circleDegree, effectiveQuality };
+	}
+
+	if (effectiveQuality === "diminished") {
+		const dimSuffix = kind === "dim7" ? "°7" : kind === "m7♭5" ? "ø7" : "°";
+		return {
+			roman: `${toLowerRomanPreservingAccidentals(baseUpper)}${dimSuffix}`,
+			circleDegree,
+			effectiveQuality,
+		};
+	}
+
+	if (effectiveQuality === "minor") {
+		const minorSuffix = kind === "m7" ? "7" : "";
+		return {
+			roman: `${toLowerRomanPreservingAccidentals(baseUpper)}${minorSuffix}`,
+			circleDegree,
+			effectiveQuality,
+		};
+	}
+
+	// Major-quality chords (major, 7, maj7, aug, add9)
+	const seventhTag = kind === "7" ? "7" : "";
+	if (kind === "major" || kind === "7") {
+		if (offset === 2) {
+			return {
+				roman: `V${seventhTag}/V`,
+				circleDegree,
+				effectiveQuality,
+			};
+		}
+		if (keyMode === "major" && offset === 9) {
+			return {
+				roman: `V${seventhTag}/ii`,
+				circleDegree,
+				effectiveQuality,
+			};
+		}
+		if (keyMode === "major" && offset === 4) {
+			return {
+				roman: `V${seventhTag}/vi`,
+				circleDegree,
+				effectiveQuality,
+			};
+		}
+		if (keyMode === "major" && offset === 11) {
+			return {
+				roman: `V${seventhTag}/iii`,
+				circleDegree,
+				effectiveQuality,
+			};
+		}
+	}
+
+	const majorSuffix =
+		kind === "7" ? "7" : kind === "maj7" ? "maj7" : kind === "aug" ? "+" : "";
+	return {
+		roman: `${baseUpper}${majorSuffix}`,
+		circleDegree,
+		effectiveQuality,
+	};
 }
 
 export function inferHarmonyForWindow(
@@ -458,21 +565,26 @@ export function inferHarmonyForWindow(
 
 	const rootName = scaleSpellMap.get(bestRootPc) ?? fallbackPalette[bestRootPc];
 	const variation = buildChordVariation(rootName, bestKind, preferFlats);
-	const { roman, circleDegree } = inferRomanNumeral(
+	const { roman, circleDegree, effectiveQuality } = inferRomanNumeral(
 		tonicPc,
 		keyMode,
 		bestRootPc,
 		variation.quality,
 		bestKind,
+		{
+			rootName,
+			keyAnalysis,
+			isSus: bestKind === "sus4" || bestKind === "sus2",
+		},
 	);
 	return {
 		chordSymbol: variation.symbol,
 		roman,
-		quality: variation.quality,
+		quality: effectiveQuality,
 		guitarKind: bestKind,
 		chordNotes: variation.notes,
 		circleDegree,
-		circleSlotIndex: pcToCircleIndex(bestRootPc, variation.quality),
+		circleSlotIndex: pcToCircleIndex(bestRootPc, effectiveQuality),
 	};
 }
 
@@ -499,6 +611,9 @@ const EXPLICIT_SUFFIX_MAP: Readonly<Record<string, GuitarChordKind>> = {
 	sus4: "sus4",
 	sus: "sus4",
 	sus2: "sus2",
+	"6": "major",
+	m6: "minor",
+	"5": "major",
 };
 
 function parseChordSymbolBase(symbolRaw: string): {
@@ -507,6 +622,8 @@ function parseChordSymbolBase(symbolRaw: string): {
 	rootPc: number;
 	suffix: string;
 	kind: GuitarChordKind;
+	isPower: boolean;
+	isSus: boolean;
 } | null {
 	const normalized = symbolRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
 	const clean = normalized.split("/")[0]?.trim();
@@ -534,7 +651,15 @@ function parseChordSymbolBase(symbolRaw: string): {
 		}
 	}
 
-	return { normalized, rootName, rootPc, suffix, kind };
+	return {
+		normalized,
+		rootName,
+		rootPc,
+		suffix,
+		kind,
+		isPower: suffix === "5",
+		isSus: kind === "sus4" || kind === "sus2",
+	};
 }
 
 export function resolveExplicitChordSymbol(
@@ -545,7 +670,7 @@ export function resolveExplicitChordSymbol(
 ): InferredHarmony | null {
 	const parsed = parseChordSymbolBase(symbolRaw);
 	if (!parsed) return null;
-	const { normalized, rootName, rootPc, kind } = parsed;
+	const { normalized, rootName, rootPc, kind, isPower, isSus } = parsed;
 
 	const keyAnalysis = precomputedKey ?? analyzeKey(keySlot, keyMode);
 	const tonicPc = noteToPitchClass(keyAnalysis.root);
@@ -554,20 +679,31 @@ export function resolveExplicitChordSymbol(
 		kind,
 		keyAnalysis.accidentalsCount < 0 || rootName.includes("♭"),
 	);
-	const { roman, circleDegree } = inferRomanNumeral(
+	const { roman, circleDegree, effectiveQuality } = inferRomanNumeral(
 		tonicPc,
 		keyMode,
 		rootPc,
 		variation.quality,
 		kind,
+		{
+			rootName,
+			keyAnalysis,
+			isPower,
+			isSus,
+		},
 	);
+	const chordNotes = isPower
+		? [variation.notes[0], variation.notes[2] ?? variation.notes[1]].filter(
+				(n): n is string => Boolean(n),
+			)
+		: variation.notes;
 	return {
 		chordSymbol: normalized,
 		roman,
-		quality: variation.quality,
+		quality: effectiveQuality,
 		guitarKind: kind,
-		chordNotes: variation.notes,
+		chordNotes,
 		circleDegree,
-		circleSlotIndex: pcToCircleIndex(rootPc, variation.quality),
+		circleSlotIndex: pcToCircleIndex(rootPc, effectiveQuality),
 	};
 }

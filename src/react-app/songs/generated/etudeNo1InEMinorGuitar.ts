@@ -95,14 +95,14 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			slot: 1,
 		},
 		"E/A♭": {
-			roman: "i",
+			roman: "I",
 			quality: "major",
 			notes: ["E", "G♯", "B"],
 			degree: 1,
 			slot: 4,
 		},
 		"E/B": {
-			roman: "i",
+			roman: "I",
 			quality: "major",
 			notes: ["E", "G♯", "B"],
 			degree: 1,
@@ -124,7 +124,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		Bsus4: {
-			roman: "V",
+			roman: "Vsus4",
 			quality: "major",
 			notes: ["B", "E", "F♯"],
 			degree: 5,
@@ -132,7 +132,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "sus4",
 		},
 		"Bsus4/E": {
-			roman: "V",
+			roman: "Vsus4",
 			quality: "major",
 			notes: ["B", "E", "F♯"],
 			degree: 5,
@@ -148,7 +148,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		E7: {
-			roman: "i7",
+			roman: "I7",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 1,
@@ -156,7 +156,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"E7/A♭": {
-			roman: "i7",
+			roman: "I7",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 1,
@@ -178,14 +178,14 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			slot: 4,
 		},
 		Edim: {
-			roman: "i",
+			roman: "i°",
 			quality: "diminished",
 			notes: ["E", "G", "B♭"],
 			degree: 1,
 			slot: 4,
 		},
 		"E7/D": {
-			roman: "i7",
+			roman: "I7",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 1,
@@ -193,7 +193,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"E7/B": {
-			roman: "i7",
+			roman: "I7",
 			quality: "major",
 			notes: ["E", "G♯", "B", "D"],
 			degree: 1,
@@ -217,7 +217,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "maj7",
 		},
 		"F♯7": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -225,7 +225,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"F♯7/C♯": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["F♯", "A♯", "C♯", "E"],
 			degree: 2,
@@ -241,7 +241,7 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		"F♯m": {
-			roman: "ii°",
+			roman: "ii",
 			quality: "minor",
 			notes: ["F♯", "A", "C♯"],
 			degree: 2,

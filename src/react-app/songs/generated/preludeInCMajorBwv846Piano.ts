@@ -70,7 +70,7 @@ export const PRELUDE_IN_C_MAJOR_BWV_846_PIANO_SPEC: SongDocument = {
 			slot: 0,
 		},
 		"D7/C": {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["D", "F♯", "A", "C"],
 			degree: 2,
@@ -101,7 +101,7 @@ export const PRELUDE_IN_C_MAJOR_BWV_846_PIANO_SPEC: SongDocument = {
 			guitarKind: "m7",
 		},
 		D7: {
-			roman: "V/V",
+			roman: "V7/V",
 			quality: "major",
 			notes: ["D", "F♯", "A", "C"],
 			degree: 2,

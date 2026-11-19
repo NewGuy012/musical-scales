@@ -114,7 +114,7 @@ export const SONATA_DA_CHIESA_OP_3_NO_1_GRAVE_VIOLIN_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"Em/B": {
-			roman: "vii°",
+			roman: "vii",
 			quality: "minor",
 			notes: ["E", "G", "B"],
 			degree: 7,
@@ -128,7 +128,7 @@ export const SONATA_DA_CHIESA_OP_3_NO_1_GRAVE_VIOLIN_SPEC: SongDocument = {
 			slot: 11,
 		},
 		A7: {
-			roman: "V/vi",
+			roman: "V7/vi",
 			quality: "major",
 			notes: ["A", "C♯", "E", "G"],
 			degree: 3,
