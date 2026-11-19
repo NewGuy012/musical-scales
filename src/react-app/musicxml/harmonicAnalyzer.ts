@@ -347,6 +347,7 @@ function resolveBaseUpperRoman(
 		return MAJOR_ROMAN_UPPER_BY_OFFSET[offset] ?? "I";
 	}
 	if (offset === 1 && quality === "diminished") return "♯I";
+	if (offset === 11 && quality === "major") return "♯VII";
 	return MINOR_ROMAN_UPPER_BY_OFFSET[offset] ?? "I";
 }
 

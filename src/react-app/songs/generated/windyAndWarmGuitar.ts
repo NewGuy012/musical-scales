@@ -282,7 +282,7 @@ export const WINDY_AND_WARM_GUITAR_SPEC: SongDocument = {
 			guitarKind: "7",
 		},
 		"G♯maj7/G": {
-			roman: "VIImaj7",
+			roman: "♯VIImaj7",
 			quality: "major",
 			notes: ["G♯", "B♯", "D♯", "G"],
 			degree: 7,

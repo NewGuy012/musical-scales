@@ -212,20 +212,26 @@ function isDominantFunction(atom: ChordAtom): boolean {
 	);
 }
 
-function resolvesByFifthDown(dom: ChordAtom, target: ChordAtom): boolean {
-	return (
-		dom.quality === "major" &&
-		!dom.isMaj7 &&
-		mod12(dom.rootPc - target.rootPc) === 7
-	);
-}
-
 function isAppliedDominantTo(dom: ChordAtom, target: ChordAtom): boolean {
-	return (
-		resolvesByFifthDown(dom, target) &&
-		target.keyOffset !== 0 &&
-		(dom.isDom7 || dom.quality === "major")
-	);
+	if (
+		dom.quality !== "major" ||
+		dom.isMaj7 ||
+		dom.isAdd9 ||
+		dom.isSus ||
+		dom.isPower ||
+		dom.isAug
+	) {
+		return false;
+	}
+	if (mod12(dom.rootPc - target.rootPc) !== 7 || target.keyOffset === 0) {
+		return false;
+	}
+	// Plain diatonic major triads descending by fifth (I -> IV, III -> VI, VII -> III)
+	// are diatonic root progressions; require a dominant 7th or chromatic leading tone.
+	if (!dom.isDom7 && dom.outOfKeyNotes.length === 0) {
+		return false;
+	}
+	return true;
 }
 
 function isTritoneSubTo(dom: ChordAtom, target: ChordAtom): boolean {

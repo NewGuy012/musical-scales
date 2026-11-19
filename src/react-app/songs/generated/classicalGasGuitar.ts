@@ -45,7 +45,7 @@ export const CLASSICAL_GAS_GUITAR_SPEC: SongDocument = {
 				endStepIndex: 83,
 				progressionTag: "C – G7 – E♭ – A♭ – G/B – Dmaj7/C♯",
 				insight:
-					"Measures 43–84 (III – VII7 – ♭V – VII – VII) weaves through C → G7 → E♭ → A♭ in A Minor.",
+					"Measures 43–84 (III – VII7 – ♭V – ♯VII – VII) weaves through C → G7 → E♭ → A♭ in A Minor.",
 			},
 			{
 				id: "imp-sec-3",
@@ -284,7 +284,7 @@ export const CLASSICAL_GAS_GUITAR_SPEC: SongDocument = {
 			slot: 10,
 		},
 		"A♭": {
-			roman: "VII",
+			roman: "♯VII",
 			quality: "major",
 			notes: ["A♭", "C", "E♭"],
 			degree: 7,
