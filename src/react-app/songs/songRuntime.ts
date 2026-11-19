@@ -14,7 +14,12 @@ import type {
 
 export type { GuitarSongStop, GuitarStopTechnique };
 
-export type InstrumentTab = "piano" | "guitar" | "violin" | "cello";
+export const INSTRUMENT_TABS = ["piano", "guitar", "violin", "cello"] as const;
+export type InstrumentTab = (typeof INSTRUMENT_TABS)[number];
+
+export function isInstrumentTab(raw: string): raw is InstrumentTab {
+	return INSTRUMENT_TABS.includes(raw as InstrumentTab);
+}
 
 export type SongNoteTechnique =
 	| "normal"
@@ -31,7 +36,7 @@ export type SongNoteTechnique =
 
 export type SongHand = "rh" | "lh";
 
-export interface SongPerformanceNote {
+interface SongPerformanceNote {
 	midi: number;
 	durationSec: number;
 	velocity?: number;
@@ -59,7 +64,7 @@ export interface BowedSongStop {
 		"normal" | "harmonic" | "portamento" | "staccato" | "pizzicato" | "slur";
 }
 
-export interface SongNoteEvent {
+interface SongNoteEvent {
 	midi: number[];
 	durationSec: number;
 	stepDurationMs: number;
@@ -92,7 +97,7 @@ export interface SongChordStep {
 	events: SongNoteEvent[];
 }
 
-export interface SongSectionGuide {
+interface SongSectionGuide {
 	id: string;
 	title: string;
 	barRange: string;
@@ -243,8 +248,8 @@ function pickStopTechnique<T extends string>(
 	return tech && allowed.has(tech as T) ? (tech as T) : undefined;
 }
 
-function defaultGuitarKindForQuality(quality: ChordQuality): GuitarChordKind {
-	return quality;
+export function clampPlaybackSpeed(speed: number): number {
+	return Math.max(0.25, Math.min(2.5, Number.isFinite(speed) ? speed : 1));
 }
 
 function preferFlatsForSongKey(keyLabel: string, keySlot: number): boolean {
@@ -273,7 +278,7 @@ function buildTempoTicksToMs(
 	speed = 1,
 ): (tick: number) => number {
 	const safeTpq = Math.max(1, tpq);
-	const safeSpeed = Math.max(0.25, Math.min(2.5, speed));
+	const safeSpeed = clampPlaybackSpeed(speed);
 	const sorted = [...tempoMap]
 		.filter(([, bpm]) => bpm > 0)
 		.sort((a, b) => a[0] - b[0]);
@@ -328,7 +333,7 @@ export function scaleSongExampleSpeed(
 	song: SongExample,
 	speed: number,
 ): SongExample {
-	const safeSpeed = Math.max(0.25, Math.min(2.5, speed));
+	const safeSpeed = clampPlaybackSpeed(speed);
 	if (Math.abs(safeSpeed - 1) < 0.001) return song;
 	const k = 1 / safeSpeed;
 	return {
@@ -407,9 +412,7 @@ export function hydrateSong(
 		const primaryChordKey = bar?.harmony[0]?.[1];
 		const primaryChord = resolvePaletteEntry(doc.chords, primaryChordKey);
 		const chordSymbol = primaryChordKey ?? doc.keyLabel.split(" ")[0] ?? "C";
-		const guitarKind =
-			primaryChord.guitarKind ??
-			defaultGuitarKindForQuality(primaryChord.quality);
+		const guitarKind = primaryChord.guitarKind ?? primaryChord.quality;
 		const displayMidi =
 			primaryChord.displayMidi ?? ascendingNotesToMidi(primaryChord.notes);
 
@@ -428,9 +431,7 @@ export function hydrateSong(
 							chordSymbol: hKey,
 							roman: hEntry.roman,
 							quality: hEntry.quality,
-							guitarKind:
-								hEntry.guitarKind ??
-								defaultGuitarKindForQuality(hEntry.quality),
+							guitarKind: hEntry.guitarKind ?? hEntry.quality,
 							chordNotes: hEntry.notes,
 							circleDegree: hEntry.degree,
 							...(hEntry.slot !== undefined
@@ -615,26 +616,30 @@ function resolveBarDurationMs(step: SongChordStep): number {
 	return step.events.reduce((sum, evt) => sum + evt.stepDurationMs, 0);
 }
 
-function resolveEventNotes(
-	evt: SongNoteEvent,
-): SongPerformanceNote[] | undefined {
-	if (evt.notes && evt.notes.length > 0) return evt.notes;
-	const stopList = evt.guitarStops ?? evt.celloStops ?? evt.violinStops;
-	const hasTechnique = Boolean(
-		stopList?.some((stop) => stop.technique && stop.technique !== "normal"),
-	);
-	if (evt.velocity === undefined && !hasTechnique) {
-		return undefined;
-	}
-	return evt.midi.map((midi, idx) => {
+function resolvePerformanceNotes(
+	midiList: readonly number[],
+	durationSec: number,
+	velocity: number | undefined,
+	existingNotes?: SongPerformanceNote[],
+	stopList?: ReadonlyArray<{ technique?: SongNoteTechnique }>,
+): SongPerformanceNote[] {
+	if (existingNotes && existingNotes.length > 0) return existingNotes;
+	return midiList.map((midi, idx) => {
 		const technique = stopList?.[idx]?.technique;
 		return {
 			midi,
-			durationSec: evt.durationSec,
-			...(evt.velocity !== undefined ? { velocity: evt.velocity } : {}),
+			durationSec,
+			...(velocity !== undefined ? { velocity } : {}),
 			...(technique && technique !== "normal" ? { technique } : {}),
 		};
 	});
+}
+
+function mergeOptionalStops<T>(
+	a: readonly T[] | undefined,
+	b: readonly T[] | undefined,
+): T[] | undefined {
+	return a || b ? [...(a ?? []), ...(b ?? [])] : undefined;
 }
 
 function resolveSubBarChord(
@@ -652,15 +657,6 @@ function resolveSubBarChord(
 		}
 	}
 	return matched;
-}
-
-function materializeStepNotes(step: FlattenedSongStep): SongPerformanceNote[] {
-	if (step.notes && step.notes.length > 0) return step.notes;
-	return step.midi.map((midi) => ({
-		midi,
-		durationSec: step.durationSec,
-		...(step.velocity !== undefined ? { velocity: step.velocity } : {}),
-	}));
 }
 
 export function flattenSongPlaybackSteps(song: SongExample): {
@@ -681,7 +677,20 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 			}
 			const offsetMs = evt.offsetMs ?? seqOffsetMs;
 			const atMs = barStartMs + offsetMs;
-			const notes = resolveEventNotes(evt);
+			const stopList = evt.guitarStops ?? evt.celloStops ?? evt.violinStops;
+			const hasExplicitNoteMeta =
+				Boolean(evt.notes?.length) ||
+				evt.velocity !== undefined ||
+				Boolean(stopList?.some((s) => s.technique && s.technique !== "normal"));
+			const notes = hasExplicitNoteMeta
+				? resolvePerformanceNotes(
+						evt.midi,
+						evt.durationSec,
+						evt.velocity,
+						evt.notes,
+						stopList,
+					)
+				: undefined;
 			const subBarChord = resolveSubBarChord(chordStep, offsetMs);
 			rawEvents.push({
 				atMs,
@@ -716,13 +725,32 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 		const prev = merged[merged.length - 1];
 		if (prev && Math.abs(next.atMs - prev.atMs) <= 0.5) {
 			const combinedNotes = [
-				...materializeStepNotes(prev),
-				...materializeStepNotes(next),
+				...resolvePerformanceNotes(
+					prev.midi,
+					prev.durationSec,
+					prev.velocity,
+					prev.notes,
+				),
+				...resolvePerformanceNotes(
+					next.midi,
+					next.durationSec,
+					next.velocity,
+					next.notes,
+				),
 			];
 			const mergedLabel =
 				prev.noteLabel === next.noteLabel
 					? prev.noteLabel
 					: `${prev.noteLabel} · ${next.noteLabel}`;
+			const guitarStops = mergeOptionalStops(
+				prev.guitarStops,
+				next.guitarStops,
+			);
+			const celloStops = mergeOptionalStops(prev.celloStops, next.celloStops);
+			const violinStops = mergeOptionalStops(
+				prev.violinStops,
+				next.violinStops,
+			);
 			merged[merged.length - 1] = {
 				...prev,
 				durationSec: Math.max(prev.durationSec, next.durationSec),
@@ -730,30 +758,9 @@ export function flattenSongPlaybackSteps(song: SongExample): {
 				notes: combinedNotes,
 				spreadSec: prev.spreadSec ?? next.spreadSec ?? 0,
 				noteLabel: mergedLabel,
-				...(prev.guitarStops || next.guitarStops
-					? {
-							guitarStops: [
-								...(prev.guitarStops ?? []),
-								...(next.guitarStops ?? []),
-							],
-						}
-					: {}),
-				...(prev.celloStops || next.celloStops
-					? {
-							celloStops: [
-								...(prev.celloStops ?? []),
-								...(next.celloStops ?? []),
-							],
-						}
-					: {}),
-				...(prev.violinStops || next.violinStops
-					? {
-							violinStops: [
-								...(prev.violinStops ?? []),
-								...(next.violinStops ?? []),
-							],
-						}
-					: {}),
+				...(guitarStops ? { guitarStops } : {}),
+				...(celloStops ? { celloStops } : {}),
+				...(violinStops ? { violinStops } : {}),
 			};
 		} else {
 			merged.push(next);

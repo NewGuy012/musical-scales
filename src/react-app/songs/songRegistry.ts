@@ -1,8 +1,8 @@
-import { type InstrumentTab, slugifyId } from "./songRuntime";
+import { type InstrumentTab, isInstrumentTab, slugifyId } from "./songRuntime";
 
-export type SongRegistryStatus = "PENDING" | "INGESTED";
+type SongRegistryStatus = "PENDING" | "INGESTED";
 
-export interface SongRegistryEntry {
+interface SongRegistryEntry {
 	status: SongRegistryStatus;
 	instrument: InstrumentTab;
 	title: string;
@@ -30,10 +30,17 @@ const REGISTRY_HEADER = [
 	"#",
 ];
 
-function isValidInstrument(raw: string): raw is InstrumentTab {
-	return (
-		raw === "piano" || raw === "guitar" || raw === "violin" || raw === "cello"
-	);
+function toIngestedEntry(song: IngestedSongSummary): SongRegistryEntry {
+	return {
+		status: "INGESTED",
+		instrument: song.instrument,
+		title: song.title,
+		composerOrSource: song.composerOrSource,
+		keyLabel: song.keyLabel,
+		timeSignature: song.timeSignature,
+		id: song.id,
+		source: song.source,
+	};
 }
 
 function sanitizeCell(value: string): string {
@@ -55,7 +62,7 @@ export function parseSongRegistryText(text: string): SongRegistryEntry[] {
 		const statusMatch = /^\[(PENDING|INGESTED)\]$/i.exec(cells[0]);
 		if (!statusMatch) continue;
 		const instrument = cells[1].toLowerCase();
-		if (!isValidInstrument(instrument)) continue;
+		if (!isInstrumentTab(instrument)) continue;
 
 		entries.push({
 			status: statusMatch[1].toUpperCase() as SongRegistryStatus,
@@ -115,12 +122,10 @@ export function formatSongRegistryText(
 }
 
 /**
- * Merges newly compiled MusicXML songs into the existing plain-text registry:
- * matching `[PENDING]` entries promote to `[INGESTED]`, remaining `[PENDING]`
- * entries stay listed as a re-ingestion backlog, and previously ingested rows
- * whose source MusicXML files were removed are pruned.
+ * Merges compiled MusicXML songs into the registry: promoting matching `[PENDING]`
+ * rows to `[INGESTED]`, keeping unmatched `[PENDING]` rows, and pruning deleted sources.
  */
-export function syncSongRegistryEntries(
+function syncSongRegistryEntries(
 	existingEntries: readonly SongRegistryEntry[],
 	ingestedSongs: readonly IngestedSongSummary[],
 ): SongRegistryEntry[] {
@@ -142,16 +147,7 @@ export function syncSongRegistryEntries(
 		if (match) {
 			if (!matchedIngestedIds.has(match.id)) {
 				matchedIngestedIds.add(match.id);
-				nextEntries.push({
-					status: "INGESTED",
-					instrument: match.instrument,
-					title: match.title,
-					composerOrSource: match.composerOrSource,
-					keyLabel: match.keyLabel,
-					timeSignature: match.timeSignature,
-					id: match.id,
-					source: match.source,
-				});
+				nextEntries.push(toIngestedEntry(match));
 			}
 		} else if (entry.status === "PENDING") {
 			nextEntries.push(entry);
@@ -161,16 +157,7 @@ export function syncSongRegistryEntries(
 	for (const song of ingestedSongs) {
 		if (matchedIngestedIds.has(song.id)) continue;
 		matchedIngestedIds.add(song.id);
-		nextEntries.push({
-			status: "INGESTED",
-			instrument: song.instrument,
-			title: song.title,
-			composerOrSource: song.composerOrSource,
-			keyLabel: song.keyLabel,
-			timeSignature: song.timeSignature,
-			id: song.id,
-			source: song.source,
-		});
+		nextEntries.push(toIngestedEntry(song));
 	}
 
 	return nextEntries;

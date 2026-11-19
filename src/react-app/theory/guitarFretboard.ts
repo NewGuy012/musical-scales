@@ -710,17 +710,12 @@ export function getGuitarVoicings(
 					[f6, f6 + 2, f6 + 4, f6 + 1, f6, -1],
 				]);
 			}
-			if (f4 >= 2) {
+			const f4Add = f4 >= 2 ? f4 : f4 + 12;
+			if (f4Add <= MAX_GUITAR_FRET) {
 				candidates.push([
-					"add9-4",
-					"4th-Str Add9",
-					[-1, -1, f4, f4 - 1, f4 - 2, f4],
-				]);
-			} else if (f4 + 12 <= MAX_GUITAR_FRET) {
-				candidates.push([
-					"add9-4-hi",
-					"4th-Str High",
-					[-1, -1, f4 + 12, f4 + 11, f4 + 10, f4 + 12],
+					f4 >= 2 ? "add9-4" : "add9-4-hi",
+					f4 >= 2 ? "4th-Str Add9" : "4th-Str High",
+					[-1, -1, f4Add, f4Add - 1, f4Add - 2, f4Add],
 				]);
 			}
 			break;
@@ -751,17 +746,12 @@ export function getGuitarVoicings(
 					[f6, f6 + 2, f6 + 4, f6, f6, -1],
 				]);
 			}
-			if (f4 >= 2) {
+			const f4Madd = f4 >= 2 ? f4 : f4 + 12;
+			if (f4Madd <= MAX_GUITAR_FRET) {
 				candidates.push([
-					"madd9-4",
-					"4th-Str m(add9)",
-					[-1, -1, f4, f4 - 2, f4 - 2, f4],
-				]);
-			} else if (f4 + 12 <= MAX_GUITAR_FRET) {
-				candidates.push([
-					"madd9-4-hi",
-					"4th-Str High",
-					[-1, -1, f4 + 12, f4 + 10, f4 + 10, f4 + 12],
+					f4 >= 2 ? "madd9-4" : "madd9-4-hi",
+					f4 >= 2 ? "4th-Str m(add9)" : "4th-Str High",
+					[-1, -1, f4Madd, f4Madd - 2, f4Madd - 2, f4Madd],
 				]);
 			}
 			break;
@@ -834,20 +824,12 @@ const CHROMATIC_DEGREES_FLAT = [
 	"7",
 ] as const;
 
-interface ChromaticPassingTone {
-	pc: number;
-	noteName: string;
-	intervalLabel: string;
-	role: string;
-}
-
 interface ChromaticPassingPhrase {
 	id: string;
 	label: string;
 	tag: string;
 	notes: string[];
 	midi: number[];
-	passingPcs: number[];
 	tip: string;
 }
 
@@ -869,7 +851,6 @@ interface GuitarScalePassGuide {
 	keyPentatonicName: string;
 	chordPentatonicName: string;
 	chordIsNonDiatonic: boolean;
-	featuredPassingTones: ChromaticPassingTone[];
 	overlayPassingPcs: number[];
 	passingPhrases: ChromaticPassingPhrase[];
 }
@@ -1122,7 +1103,6 @@ export function buildGuitarScalePassGuide(params: {
 		label: string,
 		tag: string,
 		notes: string[],
-		passingPc: number,
 		tip: string,
 	): ChromaticPassingPhrase => ({
 		id,
@@ -1130,50 +1110,21 @@ export function buildGuitarScalePassGuide(params: {
 		tag,
 		notes,
 		midi: ascendingNotesToMidi(notes, 48),
-		passingPcs: [passingPc],
 		tip,
 	});
 
-	let featuredPassingTones: ChromaticPassingTone[];
+	let passingSemitones: readonly number[];
 	let passingPhrases: ChromaticPassingPhrase[];
 
 	if (pentatonicKind === "major") {
 		const isDom = chordKind === "7";
-		featuredPassingTones = [
-			{
-				pc: pcAt(3),
-				noteName: r(3),
-				intervalLabel: "♭3",
-				role: "Country/blues scoop into 3",
-			},
-			{
-				pc: pcAt(6),
-				noteName: r(6),
-				intervalLabel: "♯4/♭5",
-				role: "Blue note passing to 5",
-			},
-			isDom
-				? {
-						pc: pcAt(10),
-						noteName: r(10),
-						intervalLabel: "♭7",
-						role: "Mixolydian dominant pull",
-					}
-				: {
-						pc: pcAt(8),
-						noteName: r(8),
-						intervalLabel: "♯5",
-						role: "Chromatic walk from 5 to 6",
-					},
-		];
-
+		passingSemitones = [3, 6, isDom ? 10 : 8];
 		passingPhrases = [
 			makePhrase(
 				"maj-b3-scoop",
 				"♭3 → 3 Scoop",
 				"2 → ♭3 → 3",
 				[r(2), r(3), r(4)],
-				pcAt(3),
 				`Slide or hammer-on 1 fret from ${r(3)} directly onto the major 3rd (${r(4)}).`,
 			),
 			makePhrase(
@@ -1181,7 +1132,6 @@ export function buildGuitarScalePassGuide(params: {
 				"♯4 / ♭5 Blue Bridge",
 				"4 → ♯4 → 5",
 				[r(5), r(6), r(7)],
-				pcAt(6),
 				`Pass lightly through ${r(6)} on an upstroke between ${r(5)} and the stable 5th (${r(7)}).`,
 			),
 			isDom
@@ -1190,7 +1140,6 @@ export function buildGuitarScalePassGuide(params: {
 						"♭7 → 7 → 1 Walk",
 						"6 → ♭7 → 7 → 1",
 						[r(9), r(10), r(11), r(0)],
-						pcAt(11),
 						`Chromatically connect chord tone ♭7 (${r(10)}) straight up into tonic ${r(0)}.`,
 					)
 				: makePhrase(
@@ -1198,39 +1147,17 @@ export function buildGuitarScalePassGuide(params: {
 						"5 → ♯5 → 6 Link",
 						"5 → ♯5 → 6",
 						[r(7), r(8), r(9)],
-						pcAt(8),
 						`Fills the whole step between ${r(7)} and ${r(9)} with classic fingerstyle voice-leading.`,
 					),
 		];
 	} else if (pentatonicKind === "minor") {
-		featuredPassingTones = [
-			{
-				pc: pcAt(6),
-				noteName: r(6),
-				intervalLabel: "♭5",
-				role: "Classic blues note between 4 & 5",
-			},
-			{
-				pc: pcAt(4),
-				noteName: r(4),
-				intervalLabel: "♮3",
-				role: "Major-color pass from ♭3 to 4",
-			},
-			{
-				pc: pcAt(11),
-				noteName: r(11),
-				intervalLabel: "7",
-				role: "Harmonic-minor pull into root 1",
-			},
-		];
-
+		passingSemitones = [6, 4, 11];
 		passingPhrases = [
 			makePhrase(
 				"min-b5-blue",
 				"♭5 Blue Note",
 				"4 → ♭5 → 5",
 				[r(5), r(6), r(7)],
-				pcAt(6),
 				`Keep ${r(6)} in motion with a quick slide or micro-bend up into ${r(7)} or back to ${r(5)}.`,
 			),
 			makePhrase(
@@ -1238,7 +1165,6 @@ export function buildGuitarScalePassGuide(params: {
 				"♭3 → ♮3 → 4 Pass",
 				"♭3 → 3 → 4",
 				[r(3), r(4), r(5)],
-				pcAt(4),
 				`Bridges minor ${r(3)} to 4th (${r(5)}) — brightens the minor box on passing beats.`,
 			),
 			makePhrase(
@@ -1246,38 +1172,17 @@ export function buildGuitarScalePassGuide(params: {
 				"♭7 → 7 → 1 Pull",
 				"♭7 → 7 → 1",
 				[r(10), r(11), r(0)],
-				pcAt(11),
 				`One-fret leading-tone pull from ${r(11)} directly resolves onto tonic ${r(0)}.`,
 			),
 		];
 	} else {
-		featuredPassingTones = [
-			{
-				pc: pcAt(2),
-				noteName: r(2),
-				intervalLabel: "2",
-				role: "Chromatic step from 1 to ♭3",
-			},
-			{
-				pc: pcAt(7),
-				noteName: r(7),
-				intervalLabel: "♮5",
-				role: "Upper half-step above ♭5",
-			},
-			{
-				pc: pcAt(11),
-				noteName: r(11),
-				intervalLabel: "7",
-				role: "Half-step approach into root",
-			},
-		];
+		passingSemitones = [2, 7, 11];
 		passingPhrases = [
 			makePhrase(
 				"dim-climb",
 				"1 → ♭3 Chromatic Climb",
 				"1 → ♭2 → 2 → ♭3",
 				[r(0), r(1), r(2), r(3)],
-				pcAt(1),
 				`Walks step-by-step up adjacent frets straight into the minor 3rd (${r(3)}).`,
 			),
 			makePhrase(
@@ -1285,7 +1190,6 @@ export function buildGuitarScalePassGuide(params: {
 				"4 → ♭5 → ♮5 Link",
 				"4 → ♭5 → 5",
 				[r(5), r(6), r(7)],
-				pcAt(7),
 				`Balances the tritone chord tone (${r(6)}) by sliding smoothly onto ${r(7)}.`,
 			),
 			makePhrase(
@@ -1293,7 +1197,6 @@ export function buildGuitarScalePassGuide(params: {
 				"♭7 → 7 → 1 Resolution",
 				"♭7 → 7 → 1",
 				[r(10), r(11), r(0)],
-				pcAt(11),
 				`Half-step resolution back into ${r(0)} calms the diminished tension.`,
 			),
 		];
@@ -1307,8 +1210,8 @@ export function buildGuitarScalePassGuide(params: {
 	const overlayPassingPcs =
 		overlayMode === "scale"
 			? scaleOutsidePcs
-			: featuredPassingTones
-					.map((t) => t.pc)
+			: passingSemitones
+					.map(pcAt)
 					.filter(
 						(pc) =>
 							!chordPcSet.has(pc) &&
@@ -1337,7 +1240,6 @@ export function buildGuitarScalePassGuide(params: {
 		keyPentatonicName,
 		chordPentatonicName,
 		chordIsNonDiatonic,
-		featuredPassingTones,
 		overlayPassingPcs,
 		passingPhrases,
 	};

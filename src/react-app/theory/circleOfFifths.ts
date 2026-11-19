@@ -107,7 +107,6 @@ export interface KeyAnalysis {
 		root: string;
 		shortName: string;
 		name: string;
-		isEnharmonic: boolean;
 	};
 	enharmonicTwin: {
 		side: EnharmonicSide;
@@ -638,12 +637,8 @@ export function buildScale(root: string, mode: KeyMode): string[] {
 	});
 }
 
-/**
- * Maps ascending note names onto MIDI pitches starting from baseMidi (default C4 = 60),
- * keeping triads, 7ths, and 1-octave scales inside C4..B5 (60..83).
- */
 export function ascendingNotesToMidi(
-	notes: string[],
+	notes: readonly string[],
 	baseMidi = 60,
 	appendOctaveRoot = false,
 ): number[] {
@@ -790,19 +785,6 @@ function buildHarmonicMinorV(
 	};
 }
 
-function getAllSlotVariants(mode: KeyMode) {
-	return CIRCLE_SLOTS.flatMap((slot) => {
-		const variants = slot.enharmonic
-			? [slot.primary, slot.enharmonic]
-			: [slot.primary];
-		return variants.map((variant) => ({
-			slotIndex: slot.index,
-			variant,
-			root: mode === "major" ? variant.majorRoot : variant.minorRoot,
-		}));
-	});
-}
-
 function computeNeighborInfo(
 	direction: "fourth" | "fifth",
 	currentSlotIndex: number,
@@ -888,7 +870,7 @@ export function analyzeKey(
 	const root = mode === "major" ? variant.majorRoot : variant.minorRoot;
 	const identity = formatKeyIdentity(root, mode);
 	const scaleNotes = buildScale(root, mode);
-	const scaleMidi = ascendingNotesToMidi([...scaleNotes, scaleNotes[0]]);
+	const scaleMidi = ascendingNotesToMidi(scaleNotes, 60, true);
 
 	const chords = scaleNotes.map((_, degreeIndex) =>
 		buildDiatonicChord(scaleNotes, degreeIndex, mode, idx),
@@ -900,18 +882,20 @@ export function analyzeKey(
 		mode === "minor" ? buildHarmonicMinorV(scaleNotes, idx) : null;
 
 	const oppositeMode: KeyMode = mode === "major" ? "minor" : "major";
-	const allParallelCandidates = getAllSlotVariants(oppositeMode);
+	const parallelSlotIdx = mod12(idx + (mode === "major" ? -3 : 3));
+	const parallelSlot = CIRCLE_SLOTS[parallelSlotIdx];
+	const parallelVariants = parallelSlot.enharmonic
+		? [parallelSlot.primary, parallelSlot.enharmonic]
+		: [parallelSlot.primary];
+	const getOppRoot = (v: KeyVariant) =>
+		oppositeMode === "major" ? v.majorRoot : v.minorRoot;
 	const exactParallel =
-		allParallelCandidates.find((c) => c.root === root) ?? null;
-	const rootPc = noteToPitchClass(root);
-	const pcMatches = allParallelCandidates.filter(
-		(c) => noteToPitchClass(c.root) === rootPc,
-	);
-	const parallelMatch =
+		parallelVariants.find((v) => getOppRoot(v) === root) ?? null;
+	const parallelRoot = getOppRoot(
 		exactParallel ??
-		pcMatches.find((m) => m.variant.side === variant.side) ??
-		pcMatches[0];
-	const parallelRoot = parallelMatch.root;
+			parallelVariants.find((v) => v.side === variant.side) ??
+			parallelSlot.primary,
+	);
 
 	const relativeRoot =
 		oppositeMode === "major" ? variant.majorRoot : variant.minorRoot;
@@ -978,10 +962,9 @@ export function analyzeKey(
 			...formatKeyIdentity(relativeRoot, oppositeMode),
 		},
 		parallelKey: {
-			slotIndex: parallelMatch.slotIndex,
+			slotIndex: parallelSlotIdx,
 			mode: oppositeMode,
 			...formatKeyIdentity(parallelRoot, oppositeMode),
-			isEnharmonic: !exactParallel,
 		},
 		enharmonicTwin: enharmonicVariant
 			? {

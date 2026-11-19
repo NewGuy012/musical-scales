@@ -1,4 +1,4 @@
-export type InstrumentVoice = "piano" | "guitar" | "violin" | "cello" | "pad";
+type InstrumentVoice = "piano" | "guitar" | "violin" | "cello" | "pad";
 export type SoundPreset = InstrumentVoice | "muted";
 
 interface AudioEngine {
@@ -180,22 +180,52 @@ export function getDefaultChordSpread(
 	return 0.01;
 }
 
+function scheduleNoiseBurst(
+	engine: AudioEngine,
+	startTime: number,
+	durationSec: number,
+	offsetSeed: number,
+	bpFreq: number,
+	q: number,
+	peakGain: number,
+	attackFraction: number,
+	dest: AudioNode,
+): void {
+	const { ctx, noiseBuffer } = engine;
+	const src = ctx.createBufferSource();
+	src.buffer = noiseBuffer;
+	const filter = createFilter(ctx, "bandpass", bpFreq, q);
+	const gain = ctx.createGain();
+	gain.gain.setValueAtTime(0.0001, startTime);
+	gain.gain.linearRampToValueAtTime(
+		peakGain,
+		startTime + durationSec * attackFraction,
+	);
+	gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSec);
+	chainNodes(src, filter, gain, dest);
+	src.start(startTime, (offsetSeed % 100) * 0.002, durationSec + 0.01);
+	src.stop(startTime + durationSec + 0.015);
+	registerAuxSource(src);
+}
+
 /**
- * Warm acoustic guitar pluck via Karplus-Strong waveguide synthesis
- * combining a soundhole triangular string-displacement model with
- * filtered finger-pluck texture, wood damping, and Thiran fractional-delay tuning.
+ * Acoustic guitar pluck via Karplus-Strong waveguide synthesis with soundhole
+ * displacement, filtered pick texture, and Thiran fractional-delay tuning.
  */
 export function synthesizeGuitarPluckSamples(
 	freq: number,
 	sampleRate: number,
 	totalSeconds: number,
 ): Float32Array {
-	const fs = Math.max(8000, sampleRate);
-	const clampedFreq = Math.max(40, Math.min(fs * 0.25, freq));
-	const numSamples = Math.max(
-		256,
-		Math.floor(fs * Math.max(0.1, totalSeconds)),
-	);
+	const fs = Number.isFinite(sampleRate)
+		? Math.max(8000, Math.min(96000, sampleRate))
+		: 22050;
+	const safeFreq = Number.isFinite(freq) ? freq : 440;
+	const safeSec = Number.isFinite(totalSeconds)
+		? Math.max(0.1, Math.min(30, totalSeconds))
+		: 1.0;
+	const clampedFreq = Math.max(40, Math.min(fs * 0.25, safeFreq));
+	const numSamples = Math.max(256, Math.floor(fs * safeSec));
 	const out = new Float32Array(numSamples);
 
 	const normPitch = Math.max(
@@ -381,7 +411,7 @@ function schedulePianoVoice(
 	peakGain: number,
 	detail?: VoiceDetail,
 ) {
-	const { ctx, master, noiseBuffer } = engine;
+	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
 	const pitchNorm = Math.max(0, Math.min(1, (midi - 21) / 87));
 	const vel = clampVelocity(detail?.velocity);
@@ -447,25 +477,18 @@ function schedulePianoVoice(
 		else registerAuxSource(osc);
 	});
 
-	const hammerSrc = ctx.createBufferSource();
-	hammerSrc.buffer = noiseBuffer;
-	const hammerFilter = createFilter(
-		ctx,
-		"bandpass",
+	chainNodes(stringFilter, boardResonance, noteGain, master);
+	scheduleNoiseBurst(
+		engine,
+		startTime,
+		0.025,
+		midi * 17,
 		Math.min(2400, Math.max(420, freq * 4.2)),
 		1.6,
+		scaledGain * 0.12,
+		0.12,
+		boardResonance,
 	);
-	const hammerGain = ctx.createGain();
-	hammerGain.gain.setValueAtTime(0.0001, startTime);
-	hammerGain.gain.linearRampToValueAtTime(scaledGain * 0.12, startTime + 0.003);
-	hammerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.025);
-
-	chainNodes(hammerSrc, hammerFilter, hammerGain, boardResonance);
-	chainNodes(stringFilter, boardResonance, noteGain, master);
-
-	hammerSrc.start(startTime, ((midi * 17) % 100) * 0.002, 0.03);
-	hammerSrc.stop(startTime + 0.035);
-	registerAuxSource(hammerSrc);
 }
 
 function scheduleGuitarVoice(
@@ -476,7 +499,7 @@ function scheduleGuitarVoice(
 	peakGain: number,
 	detail?: VoiceDetail,
 ) {
-	const { ctx, master, noiseBuffer } = engine;
+	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
 	const tech = detail?.technique ?? "normal";
 	const vel = clampVelocity(detail?.velocity);
@@ -597,23 +620,17 @@ function scheduleGuitarVoice(
 
 	// Subtle woody finger/pick contact transient (omitted on harmonics and hammer/pull-offs)
 	if (!isHarmonic && !isLegatoPluck) {
-		const pluckSrc = ctx.createBufferSource();
-		pluckSrc.buffer = noiseBuffer;
-		const pluckFilter = createFilter(
-			ctx,
-			"bandpass",
+		scheduleNoiseBurst(
+			engine,
+			startTime,
+			0.015,
+			midi * 19,
 			Math.min(1150, Math.max(480, freq * 3.4)),
 			1.4,
+			scaledGain * (isMuted ? 0.075 : 0.055),
+			0.133,
+			topWood,
 		);
-		const pluckGain = ctx.createGain();
-		const transientGain = scaledGain * (isMuted ? 0.075 : 0.055);
-		pluckGain.gain.setValueAtTime(0.0001, startTime);
-		pluckGain.gain.linearRampToValueAtTime(transientGain, startTime + 0.002);
-		pluckGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.015);
-		chainNodes(pluckSrc, pluckFilter, pluckGain, topWood);
-		pluckSrc.start(startTime, ((midi * 19) % 100) * 0.002, 0.02);
-		pluckSrc.stop(startTime + 0.025);
-		registerAuxSource(pluckSrc);
 	}
 }
 
@@ -711,7 +728,7 @@ function scheduleBowedVoice(
 	profile: BowedVoiceProfile,
 	detail?: VoiceDetail,
 ) {
-	const { ctx, master, noiseBuffer } = engine;
+	const { ctx, master } = engine;
 	const freq = midiToFrequency(midi);
 	const tech = detail?.technique ?? "normal";
 	const vel = clampVelocity(detail?.velocity);
@@ -850,33 +867,21 @@ function scheduleBowedVoice(
 	registerAuxSource(vibratoLfo);
 
 	if (!isHarmonic && !isPizz) {
-		const bowNoise = ctx.createBufferSource();
-		bowNoise.buffer = noiseBuffer;
-		const bowBandpass = createFilter(
-			ctx,
-			"bandpass",
+		const noiseDur = isShort ? 0.04 : 0.075;
+		scheduleNoiseBurst(
+			engine,
+			startTime,
+			noiseDur,
+			midi * 23,
 			Math.min(
 				profile.bowBandpassMax,
 				Math.max(profile.bowBandpassMin, freq * 5),
 			),
 			2.2,
+			scaledPeak * (isSlurred ? 0.018 : 0.055),
+			0.35,
+			bowLPF,
 		);
-		const bowNoiseGain = ctx.createGain();
-		const noiseDur = isShort ? 0.04 : 0.075;
-		const noiseAmp = scaledPeak * (isSlurred ? 0.018 : 0.055);
-		bowNoiseGain.gain.setValueAtTime(0.0001, startTime);
-		bowNoiseGain.gain.linearRampToValueAtTime(
-			noiseAmp,
-			startTime + noiseDur * 0.35,
-		);
-		bowNoiseGain.gain.exponentialRampToValueAtTime(
-			0.0001,
-			startTime + noiseDur,
-		);
-		chainNodes(bowNoise, bowBandpass, bowNoiseGain, bowLPF);
-		bowNoise.start(startTime, ((midi * 23) % 100) * 0.002, noiseDur + 0.01);
-		bowNoise.stop(startTime + noiseDur + 0.02);
-		registerAuxSource(bowNoise);
 	}
 }
 
@@ -972,6 +977,24 @@ function scheduleVoice(
 const LOOKAHEAD_SEC = 0.13;
 const SCHEDULER_INTERVAL_MS = 25;
 const AUDIO_LEAD_SEC = 0.015;
+const MAX_OFFLINE_RENDER_SEC = 600;
+
+function resolveValidStepNotes(
+	midiNotes: readonly number[],
+	durationSec: number,
+	stepNotes?: readonly TimedNoteDetail[],
+	stepVelocity?: number,
+): TimedNoteDetail[] {
+	const raw: TimedNoteDetail[] =
+		stepNotes && stepNotes.length > 0
+			? [...stepNotes]
+			: midiNotes.map((midi) => ({
+					midi,
+					durationSec,
+					velocity: stepVelocity,
+				}));
+	return raw.filter((n) => isValidMidi(n.midi));
+}
 
 function scheduleChordAtCtxTime(
 	engine: AudioEngine,
@@ -984,10 +1007,12 @@ function scheduleChordAtCtxTime(
 	stepNotes?: TimedNoteDetail[],
 	stepVelocity?: number,
 ): void {
-	const resolvedNotes: TimedNoteDetail[] =
-		stepNotes && stepNotes.length > 0
-			? stepNotes.filter((n) => isValidMidi(n.midi))
-			: midiNotes.filter(isValidMidi).map((midi) => ({ midi, durationSec }));
+	const resolvedNotes = resolveValidStepNotes(
+		midiNotes,
+		durationSec,
+		stepNotes,
+		stepVelocity,
+	);
 	if (resolvedNotes.length === 0) return;
 
 	const single = resolvedNotes.length === 1;
@@ -1062,7 +1087,7 @@ export function playChordNotes(
 	);
 }
 
-export interface TimedNoteDetail {
+interface TimedNoteDetail {
 	midi: number;
 	durationSec: number;
 	velocity?: number;
@@ -1070,7 +1095,7 @@ export interface TimedNoteDetail {
 	slideFromMidi?: number;
 }
 
-export interface TimedSequenceStep {
+interface TimedSequenceStep {
 	midi: number[];
 	atMs: number;
 	durationSec: number;
@@ -1315,11 +1340,7 @@ export function playTimedSequence(
 	return cancel;
 }
 
-/**
- * Pure TypeScript offline DSP renderer for song verification and WAV previews.
- * Uses the Karplus-Strong guitar model for guitar presets and warm additive envelopes
- * for bowed/piano presets so imported scores can be auditioned without a browser AudioContext.
- */
+/** Offline PCM renderer mirroring live presets for WAV export/verification. */
 export function renderTimedSequenceOfflineSamples(
 	steps: TimedSequenceStep[],
 	options: {
@@ -1328,27 +1349,37 @@ export function renderTimedSequenceOfflineSamples(
 		totalDurationMs?: number;
 	} = {},
 ): Float32Array {
-	const { preset = "guitar", sampleRate = 22050, totalDurationMs } = options;
+	const {
+		preset = "guitar",
+		sampleRate: rawRate = 22050,
+		totalDurationMs,
+	} = options;
+	const sampleRate = Number.isFinite(rawRate)
+		? Math.max(8000, Math.min(96000, Math.round(rawRate)))
+		: 22050;
 	const endMs =
 		totalDurationMs ??
 		steps.reduce(
 			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
 			0,
 		);
-	const totalSec = Math.max(0.1, endMs / 1000 + 0.6);
+	const totalSec = Math.max(
+		0.1,
+		Math.min(
+			MAX_OFFLINE_RENDER_SEC,
+			(Number.isFinite(endMs) ? endMs : 0) / 1000 + 0.6,
+		),
+	);
 	const out = new Float32Array(Math.ceil(totalSec * sampleRate));
 	const pluckCache = new Map<string, Float32Array>();
 
 	for (const step of steps) {
-		const notes: TimedNoteDetail[] =
-			step.notes && step.notes.length > 0
-				? step.notes
-				: step.midi.map((midi) => ({
-						midi,
-						durationSec: step.durationSec,
-						velocity: step.velocity,
-					}));
-		const validNotes = notes.filter((n) => isValidMidi(n.midi));
+		const validNotes = resolveValidStepNotes(
+			step.midi,
+			step.durationSec,
+			step.notes,
+			step.velocity,
+		);
 		if (validNotes.length === 0) continue;
 
 		const baseGain =
@@ -1454,13 +1485,14 @@ function computeAttackReleaseEnv(
 	return 1;
 }
 
-/**
- * Encodes mono [-1, 1] Float32 PCM audio samples into a standard 16-bit WAV buffer.
- */
+/** Encodes mono [-1, 1] Float32 PCM samples into a 16-bit WAV buffer. */
 export function encodeWavPcm16(
 	samples: Float32Array,
-	sampleRate = 22050,
+	rawRate = 22050,
 ): Uint8Array {
+	const sampleRate = Number.isFinite(rawRate)
+		? Math.max(8000, Math.min(96000, Math.round(rawRate)))
+		: 22050;
 	const dataBytes = samples.length * 2;
 	const buffer = new ArrayBuffer(44 + dataBytes);
 	const view = new DataView(buffer);

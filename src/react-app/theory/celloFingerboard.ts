@@ -133,10 +133,10 @@ function buildBowedVoicing(
 	};
 }
 
-/**
- * Generates idiomatic closed-frame chord voicings for any 4-string instrument
- * tuned in ascending Perfect Fifths (e.g. Cello C2-G2-D3-A3 or Violin G3-D4-A4-E5).
- */
+const minSemi = (semi: number, floor: number) =>
+	semi < floor ? semi + 12 : semi;
+
+/** Generates closed-frame voicings for 4-string fifths-tuned instruments. */
 function getBowedFifthsVoicings(
 	tuning: readonly BowedStringInfo[],
 	maxSemitone: number,
@@ -158,8 +158,7 @@ function getBowedFifthsVoicings(
 	const t4 = mod12(rootPc - basePc + 4);
 	const m4 = mod12(rootPc - basePc + 3);
 	const m3 = mod12(rootPc - secondPc + 3);
-	const s4 = mod12(rootPc - basePc + 7);
-	const s4Pos = s4 < 2 ? s4 + 12 : s4;
+	const s4Pos = minSemi(mod12(rootPc - basePc + 7), 2);
 
 	switch (kind) {
 		case "major": {
@@ -208,9 +207,9 @@ function getBowedFifthsVoicings(
 			);
 			break;
 		case "maj7": {
-			const j4 = f4 < 3 ? f4 + 12 : f4;
-			const t4Pos = t4 < 1 ? t4 + 12 : t4;
-			const g7Pos = t4 < 2 ? t4 + 12 : t4;
+			const j4 = minSemi(f4, 3);
+			const t4Pos = minSemi(t4, 1);
+			const g7Pos = minSemi(t4, 2);
 			candidates.push(
 				[
 					"root-4str-maj7",
@@ -251,8 +250,8 @@ function getBowedFifthsVoicings(
 			);
 			break;
 		case "diminished": {
-			const d4 = f4 < 1 ? f4 + 12 : f4;
-			const d3 = f3 < 1 ? f3 + 12 : f3;
+			const d4 = minSemi(f4, 1);
+			const d3 = minSemi(f3, 1);
 			candidates.push(
 				["dim-low", "Low Root Dim", [d4, d4 - 1, d4 + 1, -1]],
 				["dim-upper", "Upper Root Dim", [-1, d3, d3 - 1, d3 + 1]],
@@ -262,11 +261,9 @@ function getBowedFifthsVoicings(
 			break;
 		}
 		case "m7♭5": {
-			const h4 = f4 < 1 ? f4 + 12 : f4;
-			const s7 = mod12(rootPc - basePc + 10);
-			const s7Pos = s7 < 2 ? s7 + 12 : s7;
-			const b4 = mod12(rootPc - basePc + 6);
-			const b4Pos = b4 < 1 ? b4 + 12 : b4;
+			const h4 = minSemi(f4, 1);
+			const s7Pos = minSemi(mod12(rootPc - basePc + 10), 2);
+			const b4Pos = minSemi(mod12(rootPc - basePc + 6), 1);
 			candidates.push(
 				["halfdim-root", "4-Str Root", [h4, h4 - 1, h4 + 1, h4 + 1]],
 				["halfdim-inv3", "♭7-Bass m7♭5", [s7Pos, s7Pos - 2, s7Pos, s7Pos - 1]],
@@ -284,12 +281,10 @@ function getBowedFifthsVoicings(
 			break;
 		}
 		case "dim7": {
-			const pRoot = f4 < 1 ? f4 + 12 : f4;
-			const pMin3 = m4 < 1 ? m4 + 12 : m4;
-			const pDim5 = mod12(rootPc - basePc + 6);
-			const pDim5Pos = pDim5 < 1 ? pDim5 + 12 : pDim5;
-			const pDim7 = mod12(rootPc - basePc + 9);
-			const pDim7Pos = pDim7 < 1 ? pDim7 + 12 : pDim7;
+			const pRoot = minSemi(f4, 1);
+			const pMin3 = minSemi(m4, 1);
+			const pDim5Pos = minSemi(mod12(rootPc - basePc + 6), 1);
+			const pDim7Pos = minSemi(mod12(rootPc - basePc + 9), 1);
 			candidates.push(
 				["dim7-root", "4-Str Root", [pRoot, pRoot - 1, pRoot + 1, pRoot]],
 				["dim7-inv1", "♭3-Bass Dim7", [pMin3, pMin3 - 1, pMin3 + 1, pMin3]],
@@ -308,9 +303,8 @@ function getBowedFifthsVoicings(
 		}
 		case "add9": {
 			const t3 = mod12(rootPc - secondPc + 4);
-			const d2 = mod12(rootPc - basePc + 2);
-			const d2Pos = d2 < 2 ? d2 + 12 : d2;
-			const f3Pos = f3 < 3 ? f3 + 12 : f3;
+			const d2Pos = minSemi(mod12(rootPc - basePc + 2), 2);
+			const f3Pos = minSemi(f3, 3);
 			candidates.push(
 				["add9-4str", "4-Str Add9", [t3 + 3, t3, t3 + 3, t3 + 1]],
 				["add9-low", "Low 3-Str", [t3 + 3, t3, t3 + 3, -1]],
@@ -321,7 +315,7 @@ function getBowedFifthsVoicings(
 		}
 		case "madd9": {
 			const d2 = mod12(rootPc - basePc + 2);
-			const d2Pos = d2 < 2 ? d2 + 12 : d2;
+			const d2Pos = minSemi(d2, 2);
 			candidates.push(
 				[
 					"madd9-4str",
@@ -355,8 +349,7 @@ function getBowedFifthsVoicings(
 			break;
 		}
 		case "sus2": {
-			const d2 = mod12(rootPc - basePc + 2);
-			const d2Pos = d2 < 2 ? d2 + 12 : d2;
+			const d2Pos = minSemi(mod12(rootPc - basePc + 2), 2);
 			candidates.push(
 				["sus2-4str", "4-Str Sus2", [f4, f4, f4, f4 + 3]],
 				["sus2-upper", "Upper 3-Str", [-1, f3, f3, f3]],

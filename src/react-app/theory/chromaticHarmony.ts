@@ -2,7 +2,6 @@ import {
 	ChordQuality,
 	FLAT_CHROMATIC,
 	KeyAnalysis,
-	KeyMode,
 	READABLE_CHROMATIC,
 	SHARP_CHROMATIC,
 	ascendingNotesToMidi,
@@ -41,7 +40,7 @@ export interface ColorHarmonyPattern {
 	targetStepIndex: number;
 }
 
-export interface SecondaryDominantEntry {
+interface SecondaryDominantEntry {
 	id: string;
 	romanLabel: string;
 	targetRoman: string;
@@ -65,8 +64,6 @@ export interface TritoneSubPair {
 }
 
 export interface ColorHarmonyAnalysis {
-	keyShortName: string;
-	mode: KeyMode;
 	chromaticPassing: {
 		overview: string;
 		patterns: ColorHarmonyPattern[];
@@ -757,8 +754,6 @@ export function analyzeColorHarmony(
 	});
 
 	return {
-		keyShortName: analysis.shortName,
-		mode: analysis.mode,
 		chromaticPassing: {
 			overview:
 				"Chromatic passing chords insert non-diatonic shapes one semitone (1 fret) away from stable chords so the bass or inner voices glide smoothly instead of jumping.",
