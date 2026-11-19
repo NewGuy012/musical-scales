@@ -1,4 +1,5 @@
 import {
+	type AccidentalPreference,
 	type ChordQuality,
 	FLAT_CHROMATIC,
 	type KeyAnalysis,
@@ -92,16 +93,30 @@ function pearsonCorrelation(
 	return den > 1e-9 ? num / den : 0;
 }
 
+export interface KeySignatureResolution {
+	keySlot: number;
+	keyMode: KeyMode;
+	keyLabel: string;
+}
+
+export interface DetectKeyOptions {
+	harmonies?: readonly { chordSymbol: string }[];
+	candidates?: ReadonlyArray<{ rootPc: number; mode: KeyMode }>;
+}
+
 export function resolveKeySignatureFromRootPc(
 	rootPc: number,
 	mode: KeyMode,
-	preferFlats = false,
-): { keySlot: number; keyMode: KeyMode; keyLabel: string } {
+	preferFlatsOrPref: boolean | AccidentalPreference = false,
+): KeySignatureResolution {
 	const keySlot = pcToCircleIndex(mod12(rootPc), mode);
-	const variant = resolveSlotVariant(
-		keySlot,
-		preferFlats ? "flats" : "standard",
-	);
+	const pref: AccidentalPreference =
+		typeof preferFlatsOrPref === "string"
+			? preferFlatsOrPref
+			: preferFlatsOrPref
+				? "flats"
+				: "standard";
+	const variant = resolveSlotVariant(keySlot, pref);
 	const root = mode === "major" ? variant.majorRoot : variant.minorRoot;
 	return {
 		keySlot,
@@ -110,36 +125,151 @@ export function resolveKeySignatureFromRootPc(
 	};
 }
 
+export function parseExplicitKeyOption(
+	keyRaw: string,
+): KeySignatureResolution | null {
+	const cleaned = keyRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
+	const match = /^([A-G][♯♭]?)\s*(major|maj|minor|min|m)?$/i.exec(cleaned);
+	if (!match) return null;
+	const [, rootToken, modeToken] = match;
+	const rootName = rootToken[0].toUpperCase() + rootToken.slice(1);
+	const modeLower = (modeToken ?? "").toLowerCase();
+	const mode: KeyMode =
+		modeLower === "m" || modeLower === "min" || modeLower === "minor"
+			? "minor"
+			: "major";
+	const rootPc = noteToPitchClass(rootName);
+	const pref: AccidentalPreference = rootName.includes("♯")
+		? "sharps"
+		: rootName.includes("♭")
+			? "flats"
+			: "standard";
+	return resolveKeySignatureFromRootPc(rootPc, mode, pref);
+}
+
+interface ClassifiedHarmonyForKey {
+	rootPc: number;
+	quality: ChordQuality;
+	isPowerOrSus: boolean;
+}
+
+function scoreHarmoniesForKeyCandidate(
+	harmonies: readonly ClassifiedHarmonyForKey[],
+	tonicPc: number,
+	mode: KeyMode,
+): number {
+	if (harmonies.length === 0) return 0;
+	const ka = analyzeKey(pcToCircleIndex(tonicPc, mode), mode);
+	const diatonicQualityByPc = new Map<number, ChordQuality>();
+	for (const chord of ka.chords) {
+		diatonicQualityByPc.set(noteToPitchClass(chord.root), chord.quality);
+	}
+
+	let sum = 0;
+	for (const h of harmonies) {
+		const offset = mod12(h.rootPc - tonicPc);
+		if (offset === 0 && (h.isPowerOrSus || h.quality === mode)) {
+			sum += h.isPowerOrSus ? 0.6 : 1.0;
+		} else if (offset === 7 && (h.quality === "major" || h.isPowerOrSus)) {
+			sum += h.isPowerOrSus ? 0.4 : 0.65;
+		} else if (offset === 5 && (h.quality === mode || h.isPowerOrSus)) {
+			sum += 0.45;
+		} else {
+			const diatonicQuality = diatonicQualityByPc.get(h.rootPc);
+			if (
+				diatonicQuality === h.quality ||
+				(h.isPowerOrSus && diatonicQuality !== undefined)
+			) {
+				sum += 0.3;
+			}
+		}
+	}
+
+	let anchor = 0;
+	const first = harmonies[0];
+	const last = harmonies[harmonies.length - 1];
+	if (first && first.rootPc === tonicPc) {
+		if (first.quality === mode && !first.isPowerOrSus) anchor += 0.35;
+		else if (first.isPowerOrSus) anchor += 0.2;
+	}
+	if (last && last.rootPc === tonicPc) {
+		if (last.quality === mode && !last.isPowerOrSus) anchor += 0.25;
+		else if (last.isPowerOrSus) anchor += 0.15;
+	}
+
+	return sum / harmonies.length + anchor;
+}
+
 export function detectKeyFromEvents(
 	events: readonly WeightedPitchEvent[],
 	preferFlats = false,
-): { keySlot: number; keyMode: KeyMode; keyLabel: string } {
+	options?: DetectKeyOptions,
+): KeySignatureResolution {
 	const hist = new Array<number>(12).fill(0);
 	for (const ev of events) {
 		const weight = Math.max(1, ev.durationTicks) * (ev.midi < 55 ? 1.25 : 1);
 		hist[mod12(ev.midi)] += weight;
 	}
 	const total = hist.reduce((s, v) => s + v, 0);
-	if (total <= 0) {
-		return { keySlot: 0, keyMode: "major", keyLabel: "C Major" };
+
+	const parsedHarmonies: ClassifiedHarmonyForKey[] = [];
+	for (const mark of options?.harmonies ?? []) {
+		const parsed = parseChordSymbolBase(mark.chordSymbol);
+		if (!parsed) continue;
+		const isPowerOrSus =
+			parsed.suffix === "5" || parsed.suffix.startsWith("sus");
+		const quality: ChordQuality =
+			parsed.kind === "minor" || parsed.kind === "m7" || parsed.kind === "madd9"
+				? "minor"
+				: parsed.kind === "diminished" ||
+					  parsed.kind === "dim7" ||
+					  parsed.kind === "m7♭5"
+					? "diminished"
+					: "major";
+		parsedHarmonies.push({
+			rootPc: parsed.rootPc,
+			quality,
+			isPowerOrSus,
+		});
+	}
+
+	const candidates =
+		options?.candidates && options.candidates.length > 0
+			? options.candidates
+			: Array.from({ length: 12 }, (_, pc) => [
+					{ rootPc: pc, mode: "major" as const },
+					{ rootPc: pc, mode: "minor" as const },
+				]).flat();
+
+	if (total <= 0 && parsedHarmonies.length === 0) {
+		const first = candidates[0] ?? { rootPc: 0, mode: "major" as const };
+		return resolveKeySignatureFromRootPc(first.rootPc, first.mode, preferFlats);
 	}
 
 	let bestScore = -Infinity;
-	let bestPc = 0;
-	let bestMode: KeyMode = "major";
+	let bestPc = candidates[0]?.rootPc ?? 0;
+	let bestMode: KeyMode = candidates[0]?.mode ?? "major";
 
-	for (let pc = 0; pc < 12; pc++) {
-		const maj = pearsonCorrelation(hist, MAJOR_PROFILE, pc);
-		if (maj > bestScore) {
-			bestScore = maj;
+	for (const cand of candidates) {
+		const pc = mod12(cand.rootPc);
+		const pitchScore =
+			total > 0
+				? pearsonCorrelation(
+						hist,
+						cand.mode === "major" ? MAJOR_PROFILE : MINOR_PROFILE,
+						pc,
+					)
+				: 0;
+		const harmonyScore = scoreHarmoniesForKeyCandidate(
+			parsedHarmonies,
+			pc,
+			cand.mode,
+		);
+		const score = pitchScore + harmonyScore;
+		if (score > bestScore) {
+			bestScore = score;
 			bestPc = pc;
-			bestMode = "major";
-		}
-		const min = pearsonCorrelation(hist, MINOR_PROFILE, pc);
-		if (min > bestScore) {
-			bestScore = min;
-			bestPc = pc;
-			bestMode = "minor";
+			bestMode = cand.mode;
 		}
 	}
 
@@ -371,12 +501,13 @@ const EXPLICIT_SUFFIX_MAP: Readonly<Record<string, GuitarChordKind>> = {
 	sus2: "sus2",
 };
 
-export function resolveExplicitChordSymbol(
-	symbolRaw: string,
-	keySlot: number,
-	keyMode: KeyMode,
-	precomputedKey?: KeyAnalysis,
-): InferredHarmony | null {
+function parseChordSymbolBase(symbolRaw: string): {
+	normalized: string;
+	rootName: string;
+	rootPc: number;
+	suffix: string;
+	kind: GuitarChordKind;
+} | null {
 	const normalized = symbolRaw.trim().replace(/#/g, "♯").replace(/b/g, "♭");
 	const clean = normalized.split("/")[0]?.trim();
 	if (!clean) return null;
@@ -402,6 +533,19 @@ export function resolveExplicitChordSymbol(
 			kind = "minor";
 		}
 	}
+
+	return { normalized, rootName, rootPc, suffix, kind };
+}
+
+export function resolveExplicitChordSymbol(
+	symbolRaw: string,
+	keySlot: number,
+	keyMode: KeyMode,
+	precomputedKey?: KeyAnalysis,
+): InferredHarmony | null {
+	const parsed = parseChordSymbolBase(symbolRaw);
+	if (!parsed) return null;
+	const { normalized, rootName, rootPc, kind } = parsed;
 
 	const keyAnalysis = precomputedKey ?? analyzeKey(keySlot, keyMode);
 	const tonicPc = noteToPitchClass(keyAnalysis.root);

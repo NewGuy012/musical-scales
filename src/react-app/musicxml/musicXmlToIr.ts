@@ -5,9 +5,18 @@ import {
 	slugifyId,
 } from "../songs/songRuntime";
 import { CELLO_TUNING, VIOLIN_TUNING } from "../theory/celloFingerboard";
-import { NATURAL_PC, mod12, spellNoteOffset } from "../theory/circleOfFifths";
+import {
+	type KeyMode,
+	NATURAL_PC,
+	mod12,
+	spellNoteOffset,
+} from "../theory/circleOfFifths";
 import { DEFAULT_GUITAR_TUNING_MIDI } from "../theory/guitarFretboard";
-import { resolveKeySignatureFromRootPc } from "./harmonicAnalyzer";
+import {
+	detectKeyFromEvents,
+	parseExplicitKeyOption,
+	resolveKeySignatureFromRootPc,
+} from "./harmonicAnalyzer";
 import { readMusicXmlTextFromBytes } from "./mxlUnpack";
 import {
 	type CompileScoreOptions,
@@ -17,6 +26,7 @@ import {
 	type ScoreNoteIR,
 	type ScoreTrackIR,
 	compileScoreTrackToSongDocument,
+	linearizeRepeatedBars,
 } from "./scoreCompiler";
 import {
 	type XmlNode,
@@ -125,6 +135,7 @@ export interface MusicXmlImportOptions {
 	title?: string;
 	composerOrSource?: string;
 	subtitle?: string;
+	key?: string;
 	splitHalfBarHarmony?: boolean;
 	/** Snap note offsets/durations to `4 / subdivision` quarter-note grid (0 = lossless). */
 	quantizeSubdivision?: number;
@@ -225,6 +236,15 @@ interface NormalizedScore {
 	subtitle?: string;
 }
 
+function isFilenameLikeTitle(value: string): boolean {
+	const trimmed = value.trim();
+	if (!trimmed) return false;
+	if (/\.(?:musicxml|mxl|xml|mid|midi|gp\d?|gpx|gp)$/i.test(trimmed)) {
+		return true;
+	}
+	return !/\s/.test(trimmed) && /_/.test(trimmed);
+}
+
 function normalizeScorePartwise(root: XmlNode): NormalizedScore {
 	if (root.tag !== "score-partwise" && root.tag !== "score-timewise") {
 		throw new Error(
@@ -308,19 +328,25 @@ function normalizeScorePartwise(root: XmlNode): NormalizedScore {
 	const movementTitle = getChildText(root, "movement-title");
 	const title = workTitle || movementTitle || "Imported MusicXML";
 	const subtitle =
-		workTitle && movementTitle && movementTitle !== workTitle
+		workTitle &&
+		movementTitle &&
+		movementTitle !== workTitle &&
+		!isFilenameLikeTitle(movementTitle)
 			? movementTitle
 			: workNumber;
 
 	const identification = findChild(root, "identification");
 	let composerOrSource = "MusicXML Score";
 	if (identification) {
-		const creators = findChildren(identification, "creator");
+		const creators = findChildren(identification, "creator").filter((c) => {
+			const trimmed = c.text.trim();
+			return Boolean(trimmed) && !/^music21$/i.test(trimmed);
+		});
 		const composer =
 			creators.find((c) => c.attrs.type === "composer") ??
 			creators.find((c) => c.attrs.type === "arranger") ??
 			creators[0];
-		if (composer && composer.text.trim()) {
+		if (composer) {
 			composerOrSource = composer.text.trim();
 		}
 	}
@@ -412,11 +438,18 @@ function inferInstrumentForPart(
 	return "piano";
 }
 
-function summarizePart(
+interface AnalyzedPart {
+	summary: MusicXmlPartSummary;
+	linkedTabStaffNum?: number;
+	fallbackDynamicStaff: number;
+	hasTabClef: boolean;
+}
+
+function summarizePartWithLayout(
 	partNode: XmlNode,
 	index: number,
 	partMetaList: readonly PartMetadata[],
-): MusicXmlPartSummary {
+): AnalyzedPart {
 	const partId = partNode.attrs.id || `P${index + 1}`;
 	const meta = partMetaList.find((m) => m.id === partId) ??
 		partMetaList[index] ?? {
@@ -429,11 +462,18 @@ function summarizePart(
 
 	let isPercussion = meta.midiChannel === 10;
 	let isStringed = false;
+	let hasTabClef = false;
 	let staffCount = 1;
 	let tuning: number[] = [];
-	let noteCount = 0;
-	let minMidi = Infinity;
-	let maxMidi = -Infinity;
+	let totalNoteCount = 0;
+	let totalMinMidi = Infinity;
+	let totalMaxMidi = -Infinity;
+
+	const tabStaffNums = new Set<number>();
+	const nonTabStaffNums = new Set<number>();
+	const noteCountByStaff = new Map<number, number>();
+	const minMidiByStaff = new Map<number, number>();
+	const maxMidiByStaff = new Map<number, number>();
 
 	for (const measure of findChildren(partNode, "measure")) {
 		const attrs = findChild(measure, "attributes");
@@ -445,9 +485,17 @@ function summarizePart(
 			if (stavesVal > staffCount) staffCount = stavesVal;
 
 			for (const clef of findChildren(attrs, "clef")) {
+				const clefStaff = Number.parseInt(clef.attrs.number ?? "1", 10) || 1;
 				const sign = (getChildText(clef, "sign") ?? "").toUpperCase();
-				if (sign === "TAB") isStringed = true;
-				if (sign === "PERCUSSION") isPercussion = true;
+				if (sign === "TAB") {
+					isStringed = true;
+					hasTabClef = true;
+					tabStaffNums.add(clefStaff);
+				} else if (sign === "PERCUSSION") {
+					isPercussion = true;
+				} else if (sign) {
+					nonTabStaffNums.add(clefStaff);
+				}
 			}
 
 			for (const sd of findChildren(attrs, "staff-details")) {
@@ -462,39 +510,85 @@ function summarizePart(
 		for (const note of findChildren(measure, "note")) {
 			if (findChild(note, "unpitched")) isPercussion = true;
 			if (findChild(note, "rest")) continue;
+			const staffNum =
+				Number.parseInt(getChildText(note, "staff") ?? "1", 10) || 1;
 			const notations = findChild(note, "notations");
 			const { hasTieStop } = getTieFlags(note, notations);
-			if (!hasTieStop) noteCount++;
+			if (!hasTieStop) {
+				totalNoteCount++;
+				noteCountByStaff.set(
+					staffNum,
+					(noteCountByStaff.get(staffNum) ?? 0) + 1,
+				);
+			}
 			const pitch = findChild(note, "pitch");
 			if (pitch) {
 				const midi = parsePitchElement(pitch, "step", "alter", "octave", "C");
 				if (midi !== null) {
-					if (midi < minMidi) minMidi = midi;
-					if (midi > maxMidi) maxMidi = midi;
+					if (midi < totalMinMidi) totalMinMidi = midi;
+					if (midi > totalMaxMidi) totalMaxMidi = midi;
+					const staffMin = minMidiByStaff.get(staffNum) ?? Infinity;
+					const staffMax = maxMidiByStaff.get(staffNum) ?? -Infinity;
+					if (midi < staffMin) minMidiByStaff.set(staffNum, midi);
+					if (midi > staffMax) maxMidiByStaff.set(staffNum, midi);
 				}
 			}
 		}
 	}
 
+	let linkedTabStaffNum: number | undefined;
+	let fallbackDynamicStaff = 1;
+	if (staffCount >= 2 && tabStaffNums.size === 1) {
+		const [candidateTab] = Array.from(tabStaffNums);
+		const otherNonTab = Array.from(nonTabStaffNums).filter(
+			(s) => s !== candidateTab,
+		);
+		if (
+			otherNonTab.length > 0 &&
+			(noteCountByStaff.get(candidateTab) ?? 0) > 0
+		) {
+			linkedTabStaffNum = candidateTab;
+			fallbackDynamicStaff = otherNonTab[0];
+		}
+	}
+
+	const noteCount =
+		linkedTabStaffNum !== undefined
+			? (noteCountByStaff.get(linkedTabStaffNum) ?? 0)
+			: totalNoteCount;
+	const minMidi =
+		linkedTabStaffNum !== undefined
+			? (minMidiByStaff.get(linkedTabStaffNum) ?? totalMinMidi)
+			: totalMinMidi;
+	const maxMidi =
+		linkedTabStaffNum !== undefined
+			? (maxMidiByStaff.get(linkedTabStaffNum) ?? totalMaxMidi)
+			: totalMaxMidi;
+
 	return {
-		index,
-		partId,
-		name: meta.name,
-		isPercussion,
-		isStringed,
-		stringCount: tuning.length,
-		staffCount,
-		midiProgram: meta.midiProgram,
-		noteCount,
-		suggestedInstrument: inferInstrumentForPart(
-			meta,
-			tuning,
+		summary: {
+			index,
+			partId,
+			name: meta.name,
 			isPercussion,
-			staffCount,
 			isStringed,
-			minMidi,
-			maxMidi,
-		),
+			stringCount: tuning.length,
+			staffCount,
+			midiProgram: meta.midiProgram,
+			noteCount,
+			suggestedInstrument: inferInstrumentForPart(
+				meta,
+				tuning,
+				isPercussion,
+				staffCount,
+				isStringed,
+				minMidi,
+				maxMidi,
+			),
+		},
+		linkedTabStaffNum,
+		fallbackDynamicStaff,
+		hasTabClef,
 	};
 }
 
@@ -562,13 +656,35 @@ function parseHarmonyNode(harmonyNode: XmlNode): string | null {
 
 	const kindNode = findChild(harmonyNode, "kind");
 	let suffix = "";
+	let kindName = "";
 	if (kindNode) {
 		const textAttr = kindNode.attrs.text?.trim();
-		const kindName = kindNode.text.trim().toLowerCase();
+		kindName = kindNode.text.trim().toLowerCase();
 		if (textAttr && kindName !== "none") {
 			suffix = textAttr;
 		} else if (Object.hasOwn(MUSICXML_KIND_SUFFIX, kindName)) {
 			suffix = MUSICXML_KIND_SUFFIX[kindName];
+		}
+	}
+
+	const hasAdd9 = findChildren(harmonyNode, "degree").some((deg) => {
+		const val = Number.parseInt(getChildText(deg, "degree-value") ?? "0", 10);
+		const alter = Number.parseInt(getChildText(deg, "degree-alter") ?? "0", 10);
+		const degType = (getChildText(deg, "degree-type") ?? "add")
+			.trim()
+			.toLowerCase();
+		return (
+			degType === "add" && val === 9 && (Number.isNaN(alter) || alter === 0)
+		);
+	});
+	if (hasAdd9) {
+		if (kindName === "major" && (suffix === "" || suffix === "add9")) {
+			suffix = "add9";
+		} else if (
+			kindName === "minor" &&
+			(suffix === "m" || suffix === "madd9" || suffix === "m(add9)")
+		) {
+			suffix = "m(add9)";
 		}
 	}
 
@@ -645,11 +761,56 @@ function applyPianoPedalIntervals(
 	}
 }
 
+function lookupLatestAtOrBefore<T>(
+	events: ReadonlyArray<{ absTick: number; value: T }> | undefined,
+	absTick: number,
+): T | undefined {
+	if (!events || events.length === 0) return undefined;
+	let bestTick = -1;
+	let bestVal: T | undefined;
+	for (const ev of events) {
+		if (ev.absTick <= absTick && ev.absTick >= bestTick) {
+			bestTick = ev.absTick;
+			bestVal = ev.value;
+		}
+	}
+	return bestVal;
+}
+
+function appendTimelineEvent<T>(
+	map: Map<number, Array<{ absTick: number; value: T }>>,
+	staffNum: number,
+	absTick: number,
+	value: T,
+): void {
+	let list = map.get(staffNum);
+	if (!list) {
+		list = [];
+		map.set(staffNum, list);
+	}
+	list.push({ absTick, value });
+}
+
 function buildTrackIrFromPart(
 	score: NormalizedScore,
-	selectedSummary: MusicXmlPartSummary,
+	selectedPartInfo: AnalyzedPart,
 	options: MusicXmlImportOptions,
 ): ScoreTrackIR {
+	const {
+		summary: selectedSummary,
+		linkedTabStaffNum,
+		fallbackDynamicStaff,
+		hasTabClef,
+	} = selectedPartInfo;
+	const explicitKeyOverride = options.key?.trim()
+		? parseExplicitKeyOption(options.key)
+		: undefined;
+	if (options.key?.trim() && !explicitKeyOverride) {
+		throw new Error(
+			`Invalid key override "${options.key}". Expected e.g. "C Major" or "A Minor".`,
+		);
+	}
+
 	const {
 		parts,
 		title: scoreTitle,
@@ -673,24 +834,38 @@ function buildTrackIrFromPart(
 	let staffCount = selectedSummary.staffCount;
 	let tuningMidi: number[] | undefined;
 	let capo = 0;
-	let keySignature: ScoreTrackIR["keySignature"] | undefined;
+	let initialKeyDecl: { fifths: number; mode?: KeyMode } | undefined;
 	const transposeByStaff = new Map<number, number>();
 	let initialBpm = 120;
 	let hasInitialTempo = false;
 
 	const activeVelocityByStaff = new Map<number, number>();
+	const velocityHistoryByStaff = new Map<
+		number,
+		Array<{ absTick: number; value: number }>
+	>();
 	const activeTies = new Map<string, ScoreNoteIR>();
 	const activeSlides = new Map<string, number>();
 
+	const measures = findChildren(partNode, "measure");
+	const hasPalmMuteRelease = measures.some((m) =>
+		findChildren(m, "direction").some((d) =>
+			findChildren(d, "direction-type").some((dt) => {
+				const w = getChildText(dt, "words");
+				return Boolean(w && /\bopen\b|\bnat\.?\b|\bord\.?\b/i.test(w));
+			}),
+		),
+	);
+
 	let pizzActive = false;
 	let palmMuteActive = false;
+	const palmMuteTimeline: Array<{ absTick: number; value: boolean }> = [];
 	let letRingActive = false;
 
 	let pedalDownTick: number | null = null;
 	const pedalIntervals: Array<{ start: number; end: number }> = [];
 
 	const barsIR: ScoreBarIR[] = [];
-	const measures = findChildren(partNode, "measure");
 	let absTickCursor = 0;
 
 	for (let mIdx = 0; mIdx < measures.length; mIdx++) {
@@ -698,6 +873,7 @@ function buildTrackIrFromPart(
 		const barNotes: ScoreNoteIR[] = [];
 		const harmonyMap = new Map<number, ScoreHarmonyMark>();
 		const tempoChanges: ScoreBarTempoChange[] = [];
+		const palmMuteTicks = new Set<number>();
 
 		let repeatStart = false;
 		let repeatEndCount: number | undefined;
@@ -758,21 +934,16 @@ function buildTrackIrFromPart(
 				}
 
 				const keyNode = findChild(child, "key");
-				if (keyNode && !keySignature) {
-					const fifths = Number.parseInt(
+				if (keyNode && !initialKeyDecl) {
+					const fifthsRaw = Number.parseInt(
 						getChildText(keyNode, "fifths") ?? "0",
 						10,
 					);
-					const modeRaw = (
-						getChildText(keyNode, "mode") ?? "major"
-					).toLowerCase();
-					const keyMode = modeRaw === "minor" ? "minor" : "major";
-					const rootPc = mod12((keyMode === "major" ? 0 : 9) + fifths * 7);
-					keySignature = resolveKeySignatureFromRootPc(
-						rootPc,
-						keyMode,
-						fifths < 0,
-					);
+					const fifths = Number.isFinite(fifthsRaw) ? fifthsRaw : 0;
+					const modeText = getChildText(keyNode, "mode")?.trim().toLowerCase();
+					const mode: KeyMode | undefined =
+						modeText === "major" || modeText === "minor" ? modeText : undefined;
+					initialKeyDecl = { fifths, mode };
 				}
 
 				const timeNode = findChild(child, "time");
@@ -876,9 +1047,13 @@ function buildTrackIrFromPart(
 					recordTempo(dirTick, parseSoundTempo(soundNode));
 					const dynAttr = Number.parseFloat(soundNode.attrs.dynamics ?? "");
 					if (Number.isFinite(dynAttr) && dynAttr > 0) {
-						activeVelocityByStaff.set(
+						const vel = Math.max(0.15, Math.min(1, (dynAttr * 0.9) / 127));
+						activeVelocityByStaff.set(staffNum, vel);
+						appendTimelineEvent(
+							velocityHistoryByStaff,
 							staffNum,
-							Math.max(0.15, Math.min(1, (dynAttr * 0.9) / 127)),
+							absTickCursor + dirTick,
+							vel,
 						);
 					}
 				}
@@ -894,9 +1069,13 @@ function buildTrackIrFromPart(
 						for (const dChild of dynNode.children) {
 							const dKey = dChild.tag.toLowerCase();
 							if (Object.hasOwn(DYNAMIC_VELOCITY_BY_TAG, dKey)) {
-								activeVelocityByStaff.set(
+								const vel = DYNAMIC_VELOCITY_BY_TAG[dKey];
+								activeVelocityByStaff.set(staffNum, vel);
+								appendTimelineEvent(
+									velocityHistoryByStaff,
 									staffNum,
-									DYNAMIC_VELOCITY_BY_TAG[dKey],
+									absTickCursor + dirTick,
+									vel,
 								);
 							}
 						}
@@ -912,10 +1091,30 @@ function buildTrackIrFromPart(
 						const lower = words.toLowerCase();
 						if (/\bpizz\.?\b/.test(lower)) pizzActive = true;
 						else if (/\barco\b/.test(lower)) pizzActive = false;
-						if (/palm\s*mute|\bp\.?\s*m\.?\b/.test(lower))
-							palmMuteActive = true;
-						else if (/\bopen\b|\bnat\.?\b|\bord\.?\b/.test(lower))
+						if (/palm\s*mute|\bp\.?\s*m\.?\b/.test(lower)) {
+							if (hasPalmMuteRelease) {
+								palmMuteActive = true;
+								if (linkedTabStaffNum !== undefined) {
+									palmMuteTimeline.push({
+										absTick: absTickCursor + dirTick,
+										value: true,
+									});
+								}
+							} else {
+								palmMuteTicks.add(dirTick);
+							}
+						} else if (
+							hasPalmMuteRelease &&
+							/\bopen\b|\bnat\.?\b|\bord\.?\b/.test(lower)
+						) {
 							palmMuteActive = false;
+							if (linkedTabStaffNum !== undefined) {
+								palmMuteTimeline.push({
+									absTick: absTickCursor + dirTick,
+									value: false,
+								});
+							}
+						}
 						if (/let\s*ring/.test(lower)) letRingActive = true;
 					}
 
@@ -1026,6 +1225,9 @@ function buildTrackIrFromPart(
 
 				const staffNum =
 					Number.parseInt(getChildText(child, "staff") ?? "1", 10) || 1;
+				if (linkedTabStaffNum !== undefined && staffNum !== linkedTabStaffNum) {
+					continue;
+				}
 				const voiceNum =
 					Number.parseInt(getChildText(child, "voice") ?? "1", 10) || 1;
 				const transposeOffset =
@@ -1036,45 +1238,18 @@ function buildTrackIrFromPart(
 				const notations = findChild(child, "notations");
 				const { hasTieStart, hasTieStop } = getTieFlags(child, notations);
 
-				const durTicks = snapDuration(rawDurTicks);
-				const tieKey = `${staffNum}:${voiceNum}:${midi}`;
-				const tieFallbackKey = `${staffNum}:*:${midi}`;
-
-				if (hasTieStop) {
-					const origin =
-						activeTies.get(tieKey) ?? activeTies.get(tieFallbackKey);
-					if (origin) {
-						origin.durationTicks += durTicks;
-						if (!hasTieStart) {
-							activeTies.delete(tieKey);
-							activeTies.delete(tieFallbackKey);
-						}
-						continue;
-					}
-				}
-
-				const noteHead = findChild(child, "notehead");
-				const isGhost = noteHead?.attrs.parentheses === "yes";
-				const isDead = noteHead?.text.trim().toLowerCase() === "x";
-
-				let velocity = activeVelocityByStaff.get(staffNum) ?? 0.78;
-				if (isGrace) velocity *= 0.88;
-				if (isDead) velocity = Math.min(velocity, 0.38);
-				else if (isGhost) velocity = Math.max(0.25, velocity * 0.65);
-
-				// Articulations & Technical notation
-				let technique: SongNoteTechnique | undefined;
-				let slideFromMidi: number | undefined;
-				let stringIndex: number | undefined;
-				let fret: number | undefined;
-				let finger: number | undefined;
-
 				const technical = notations
 					? findChild(notations, "technical")
 					: undefined;
 				const articulations = notations
 					? findChild(notations, "articulations")
 					: undefined;
+
+				let stringIndex: number | undefined;
+				let fret: number | undefined;
+				let finger: number | undefined;
+				let technique: SongNoteTechnique | undefined;
+				let slideFromMidi: number | undefined;
 
 				if (technical) {
 					const numStrings =
@@ -1125,6 +1300,57 @@ function buildTrackIrFromPart(
 					}
 				}
 
+				const durTicks = snapDuration(rawDurTicks);
+				const tieStringKey =
+					stringIndex !== undefined
+						? `${staffNum}:${voiceNum}:${midi}:s${stringIndex}`
+						: undefined;
+				const tieKey = `${staffNum}:${voiceNum}:${midi}`;
+				const tieFallbackKey = `${staffNum}:*:${midi}`;
+
+				if (hasTieStop) {
+					const origin =
+						(tieStringKey ? activeTies.get(tieStringKey) : undefined) ??
+						activeTies.get(tieKey) ??
+						activeTies.get(tieFallbackKey);
+					if (origin) {
+						origin.durationTicks += durTicks;
+						if (!hasTieStart) {
+							if (tieStringKey) activeTies.delete(tieStringKey);
+							activeTies.delete(tieKey);
+							activeTies.delete(tieFallbackKey);
+						}
+						continue;
+					}
+				}
+
+				const noteHead = findChild(child, "notehead");
+				const isGhost = noteHead?.attrs.parentheses === "yes";
+				const isDead = noteHead?.text.trim().toLowerCase() === "x";
+
+				const noteAbsTick = absTickCursor + onsetTicks;
+				let velocity =
+					linkedTabStaffNum !== undefined
+						? (lookupLatestAtOrBefore(
+								velocityHistoryByStaff.get(staffNum),
+								noteAbsTick,
+							) ??
+							lookupLatestAtOrBefore(
+								velocityHistoryByStaff.get(fallbackDynamicStaff),
+								noteAbsTick,
+							) ??
+							0.78)
+						: (activeVelocityByStaff.get(staffNum) ?? 0.78);
+				if (isGrace) velocity *= 0.88;
+				if (isDead) velocity = Math.min(velocity, 0.38);
+				else if (isGhost) velocity = Math.max(0.25, velocity * 0.65);
+
+				const isPalmMuted = hasPalmMuteRelease
+					? linkedTabStaffNum !== undefined
+						? (lookupLatestAtOrBefore(palmMuteTimeline, noteAbsTick) ?? false)
+						: palmMuteActive
+					: palmMuteTicks.has(onsetTicks);
+
 				let slurs: XmlNode[] = [];
 				if (notations) {
 					slurs = findChildren(notations, "slur");
@@ -1157,7 +1383,7 @@ function buildTrackIrFromPart(
 					}
 				}
 				if (!technique) {
-					if (instrument === "guitar" && (isDead || palmMuteActive)) {
+					if (instrument === "guitar" && (isDead || isPalmMuted)) {
 						technique = "palmMute";
 					} else if (
 						(instrument === "violin" || instrument === "cello") &&
@@ -1194,6 +1420,7 @@ function buildTrackIrFromPart(
 				barNotes.push(noteIr);
 
 				if (hasTieStart) {
+					if (tieStringKey) activeTies.set(tieStringKey, noteIr);
 					activeTies.set(tieKey, noteIr);
 					activeTies.set(tieFallbackKey, noteIr);
 				}
@@ -1246,6 +1473,51 @@ function buildTrackIrFromPart(
 		tuningMidi !== undefined &&
 		arraysEqual(tuningMidi, defaultTuningForInstrument(instrument));
 
+	let keySignature: ScoreTrackIR["keySignature"] | undefined;
+	if (explicitKeyOverride) {
+		keySignature = explicitKeyOverride;
+	} else if (initialKeyDecl?.mode) {
+		const rootPc = mod12(
+			(initialKeyDecl.mode === "major" ? 0 : 9) + initialKeyDecl.fifths * 7,
+		);
+		keySignature = resolveKeySignatureFromRootPc(
+			rootPc,
+			initialKeyDecl.mode,
+			initialKeyDecl.fifths < 0,
+		);
+	} else {
+		const linearBars = linearizeRepeatedBars(barsIR);
+		const allWeightedNotes = linearBars.flatMap((bar) =>
+			bar.notes.map((n) => ({
+				midi: n.midi,
+				offsetTicks: n.offsetTicks,
+				durationTicks: n.durationTicks,
+			})),
+		);
+		const allHarmonies = linearBars.flatMap((bar) => bar.harmonies ?? []);
+		if (initialKeyDecl && !(initialKeyDecl.fifths === 0 && hasTabClef)) {
+			const candidates = [
+				{ rootPc: mod12(initialKeyDecl.fifths * 7), mode: "major" as const },
+				{
+					rootPc: mod12(9 + initialKeyDecl.fifths * 7),
+					mode: "minor" as const,
+				},
+			];
+			keySignature = detectKeyFromEvents(
+				allWeightedNotes,
+				initialKeyDecl.fifths < 0,
+				{
+					harmonies: allHarmonies,
+					candidates,
+				},
+			);
+		} else if (allWeightedNotes.length > 0 || allHarmonies.length > 0) {
+			keySignature = detectKeyFromEvents(allWeightedNotes, false, {
+				harmonies: allHarmonies,
+			});
+		}
+	}
+
 	const title =
 		options.title || scoreTitle || selectedSummary.name || "MusicXML Score";
 	const composerOrSource =
@@ -1270,7 +1542,10 @@ function buildTrackIrFromPart(
 	};
 }
 
-function inspectParsedMusicXml(score: NormalizedScore): MusicXmlInspection {
+function inspectParsedMusicXmlInternal(score: NormalizedScore): {
+	inspection: MusicXmlInspection;
+	analyzedParts: AnalyzedPart[];
+} {
 	const { partMetaList, parts, title, composerOrSource, subtitle } = score;
 
 	let initialTempo = 120;
@@ -1306,12 +1581,19 @@ function inspectParsedMusicXml(score: NormalizedScore): MusicXmlInspection {
 		}
 	}
 
+	const analyzedParts = parts.map((p, idx) =>
+		summarizePartWithLayout(p, idx, partMetaList),
+	);
+
 	return {
-		title,
-		composerOrSource,
-		...(subtitle ? { subtitle } : {}),
-		tempo: initialTempo,
-		parts: parts.map((p, idx) => summarizePart(p, idx, partMetaList)),
+		inspection: {
+			title,
+			composerOrSource,
+			...(subtitle ? { subtitle } : {}),
+			tempo: initialTempo,
+			parts: analyzedParts.map((ap) => ap.summary),
+		},
+		analyzedParts,
 	};
 }
 
@@ -1336,7 +1618,7 @@ export async function inspectMusicXml(
 	source: Uint8Array | XmlNode,
 ): Promise<MusicXmlInspection> {
 	const root = await resolveMusicXmlRoot(source);
-	return inspectParsedMusicXml(normalizeScorePartwise(root));
+	return inspectParsedMusicXmlInternal(normalizeScorePartwise(root)).inspection;
 }
 
 /**
@@ -1349,9 +1631,10 @@ export async function compileMusicXml(
 ): Promise<ImportedMusicXmlResult> {
 	const root = await resolveMusicXmlRoot(source);
 	const score = normalizeScorePartwise(root);
-	const inspection = inspectParsedMusicXml(score);
+	const { inspection, analyzedParts } = inspectParsedMusicXmlInternal(score);
 	const selectedPart = selectBestPart(inspection.parts, options);
-	const trackIr = buildTrackIrFromPart(score, selectedPart, options);
+	const selectedAnalyzed = analyzedParts[selectedPart.index];
+	const trackIr = buildTrackIrFromPart(score, selectedAnalyzed, options);
 
 	const compileOpts: CompileScoreOptions = {
 		splitHalfBarHarmony: options.splitHalfBarHarmony,

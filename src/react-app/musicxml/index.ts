@@ -2,9 +2,12 @@ export { solveInstrumentStops, type SolvedStop } from "./ergonomicSolver";
 export {
 	detectKeyFromEvents,
 	inferHarmonyForWindow,
+	parseExplicitKeyOption,
 	resolveExplicitChordSymbol,
 	resolveKeySignatureFromRootPc,
+	type DetectKeyOptions,
 	type InferredHarmony,
+	type KeySignatureResolution,
 } from "./harmonicAnalyzer";
 export {
 	compileMusicXml,

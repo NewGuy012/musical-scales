@@ -348,8 +348,12 @@ export function compileScoreTrackToSongDocument(
 			durationTicks: n.durationTicks,
 		})),
 	);
+	const allHarmonies = linearBars.flatMap((bar) => bar.harmonies ?? []);
 	const keyInfo =
-		track.keySignature ?? detectKeyFromEvents(allWeightedNotes, false);
+		track.keySignature ??
+		detectKeyFromEvents(allWeightedNotes, false, {
+			harmonies: allHarmonies,
+		});
 	const keyAnalysis = analyzeKey(keyInfo.keySlot, keyInfo.keyMode);
 
 	const barMetaList: {
