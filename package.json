@@ -14,10 +14,6 @@
 		"vite": "^8.3.8",
 		"wrangler": "^4.162.0"
 	},
-	"allowScripts": {
-		"esbuild": true,
-		"workerd": true
-	},
 	"trustedDependencies": [
 		"esbuild",
 		"workerd"
