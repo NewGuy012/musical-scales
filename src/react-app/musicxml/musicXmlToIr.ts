@@ -645,18 +645,24 @@ function selectBestPart(
 	return [...pool].sort((a, b) => b.noteCount - a.noteCount)[0];
 }
 
+function parseHarmonyPitch(
+	harmonyNode: XmlNode,
+	tag: "root" | "bass",
+): string | null {
+	const node = findChild(harmonyNode, tag);
+	const step = node ? getChildText(node, `${tag}-step`) : undefined;
+	if (!node || !step) return null;
+	const alter = Number.parseFloat(getChildText(node, `${tag}-alter`) ?? "0");
+	const letter = step.toUpperCase();
+	return (
+		spellNoteOffset(letter, Number.isFinite(alter) ? Math.round(alter) : 0) ??
+		letter
+	);
+}
+
 function parseHarmonyNode(harmonyNode: XmlNode): string | null {
-	const root = findChild(harmonyNode, "root");
-	if (!root) return null;
-	const rootStep = getChildText(root, "root-step");
-	if (!rootStep) return null;
-	const rootAlter = Number.parseFloat(getChildText(root, "root-alter") ?? "0");
-	const rootLetter = rootStep.toUpperCase();
-	const rootName =
-		spellNoteOffset(
-			rootLetter,
-			Number.isFinite(rootAlter) ? Math.round(rootAlter) : 0,
-		) ?? rootLetter;
+	const rootName = parseHarmonyPitch(harmonyNode, "root");
+	if (!rootName) return null;
 
 	const kindNode = findChild(harmonyNode, "kind");
 	let suffix = "";
@@ -692,23 +698,8 @@ function parseHarmonyNode(harmonyNode: XmlNode): string | null {
 		}
 	}
 
-	const bass = findChild(harmonyNode, "bass");
-	let bassSuffix = "";
-	if (bass) {
-		const bassStep = getChildText(bass, "bass-step");
-		if (bassStep) {
-			const bassAlter = Number.parseFloat(
-				getChildText(bass, "bass-alter") ?? "0",
-			);
-			const bassLetter = bassStep.toUpperCase();
-			bassSuffix = `/${
-				spellNoteOffset(
-					bassLetter,
-					Number.isFinite(bassAlter) ? Math.round(bassAlter) : 0,
-				) ?? bassLetter
-			}`;
-		}
-	}
+	const bassName = parseHarmonyPitch(harmonyNode, "bass");
+	const bassSuffix = bassName ? `/${bassName}` : "";
 
 	return `${rootName}${suffix}${bassSuffix}`;
 }
@@ -900,11 +891,33 @@ function buildTrackIrFromPart(
 			(TARGET_TPQ * 4 * activeTs.numerator) / activeTs.denominator,
 		);
 
+		const scaleDivsToTicks = (rawDivs: number): number =>
+			Math.round((rawDivs * TARGET_TPQ) / Math.max(1, divisions));
+
 		const toTicks = (rawDuration: number): number =>
-			Math.max(
-				1,
-				Math.round((rawDuration * TARGET_TPQ) / Math.max(1, divisions)),
+			Math.max(1, scaleDivsToTicks(rawDuration));
+
+		const offsetTicksAtNode = (node: XmlNode): number => {
+			const offDivs = Number.parseFloat(getChildText(node, "offset") ?? "0");
+			return (
+				cursorTicks +
+				(Number.isFinite(offDivs) && offDivs !== 0
+					? scaleDivsToTicks(offDivs)
+					: 0)
 			);
+		};
+
+		const recordVelocity = (staffNum: number, absTick: number, vel: number) => {
+			activeVelocityByStaff.set(staffNum, vel);
+			appendTimelineEvent(velocityHistoryByStaff, staffNum, absTick, vel);
+		};
+
+		const setPalmMute = (value: boolean, absTick: number) => {
+			palmMuteActive = value;
+			if (linkedTabStaffNum !== undefined) {
+				palmMuteTimeline.push({ absTick, value });
+			}
+		};
 
 		const snapOffset = (rawOffset: number): number => {
 			if (quantizeStepTicks <= 0) return Math.max(0, rawOffset);
@@ -1035,29 +1048,18 @@ function buildTrackIrFromPart(
 			if (child.tag === "direction") {
 				const staffNum =
 					Number.parseInt(getChildText(child, "staff") ?? "1", 10) || 1;
-				const offsetDivs = Number.parseFloat(
-					getChildText(child, "offset") ?? "0",
-				);
-				const dirTick = Math.max(
-					0,
-					cursorTicks +
-						(Number.isFinite(offsetDivs) && offsetDivs !== 0
-							? Math.round((offsetDivs * TARGET_TPQ) / Math.max(1, divisions))
-							: 0),
-				);
+				const dirTick = Math.max(0, offsetTicksAtNode(child));
+				const absDirTick = absTickCursor + dirTick;
 
 				const soundNode = findChild(child, "sound");
 				if (soundNode) {
 					recordTempo(dirTick, parseSoundTempo(soundNode));
 					const dynAttr = Number.parseFloat(soundNode.attrs.dynamics ?? "");
 					if (Number.isFinite(dynAttr) && dynAttr > 0) {
-						const vel = Math.max(0.15, Math.min(1, (dynAttr * 0.9) / 127));
-						activeVelocityByStaff.set(staffNum, vel);
-						appendTimelineEvent(
-							velocityHistoryByStaff,
+						recordVelocity(
 							staffNum,
-							absTickCursor + dirTick,
-							vel,
+							absDirTick,
+							Math.max(0.15, Math.min(1, (dynAttr * 0.9) / 127)),
 						);
 					}
 				}
@@ -1073,13 +1075,10 @@ function buildTrackIrFromPart(
 						for (const dChild of dynNode.children) {
 							const dKey = dChild.tag.toLowerCase();
 							if (Object.hasOwn(DYNAMIC_VELOCITY_BY_TAG, dKey)) {
-								const vel = DYNAMIC_VELOCITY_BY_TAG[dKey];
-								activeVelocityByStaff.set(staffNum, vel);
-								appendTimelineEvent(
-									velocityHistoryByStaff,
+								recordVelocity(
 									staffNum,
-									absTickCursor + dirTick,
-									vel,
+									absDirTick,
+									DYNAMIC_VELOCITY_BY_TAG[dKey],
 								);
 							}
 						}
@@ -1096,28 +1095,13 @@ function buildTrackIrFromPart(
 						if (/\bpizz\.?\b/.test(lower)) pizzActive = true;
 						else if (/\barco\b/.test(lower)) pizzActive = false;
 						if (/palm\s*mute|\bp\.?\s*m\.?\b/.test(lower)) {
-							if (hasPalmMuteRelease) {
-								palmMuteActive = true;
-								if (linkedTabStaffNum !== undefined) {
-									palmMuteTimeline.push({
-										absTick: absTickCursor + dirTick,
-										value: true,
-									});
-								}
-							} else {
-								palmMuteTicks.add(dirTick);
-							}
+							if (hasPalmMuteRelease) setPalmMute(true, absDirTick);
+							else palmMuteTicks.add(dirTick);
 						} else if (
 							hasPalmMuteRelease &&
 							/\bopen\b|\bnat\.?\b|\bord\.?\b/.test(lower)
 						) {
-							palmMuteActive = false;
-							if (linkedTabStaffNum !== undefined) {
-								palmMuteTimeline.push({
-									absTick: absTickCursor + dirTick,
-									value: false,
-								});
-							}
+							setPalmMute(false, absDirTick);
 						}
 						if (/let\s*ring/.test(lower)) letRingActive = true;
 					}
@@ -1125,18 +1109,18 @@ function buildTrackIrFromPart(
 					const pedal = findChild(dt, "pedal");
 					if (pedal && instrument === "piano") {
 						const pType = (pedal.attrs.type ?? "").toLowerCase();
-						const absDirTick = absTickCursor + dirTick;
-						if (pType === "start") {
-							if (pedalDownTick === null) pedalDownTick = absDirTick;
-						} else if (pType === "change") {
+						const closePedal = () => {
 							if (pedalDownTick !== null && absDirTick > pedalDownTick) {
 								pedalIntervals.push({ start: pedalDownTick, end: absDirTick });
 							}
+						};
+						if (pType === "start" && pedalDownTick === null) {
+							pedalDownTick = absDirTick;
+						} else if (pType === "change") {
+							closePedal();
 							pedalDownTick = absDirTick;
 						} else if (pType === "stop") {
-							if (pedalDownTick !== null && absDirTick > pedalDownTick) {
-								pedalIntervals.push({ start: pedalDownTick, end: absDirTick });
-							}
+							closePedal();
 							pedalDownTick = null;
 						}
 					}
@@ -1147,15 +1131,7 @@ function buildTrackIrFromPart(
 			if (child.tag === "harmony") {
 				const symbol = parseHarmonyNode(child);
 				if (symbol) {
-					const offDivs = Number.parseFloat(
-						getChildText(child, "offset") ?? "0",
-					);
-					const offTicks =
-						cursorTicks +
-						(Number.isFinite(offDivs) && offDivs !== 0
-							? Math.round((offDivs * TARGET_TPQ) / Math.max(1, divisions))
-							: 0);
-					const snappedOff = snapOffset(offTicks);
+					const snappedOff = snapOffset(offsetTicksAtNode(child));
 					harmonyMap.set(snappedOff, {
 						offsetTicks: snappedOff,
 						chordSymbol: symbol,

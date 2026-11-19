@@ -94,31 +94,17 @@ function chainNodes(...nodes: AudioNode[]): void {
 }
 
 function registerVoiceCleanup(
-	primarySource: AudioScheduledSourceNode,
-	noteGain: GainNode,
+	source: AudioScheduledSourceNode,
+	noteGain?: GainNode,
 ): void {
-	activeVoiceGains.add(noteGain);
-	activeVoiceSources.add(primarySource);
-	primarySource.onended = () => {
-		activeVoiceGains.delete(noteGain);
-		activeVoiceSources.delete(primarySource);
-		try {
-			noteGain.disconnect();
-		} catch {
-			// Ignore if already disconnected
-		}
-	};
-}
-
-function registerAuxSource(source: AudioScheduledSourceNode): void {
+	if (noteGain) activeVoiceGains.add(noteGain);
 	activeVoiceSources.add(source);
 	source.onended = () => {
+		if (noteGain) activeVoiceGains.delete(noteGain);
 		activeVoiceSources.delete(source);
 		try {
-			source.disconnect();
-		} catch {
-			// Ignore if already disconnected
-		}
+			(noteGain ?? source).disconnect();
+		} catch {}
 	};
 }
 
@@ -135,16 +121,12 @@ export function stopAllAudio(): void {
 			gainNode.gain.cancelScheduledValues(now);
 			gainNode.gain.setValueAtTime(Math.max(0.0001, gainNode.gain.value), now);
 			gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-		} catch {
-			// Ignore if node was already released
-		}
+		} catch {}
 	}
 	for (const source of activeVoiceSources) {
 		try {
 			source.stop(now + 0.035);
-		} catch {
-			// Ignore if source already stopped or unavailable
-		}
+		} catch {}
 	}
 	activeVoiceGains.clear();
 	activeVoiceSources.clear();
@@ -160,12 +142,22 @@ function createSeededRandom(seed: number): () => number {
 	};
 }
 
+function clamp(value: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, value));
+}
+
+function clampSampleRate(rawRate = 22050): number {
+	return Number.isFinite(rawRate)
+		? clamp(Math.round(rawRate), 8000, 96000)
+		: 22050;
+}
+
 function isValidMidi(midi: number): boolean {
 	return Number.isFinite(midi) && midi >= 0 && midi <= 127;
 }
 
 export function midiToFrequency(midi: number): number {
-	const clamped = Number.isFinite(midi) ? Math.max(0, Math.min(127, midi)) : 69;
+	const clamped = Number.isFinite(midi) ? clamp(midi, 0, 127) : 69;
 	return 440 * Math.pow(2, (clamped - 69) / 12);
 }
 
@@ -205,7 +197,7 @@ function scheduleNoiseBurst(
 	chainNodes(src, filter, gain, dest);
 	src.start(startTime, (offsetSeed % 100) * 0.002, durationSec + 0.01);
 	src.stop(startTime + durationSec + 0.015);
-	registerAuxSource(src);
+	registerVoiceCleanup(src);
 }
 
 /**
@@ -217,20 +209,19 @@ export function synthesizeGuitarPluckSamples(
 	sampleRate: number,
 	totalSeconds: number,
 ): Float32Array {
-	const fs = Number.isFinite(sampleRate)
-		? Math.max(8000, Math.min(96000, sampleRate))
-		: 22050;
+	const fs = clampSampleRate(sampleRate);
 	const safeFreq = Number.isFinite(freq) ? freq : 440;
 	const safeSec = Number.isFinite(totalSeconds)
-		? Math.max(0.1, Math.min(30, totalSeconds))
+		? clamp(totalSeconds, 0.1, 30)
 		: 1.0;
-	const clampedFreq = Math.max(40, Math.min(fs * 0.25, safeFreq));
+	const clampedFreq = clamp(safeFreq, 40, fs * 0.25);
 	const numSamples = Math.max(256, Math.floor(fs * safeSec));
 	const out = new Float32Array(numSamples);
 
-	const normPitch = Math.max(
+	const normPitch = clamp(
+		(Math.log2(clampedFreq) - Math.log2(82.41)) / 3,
 		0,
-		Math.min(1, (Math.log2(clampedFreq) - Math.log2(82.41)) / 3),
+		1,
 	);
 	const blend = 0.36 - normPitch * 0.08;
 	const stringDamp = 0.065 + normPitch * 0.115;
@@ -354,7 +345,7 @@ export function synthesizeGuitarPluckSamples(
 		} else if (i >= fadeOutStart) {
 			env = (numSamples - i) / fadeOutSamples;
 		}
-		out[i] = Math.max(-1, Math.min(1, ap * env));
+		out[i] = clamp(ap * env, -1, 1);
 	}
 
 	return out;
@@ -388,7 +379,7 @@ function getGuitarPluckBuffer(
 
 function clampVelocity(velocity?: number): number {
 	if (velocity === undefined || !Number.isFinite(velocity)) return 0.8;
-	return Math.max(0.05, Math.min(1, velocity));
+	return clamp(velocity, 0.05, 1);
 }
 
 function scaleGainByVelocity(baseGain: number, velocity?: number): number {
@@ -473,8 +464,7 @@ function schedulePianoVoice(
 		chainNodes(osc, g, stringFilter);
 		osc.start(startTime);
 		osc.stop(stopTime + 0.03);
-		if (idx === 0) registerVoiceCleanup(osc, noteGain);
-		else registerAuxSource(osc);
+		registerVoiceCleanup(osc, idx === 0 ? noteGain : undefined);
 	});
 
 	chainNodes(stringFilter, boardResonance, noteGain, master);
@@ -853,8 +843,7 @@ function scheduleBowedVoice(
 		chainNodes(osc, g, bowLPF);
 		osc.start(startTime);
 		osc.stop(stopTime + 0.04);
-		if (idx === 0) registerVoiceCleanup(osc, noteGain);
-		else registerAuxSource(osc);
+		registerVoiceCleanup(osc, idx === 0 ? noteGain : undefined);
 	});
 
 	const formantFilters = profile.formants.map(([fFreq, q, gainDb]) =>
@@ -864,7 +853,7 @@ function scheduleBowedVoice(
 
 	vibratoLfo.start(startTime);
 	vibratoLfo.stop(stopTime + 0.04);
-	registerAuxSource(vibratoLfo);
+	registerVoiceCleanup(vibratoLfo);
 
 	if (!isHarmonic && !isPizz) {
 		const noiseDur = isShort ? 0.04 : 0.075;
@@ -923,8 +912,7 @@ function schedulePadVoice(
 		osc.connect(filter);
 		osc.start(startTime);
 		osc.stop(stopTime + 0.05);
-		if (idx === 0) registerVoiceCleanup(osc, noteGain);
-		else registerAuxSource(osc);
+		registerVoiceCleanup(osc, idx === 0 ? noteGain : undefined);
 	});
 
 	chainNodes(filter, noteGain, master);
@@ -1087,12 +1075,9 @@ export function playChordNotes(
 	);
 }
 
-interface TimedNoteDetail {
+interface TimedNoteDetail extends VoiceDetail {
 	midi: number;
 	durationSec: number;
-	velocity?: number;
-	technique?: string;
-	slideFromMidi?: number;
 }
 
 interface TimedSequenceStep {
@@ -1354,21 +1339,17 @@ export function renderTimedSequenceOfflineSamples(
 		sampleRate: rawRate = 22050,
 		totalDurationMs,
 	} = options;
-	const sampleRate = Number.isFinite(rawRate)
-		? Math.max(8000, Math.min(96000, Math.round(rawRate)))
-		: 22050;
+	const sampleRate = clampSampleRate(rawRate);
 	const endMs =
 		totalDurationMs ??
 		steps.reduce(
 			(maxMs, s) => Math.max(maxMs, s.atMs + s.durationSec * 1000),
 			0,
 		);
-	const totalSec = Math.max(
+	const totalSec = clamp(
+		(Number.isFinite(endMs) ? endMs : 0) / 1000 + 0.6,
 		0.1,
-		Math.min(
-			MAX_OFFLINE_RENDER_SEC,
-			(Number.isFinite(endMs) ? endMs : 0) / 1000 + 0.6,
-		),
+		MAX_OFFLINE_RENDER_SEC,
 	);
 	const out = new Float32Array(Math.ceil(totalSec * sampleRate));
 	const pluckCache = new Map<string, Float32Array>();
@@ -1490,9 +1471,7 @@ export function encodeWavPcm16(
 	samples: Float32Array,
 	rawRate = 22050,
 ): Uint8Array {
-	const sampleRate = Number.isFinite(rawRate)
-		? Math.max(8000, Math.min(96000, Math.round(rawRate)))
-		: 22050;
+	const sampleRate = clampSampleRate(rawRate);
 	const dataBytes = samples.length * 2;
 	const buffer = new ArrayBuffer(44 + dataBytes);
 	const view = new DataView(buffer);
@@ -1515,7 +1494,7 @@ export function encodeWavPcm16(
 	writeStr(36, "data");
 	view.setUint32(40, dataBytes, true);
 	for (let i = 0; i < samples.length; i++) {
-		const s = Math.max(-1, Math.min(1, samples[i]));
+		const s = clamp(samples[i], -1, 1);
 		view.setInt16(44 + i * 2, s < 0 ? s * 32768 : s * 32767, true);
 	}
 	return new Uint8Array(buffer);
