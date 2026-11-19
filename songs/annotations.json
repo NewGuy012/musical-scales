@@ -1,0 +1,1130 @@
+{
+	"bach_wtc1_prelude_01_c_major_piano": {
+		"theorySummary": "35-bar masterclass in harmonic voice leading over unbroken arpeggios: opens with a textbook C bass pedal (I–ii7–V7–I), modulates clockwise to G Major (V), descends chromatically through diminished & borrowed minor color, and rests over an 8-bar G dominant pedal before a plagal coda.",
+		"studyGuide": {
+			"vibeAndSound": "Shimmering, harp-like broken chords across 35 steady bars—every measure changes harmonic pressure by shifting just one or two notes smoothly by step.",
+			"harmonyHook": "A living textbook of Circle of Fifths gravity, 3rd-inversion 7th chords (7th in the bass forcing a half-step drop), chromatic inner voices, and pedal-point suspense.",
+			"practiceTips": [
+				"Play just the two-note left-hand shapes in Bars 1–4 first to hear how C stays anchored in the bass while Dm7/C steps down to G7/B and back to C.",
+				"Trace the chromatic descent in Bars 12–15 (G → Gm → Dm/F → Fm → C/E): one inner voice falls half-step by half-step (B → B♭ → A → A♭ → G).",
+				"Notice Bars 24–31 all sit on a G bass pedal—tension builds right over the dominant bass before resolving in Bar 32."
+			],
+			"sections": [
+				{
+					"id": "bwv846-sec-1",
+					"title": "1. Opening C Pedal",
+					"barRange": "Bars 1–4",
+					"startStepIndex": 0,
+					"endStepIndex": 3,
+					"progressionTag": "C – Dm7/C – G7/B – C",
+					"insight": "Anchors C Major with a textbook I–ii7–V7–I turnaround over a stationary C pedal in Bars 1–2 before leading-tone B steps back home."
+				},
+				{
+					"id": "bwv846-sec-2",
+					"title": "2. Modulation to G (V)",
+					"barRange": "Bars 5–11",
+					"startStepIndex": 4,
+					"endStepIndex": 10,
+					"progressionTag": "Am – D7/C – G/B – Cmaj7/B – Am7 – D7 – G",
+					"insight": "Pivots through vi (Am) and introduces borrowed F♯ in D7/C (V7/V) to tonicize G Major cleanly via a descending C → B → A bass walk."
+				},
+				{
+					"id": "bwv846-sec-3",
+					"title": "3. Chromatic Descent Home",
+					"barRange": "Bars 12–19",
+					"startStepIndex": 11,
+					"endStepIndex": 18,
+					"progressionTag": "Gm – Dm/F – Fm – C/E – Fmaj7/E – Dm – G – C",
+					"insight": "Melts G Major back to C Major by flattening B to B♭ (Gm) and A to A♭ (Fm), letting the bass walk smoothly down F → E → D → G → C."
+				},
+				{
+					"id": "bwv846-sec-4",
+					"title": "4. V7/IV & Diminished Tension",
+					"barRange": "Bars 20–24",
+					"startStepIndex": 19,
+					"endStepIndex": 23,
+					"progressionTag": "C7 – F – F♯dim – Fm/A♭ – G7",
+					"insight": "Adds B♭ to turn C into V7/IV (pushing to F), then squeezes F → F♯ → A♭ toward the G7 dominant cadence."
+				},
+				{
+					"id": "bwv846-sec-5",
+					"title": "5. Dominant G Pedal & Coda",
+					"barRange": "Bars 25–35",
+					"startStepIndex": 24,
+					"endStepIndex": 34,
+					"progressionTag": "C/G – G7 – Cm/G – C/G – G7 – C – F – Cmaj7 – C",
+					"insight": "Suspends C/G, G7, and even minor Cm/G over an unbroken G bass pedal before resolving to C and adding a gentle IV → I plagal sigh."
+				}
+			]
+		},
+		"barNotes": {
+			"1": {
+				"roleLabel": "Tonic · Launches C Pedal",
+				"cardSummary": "Sets C Major home; launches C bass pedal",
+				"whatItDoes": "Grounds the C Major tonic (I) in root position—bright, settled, and open—while setting up the 2-bar C bass drone.",
+				"biggerPicture": "Opens Section 1 ('Opening C Pedal', Bars 1–4) as the stable baseline for a classic I → ii7 → V7 → I turnaround.",
+				"whyItWorks": "Locks in scale degrees 1–3–5 (C · E · G) and keeps C in the bass into Bar 2 so the harmonic shift feels effortless."
+			},
+			"2": {
+				"roleLabel": "Pre-Dominant · C Pedal",
+				"cardSummary": "7th (C) in bass leans down toward G7/B",
+				"whatItDoes": "Pre-dominant ii7 (Dm7/C) puts its dissonant 7th (C) directly in the bass (3rd inversion), creating forward lean rather than rest.",
+				"biggerPicture": "Bridges home C (Bar 1) to dominant G7/B (Bar 3) as step 2 of the opening ii–V–I progression.",
+				"whyItWorks": "Holds C from Bar 1 as a pedal bass; because C is Dm7's 7th, gravity pulls it down a half-step to B while D and F carry smoothly into G7/B."
+			},
+			"3": {
+				"roleLabel": "Dominant · Leading Bass",
+				"cardSummary": "Leading-tone bass B pulls a half-step to C",
+				"whatItDoes": "Dominant V7 (G7/B) places C Major's leading tone (B) right in the bass (1st inversion) alongside the urgent B–F tritone.",
+				"biggerPicture": "Climaxes the opening I → ii7 → V7 → I phrase right before resolving home in Bar 4.",
+				"whyItWorks": "G7's tritone pulls symmetrically inward (B rises a half-step to C while F drops a half-step to E), completing a smooth C → B → C bass neighbor line."
+			},
+			"6": {
+				"roleLabel": "Secondary Dom. → V",
+				"cardSummary": "Borrowed F♯ tonicizes G Major (V)",
+				"whatItDoes": "Secondary dominant V7/V (D7/C) introduces F♯ outside C Major, with the 7th (C) in the bass demanding downward resolution.",
+				"biggerPicture": "Pivots Section 2 away from Am (Bar 5) toward a temporary key center on G Major (V) across Bars 7–11.",
+				"whyItWorks": "D7's tritone (F♯ and C) pulls straight into G/B (F♯ rises a half-step to G while C steps down to B) on a falling C → B bass line."
+			},
+			"20": {
+				"roleLabel": "Secondary Dom. → IV",
+				"cardSummary": "Adds B♭ to aim straight at F (IV)",
+				"whatItDoes": "Turns stable tonic C into secondary dominant C7 (V7/IV) by introducing borrowed B♭, destabilizing home base.",
+				"biggerPicture": "Launches Section 4's dramatic climb: V7/IV (C7) → IV (F) → ♯iv° (F♯dim) → iv (Fm/A♭) → V7 (G7).",
+				"whyItWorks": "C7's E–B♭ tritone pulls straight into F Major (E steps up to F while B♭ drops a half-step to A), resolving counter-clockwise by 5th."
+			},
+			"28": {
+				"roleLabel": "Parallel Minor Color",
+				"cardSummary": "Darkens C/G with E♭ over the G pedal",
+				"whatItDoes": "Temporarily swaps major E for parallel-minor E♭ (Cm/G) while keeping the insistent G dominant bass ringing below.",
+				"biggerPicture": "Adds a poignant shadow right in the middle of the 8-bar G dominant pedal (Bars 24–31) before brightening back to C/G.",
+				"whyItWorks": "Chromatic voice leading (E → E♭ → E) creates intense longing over the stationary G bass without changing the chord's dominant-pedal anchor."
+			}
+		}
+	},
+	"chopin_prelude_op28_no20_c_minor_piano": {
+		"theorySummary": "13-bar Romantic harmony jewel in C Minor: opens with a solemn funeral-march cadence (i–iv7–V–i), sequences it down a major 3rd to A♭ (VI), descends down a 6-note chromatic bass line (C–B–B♭–A–A♭–G) under diminished & tritone-sub tension, and whispers an unforgettable pp echo.",
+		"studyGuide": {
+			"vibeAndSound": "Heavy, orchestral piano block chords marching in dotted rhythms—opening ff like a funeral procession before dropping to p and a ghostly pp echo.",
+			"harmonyHook": "Packs four chords per bar so every beat shifts voice leading: sequential transposition (Cm → A♭), a 6-step chromatic bass walk, and tritone-like A♭7 → G7 tension.",
+			"practiceTips": [
+				"Notice how Bar 2 copies Bar 1's exact chord shape (i → iv7 → V → i) starting on A♭ (VI) instead of Cm (i).",
+				"Trace the slow chromatic bass descent across Bars 5–6: C → B → B♭ → A → A♭ → G.",
+				"Compare Bars 9–12 (pp) against Bars 5–8 (p)—same aching descent, transformed purely by soft dynamics and register."
+			],
+			"sections": [
+				{
+					"id": "chopin20-sec-1",
+					"title": "1. Funeral March & A♭ Sequence",
+					"barRange": "Bars 1–4",
+					"startStepIndex": 0,
+					"endStepIndex": 3,
+					"progressionTag": "Cm – A♭ – G7 – D7/G",
+					"insight": "States a full minor cadence inside Bar 1, sequences it down to A♭ (VI) in Bar 2, drives through V7/iv (C7 → Fm) in Bar 3, and pauses on a dramatic half cadence in Bar 4."
+				},
+				{
+					"id": "chopin20-sec-2",
+					"title": "2. Chromatic Bass Descent (p)",
+					"barRange": "Bars 5–8",
+					"startStepIndex": 4,
+					"endStepIndex": 7,
+					"progressionTag": "Cm – Bm – Gm/B♭ – Am7 – A♭7 – G7 – Cm",
+					"insight": "Glides down a chromatic bass staircase (C → B → B♭ → A → A♭ → G) in Bars 5–6, resolving via a tight Bar 7 cadence and Bar 8 Neapolitan D♭ → G7 → Cm turn."
+				},
+				{
+					"id": "chopin20-sec-3",
+					"title": "3. Whispered Echo (pp) & Finale",
+					"barRange": "Bars 9–13",
+					"startStepIndex": 8,
+					"endStepIndex": 12,
+					"progressionTag": "Bm – Gm/B♭ – Am7 – A♭7 – G7 – Cm",
+					"insight": "Replays the chromatic descent at a hushed pp before settling onto one bare, solemn C Minor final chord in Bar 13."
+				}
+			]
+		},
+		"barNotes": {
+			"1": {
+				"roleLabel": "Tonic · 4-Beat Cadence",
+				"cardSummary": "Full i–iv7–V–i funeral cadence in 1 bar",
+				"whatItDoes": "Grounds C Minor (i) while packing four distinct block chords (Cm → Fm7 → G → Cm) into four march beats.",
+				"biggerPicture": "Establishes the dark tonic cadence motif in Section 1 that Bar 2 immediately transposes into A♭ Major.",
+				"whyItWorks": "Keeping C on top and in the outer voice frame lets the inner chord tones cycle smoothly from subdominant warmth (Fm7) through harmonic-minor leading tone B (G) back to Cm."
+			},
+			"2": {
+				"roleLabel": "Sequential Echo (VI)",
+				"cardSummary": "Transposes Bar 1's cadence down into A♭",
+				"whatItDoes": "Opens on warm submediant A♭ (VI) and cycles A♭ → D♭ → E♭7 → A♭, momentarily visiting A♭ Major as a mini key.",
+				"biggerPicture": "Answers Bar 1's C Minor phrase with a major-key sequential echo a major 3rd lower.",
+				"whyItWorks": "Shares C and E♭ with Cm so the sudden leap to A♭ feels cohesive, while E♭7's G–D♭ tritone cleanly cadences onto A♭."
+			},
+			"5": {
+				"roleLabel": "Chromatic Bass Launch",
+				"cardSummary": "Starts chromatic bass walk C → B → B♭",
+				"whatItDoes": "Lands on C Minor (i) from Bar 4's dominant, then immediately slips down via Bm and Gm/B♭ to start a long lament bass.",
+				"biggerPicture": "Opens Section 2's tender piano (p) chromatic descent spanning Bars 5–6 before Bar 7's cadence.",
+				"whyItWorks": "Each beat drops the bass exactly one half-step (C → B → B♭) while holding G on top as a common melodic anchor."
+			},
+			"6": {
+				"roleLabel": "Chromatic Slide → V7",
+				"cardSummary": "Chromatic A → A♭ → G bass lands on G7",
+				"whatItDoes": "Continues the falling bass from Bar 5 (Am7 → A♭7 → G7 → G7/F), adding raised 6th A and borrowed A♭7 color before V7.",
+				"biggerPicture": "Climaxes the 2-bar chromatic bass lament (C–B–B♭–A–A♭–G) and sets up Bar 7's resolution onto Cm/E♭.",
+				"whyItWorks": "A♭7 sits one half-step above G7 (a tritone-sub style push) before stepping down onto G7/F, whose 7th (F) pulls downward to E♭ in Bar 7."
+			}
+		}
+	},
+	"schubert_moments_musicaux_op94_no3_d780_piano": {
+		"theorySummary": "78-bar Viennese miniature in F Minor: alternates plaintive minor dance themes with Dorian IV7 (B♭7) lifts, sunlit A♭ / D♭ major episodes, and a magical Bar 68 Picardy third modulation to F Major that glows peacefully to the end.",
+		"studyGuide": {
+			"vibeAndSound": "Light, folk-like 2/4 staccato accompaniment under a wistful, singing melody—playful yet bittersweet, ending with an unexpected ray of F Major sunshine.",
+			"harmonyHook": "Showcases modal color in F Minor: raised Dorian 6th (B♭7 = IV7), smooth relative-major detours to A♭ (III) and D♭ (VI), and a Picardy-third ending in F Major.",
+			"practiceTips": [
+				"Notice how Bar 3 uses B♭7 (major IV7 with D♮) instead of B♭m (iv)—that single raised note gives Schubert's melody its signature sweet-sour ache.",
+				"Hear how Bars 19–34 step sideways into bright A♭ Major (III) and D♭ Major (VI) before C7 pulls everything back to F Minor.",
+				"Listen closely at Bars 65–68: Am (♯iii) nudges the ear up toward F Major so the final 11 bars bloom in pure major."
+			],
+			"sections": [
+				{
+					"id": "schub780-sec-1",
+					"title": "1. F Minor Dance & Dorian B♭7",
+					"barRange": "Bars 1–18",
+					"startStepIndex": 0,
+					"endStepIndex": 17,
+					"progressionTag": "Fm – B♭7 – A♭ – A♭maj7 – Fm",
+					"insight": "Establishes the bouncing F Minor accompaniment and spotlights raised-6th Dorian color (B♭7) sliding through relative major A♭ back to Fm."
+				},
+				{
+					"id": "schub780-sec-2",
+					"title": "2. Relative A♭ & D♭ Major Lift",
+					"barRange": "Bars 19–35",
+					"startStepIndex": 18,
+					"endStepIndex": 34,
+					"progressionTag": "A♭ – D♭maj7 – A♭add9 – B♭add9 – E♭7 – C7",
+					"insight": "Moves cleanly into bright A♭ Major (III) and D♭maj7 (VImaj7) before C7 (V7) reasserts F Minor's dominant pull."
+				},
+				{
+					"id": "schub780-sec-3",
+					"title": "3. Minor Reprise & G7/B Pivot",
+					"barRange": "Bars 36–64",
+					"startStepIndex": 35,
+					"endStepIndex": 63,
+					"progressionTag": "Fm/C – C7 – A♭7 – B♭m/D♭ – Fm – Edim/B♭ – G7/B",
+					"insight": "Alternates dark Fm/C–C7 tension with warm A♭–Fm reprises before Edim/B♭ and G7/B (V7/V) build dramatic harmonic suspense."
+				},
+				{
+					"id": "schub780-sec-4",
+					"title": "4. Picardy F Major Finale",
+					"barRange": "Bars 65–78",
+					"startStepIndex": 64,
+					"endStepIndex": 77,
+					"progressionTag": "Am/C – F – C7/F – E♭dim7 – F",
+					"insight": "Flips from F Minor into radiant F Major (Picardy turn) at Bar 68, lingering gently over C7/F pedal tensions until the final major triad."
+				}
+			]
+		},
+		"barNotes": {
+			"3": {
+				"roleLabel": "Dorian IV7 Color",
+				"cardSummary": "Raised D♮ turns iv into sweet-sour B♭7",
+				"whatItDoes": "Substitutes bright major-quality Dorian IV7 (B♭7) for natural minor iv (B♭m), introducing D♮ outside F Minor.",
+				"biggerPicture": "Gives Section 1's opening dance theme its signature Schubertian lift before stepping smoothly into A♭ (III) in Bar 4.",
+				"whyItWorks": "D♮ creates a buoyant half-step neighbor motion back toward D♭/C while sharing F and A♭ with the surrounding F Minor / A♭ chords."
+			},
+			"68": {
+				"roleLabel": "Picardy Major Turn",
+				"cardSummary": "Miraculous shift from F Minor to F Major",
+				"whatItDoes": "Replaces dark A♭ with radiant A♮, turning the home key from F Minor into pure, sunlit F Major (I).",
+				"biggerPicture": "Launches the final 11-bar F Major coda (Bars 68–78) where all earlier minor shadows dissolve.",
+				"whyItWorks": "Bars 65–67 gently prepared A♮ inside Am (♯iii), so arriving on F Major feels both surprising and deeply earned."
+			}
+		}
+	},
+	"tarrega_lagrima_guitar_both": {
+		"theorySummary": "32-bar romantic guitar miniature in binary A–A–B–B form: contrasts singing E Major harmony (Eadd9, 3-bar B7 tension, deceptive vi7, V7/V) in the A section against a tender parallel E Minor flip in the B section.",
+		"studyGuide": {
+			"vibeAndSound": "Delicate, tear-drop fingerstyle waltz—crystal-clear upper melody singing on the high E string over soft thumb accompaniment.",
+			"harmonyHook": "Teaches parallel-key contrast (E Major vs. E Minor) alongside a textbook deceptive cadence (B7 → C♯m7/B) and V7/V chromatic climb.",
+			"practiceTips": [
+				"In Bars 2–4, notice how B7 holds for three bars while the bass quietly alternates F♯ and D♯/E♭ to keep momentum alive.",
+				"Listen at Bar 5: instead of resolving B7 home to E, Tárrega surprises you with C♯m7/B (vi7) and walks the 7th B down in the bass.",
+				"Compare Bar 1's bright Eadd9 (G♯) against Bar 17's Em (G♮)—dropping that single note one fret transforms the entire mood."
+			],
+			"sections": [
+				{
+					"id": "lagrima-sec-1",
+					"title": "1. A Section — Singing E Major",
+					"barRange": "Bars 1–8",
+					"startStepIndex": 0,
+					"endStepIndex": 7,
+					"progressionTag": "Eadd9 – B7 – C♯m7/B – F♯m – F♯7/B♭ – Em",
+					"insight": "Pairs shimmering Eadd9 and 3-bar B7 tension with a deceptive vi7 twist (Bar 5) and secondary dominant F♯7/B♭ (V7/V) before dipping onto Em."
+				},
+				{
+					"id": "lagrima-sec-2",
+					"title": "2. A Repeat — Lyric Echo",
+					"barRange": "Bars 9–16",
+					"startStepIndex": 8,
+					"endStepIndex": 15,
+					"progressionTag": "Eadd9 – B7 – C♯m7/B – F♯m – F♯7/B♭ – Em",
+					"insight": "Repeats the E Major theme cleanly, reinforcing the B7 → C♯m7 deceptive cadence and smooth bass voice leading."
+				},
+				{
+					"id": "lagrima-sec-3",
+					"title": "3. B Section — Parallel E Minor",
+					"barRange": "Bars 17–24",
+					"startStepIndex": 16,
+					"endStepIndex": 23,
+					"progressionTag": "Em – B – Em – Bm7/F♯ – Em",
+					"insight": "Flips straight into parallel E Minor (i), pairing dark Em against major V (B) and modal minor v7 (Bm7/F♯) for melancholic contrast."
+				},
+				{
+					"id": "lagrima-sec-4",
+					"title": "4. B Repeat — Quiet Minor Close",
+					"barRange": "Bars 25–32",
+					"startStepIndex": 24,
+					"endStepIndex": 31,
+					"progressionTag": "Em – B – Em – Bm7/F♯ – Em",
+					"insight": "Repeats the aching E Minor phrase, easing from Bm7/F♯ through Em/G–Em/B inversions onto a serene final E Minor chord."
+				}
+			]
+		},
+		"barNotes": {
+			"1": {
+				"roleLabel": "Tonic · Add9 Sparkle",
+				"cardSummary": "Eadd9 chimes open E–F♯ shimmer; turns to B7/E♭",
+				"whatItDoes": "Opens E Major (I) with a bell-like F♯ (9th) above the triad before stepping to 1st-inversion B7/E♭ on beat 3.",
+				"biggerPicture": "Establishes the singing waltz texture and launches the A section's opening 4-bar dominant tension arc.",
+				"whyItWorks": "F♯ sits right next to G♯ on the high E/B strings for guitar resonance, while the bass slips down a half-step (E → D♯/E♭)."
+			},
+			"5": {
+				"roleLabel": "Deceptive Cadence",
+				"cardSummary": "Surprises B7 by landing on C♯m7/B instead of E",
+				"whatItDoes": "Instead of resolving 3 bars of B7 back to E, lands on relative minor C♯m7 (vi7) with its 7th (B) held in the bass.",
+				"biggerPicture": "Creates a deceptive cadence that extends the 8-bar A section through F♯m (ii) and F♯7 (V7/V) instead of ending early.",
+				"whyItWorks": "Holding B from B7 as a smooth pedal bass lets upper voices shift subtly to C♯m7, then step the bass down B → A into F♯m."
+			},
+			"17": {
+				"roleLabel": "Parallel Minor Flip",
+				"cardSummary": "Lowers G♯ to G♮, turning E Major into Em",
+				"whatItDoes": "Opens the B section in parallel E Minor (i), replacing bright G♯ with reflective G♮.",
+				"biggerPicture": "Creates the classic A (Major) vs. B (Minor) emotional contrast that defines Lágrima ('Teardrop').",
+				"whyItWorks": "Shares root E and 5th B with E Major, so changing only the 3rd by one fret shifts the mood instantly without jarring the ear."
+			}
+		}
+	},
+	"villa_lobos_etude_1_guitar_both": {
+		"theorySummary": "61-bar fingerstyle arpeggio showcase in E Minor: keeps the guitar's open E and B strings ringing while movable chromatic shapes, secondary dominants (E7 = V7/iv, F♯7 = V7/V), and symmetric diminished chords glide seamlessly up and down the neck.",
+		"studyGuide": {
+			"vibeAndSound": "Hypnotic, perpetual-motion 16th-note right-hand arpeggio stream—dark, driving Brazilian classical guitar counterpoint.",
+			"harmonyHook": "Exploits open guitar strings (E and B) as resonant pedals underneath shifting chromatic chords, applied dominants (E7 → Am, F♯7 → B7), and sliding diminished bridges.",
+			"practiceTips": [
+				"Keep your right-hand arpeggio pattern relaxed and mechanical so you can listen purely to the left hand walking up and down the bass strings.",
+				"Notice Bars 11–12 (E/A♭ → E/B) and 23–24 (E7): Villa-Lobos turns the tonic E into major/dominant V/iv to pull into A Minor (iv).",
+				"Spot the sliding diminished chords (Edim in Bars 31–32 & 37–38) gliding effortlessly against open E and B strings."
+			],
+			"sections": [
+				{
+					"id": "vl1-sec-1",
+					"title": "1. Open-String Pedal & V/iv Pull",
+					"barRange": "Bars 1–15",
+					"startStepIndex": 0,
+					"endStepIndex": 14,
+					"progressionTag": "Em – Am/E – B7/F♯ – E/A♭ – Am – Em7",
+					"insight": "Locks the right-hand arpeggio pattern over Em and Am/E pedals, passes through B7, and brightens E to major (V/iv) to pull warmly into Am."
+				},
+				{
+					"id": "vl1-sec-2",
+					"title": "2. Climbing E7 & Diminished Slides",
+					"barRange": "Bars 16–32",
+					"startStepIndex": 15,
+					"endStepIndex": 31,
+					"progressionTag": "Em/B – Bsus4 – B7 – E7 – C♯m/E – Am/E – Edim",
+					"insight": "Moves up the fretboard through B7 and E7 (V7/iv), visiting Dorian C♯m (♯vi) before unleashing shimmering Edim diminished tension."
+				},
+				{
+					"id": "vl1-sec-3",
+					"title": "3. High-Fret Tension & Bmaj7 Shift",
+					"barRange": "Bars 33–46",
+					"startStepIndex": 32,
+					"endStepIndex": 45,
+					"progressionTag": "Am/E – E7 – Edim – Am/E – Em – Bmaj7/B♭",
+					"insight": "Repeats the E7–Edim–Am cycle higher up, then drops onto tonic Em and surprises the ear with lush Bmaj7 in Bar 46."
+				},
+				{
+					"id": "vl1-sec-4",
+					"title": "4. Circle Chain & Arpeggio Coda",
+					"barRange": "Bars 47–61",
+					"startStepIndex": 46,
+					"endStepIndex": 60,
+					"progressionTag": "F♯7 – C♯m7 – F♯m – B7 – Em – Am/C – C♯m7/E",
+					"insight": "Drives a Circle-of-Fifths chain (F♯7 → B7 → Em) via C♯m7 and F♯m before resting across E Minor pedals and an open high harmonic/chordal finish."
+				}
+			]
+		},
+		"barNotes": {
+			"11": {
+				"roleLabel": "Secondary Dom. → iv",
+				"cardSummary": "Brightens Em to E (V/iv) aiming at Am",
+				"whatItDoes": "Turns dark Em into bright E Major (with 3rd G♯/A♭ in the bass), transforming tonic into an active secondary dominant V/iv.",
+				"biggerPicture": "Pulls the opening E Minor phrase up toward A Minor (iv) in Bar 13, breaking out of the tonic pedal.",
+				"whyItWorks": "Raising G to G♯ creates a half-step leading tone straight into A, while keeping open high strings ringing over the fretted bass."
+			},
+			"31": {
+				"roleLabel": "Chromatic Dim. Bridge",
+				"cardSummary": "Edim slides tension against open E/B strings",
+				"whatItDoes": "Stacks diminished minor 3rds (E · G · B♭) over the ringing arpeggio pattern, injecting sharp, rootless instability.",
+				"biggerPicture": "Creates high-neck climax tension between E7 (Bar 30) and the resolving Am/E arrival (Bar 33).",
+				"whyItWorks": "Diminished symmetry lets the left hand shift cleanly up the fingerboard while open guitar strings tie the sonority together."
+			},
+			"47": {
+				"roleLabel": "Secondary Dom. → V",
+				"cardSummary": "F♯7 launches final Circle chain home",
+				"whatItDoes": "Fires dominant F♯7 (V7/V) with its tritone (A♯ and E), stepping one fifth clockwise past B7.",
+				"biggerPicture": "Launches the closing Circle-of-Fifths journey (F♯7 → … → B7 → Em) that brings the étude home.",
+				"whyItWorks": "F♯7 steps counter-clockwise by 5th into B7 (after C♯m7–F♯m), setting up the final V7 → i resolution."
+			}
+		}
+	},
+	"bee_gees_how_deep_is_your_love_guitar_both": {
+		"theorySummary": "74-bar pop-soul harmonic masterclass in B Major (played with Capo 2): blends lush maj7 tonic pedals (B → Bmaj7 → Emaj7/B), signature pop IV/5 dominant suspensions (Eadd9/F♯), secondary dominants (V7/vi, V7/V, V7/ii), borrowed ♭VII (A), and an iconic minor plagal cadence (Em → B).",
+		"studyGuide": {
+			"vibeAndSound": "Warm, glowing fingerstyle pop ballad (Capo 2)—open-string shapes let 7ths and add9s ring effortlessly like an electric piano.",
+			"harmonyHook": "Classic 70s songwriting alchemy: substitutes lush IV/5 (Eadd9/F♯) for plain V7, tonicizes vi and ii with applied dominants, and seals every chorus with minor iv → I (Em → B).",
+			"practiceTips": [
+				"Play Bars 1–3 slowly: B stays in the bass across B → Bmaj7 → Emaj7/B while the upper melody steps gently B → A♯ → G♯.",
+				"Feel how Eadd9/F♯ (Bars 12, 16) acts as a gentle, suspended dominant (IV over the 5th degree F♯) rather than a harsh F♯7.",
+				"Listen for the emotional peak at Bars 25 & 32: borrowing minor Em (iv) with G♮ softens the return to B Major—the signature minor plagal hook."
+			],
+			"sections": [
+				{
+					"id": "hdiyl-sec-1",
+					"title": "1. Intro & Verse 1 — B Pedal",
+					"barRange": "Bars 1–8",
+					"startStepIndex": 0,
+					"endStepIndex": 7,
+					"progressionTag": "B – Bmaj7 – Emaj7/B – A♭m7/F♯ – B – F♯5",
+					"insight": "Drifts gently over a B bass pedal (B → Bmaj7 → Emaj7/B) and steps down through vi7/7th-in-bass (G♯m7/F♯) before F♯5 opens the pre-chorus."
+				},
+				{
+					"id": "hdiyl-sec-2",
+					"title": "2. Pre-Chorus — V7/vi & IV/5 Lift",
+					"barRange": "Bars 9–18",
+					"startStepIndex": 8,
+					"endStepIndex": 17,
+					"progressionTag": "B/F♯ – E♭7 – C♯m – Eadd9/F♯ – B – A♭m7 – C♯m7 – E – C♯7/B",
+					"insight": "Uses D♯7/E♭7 (V7/vi) to lean into ii (C♯m), suspends IV/5 (Eadd9/F♯), and sparks a bright C♯7 (V7/V) lift toward the chorus."
+				},
+				{
+					"id": "hdiyl-sec-3",
+					"title": "3. Chorus — ♭VII & Minor Plagal Em→B",
+					"barRange": "Bars 19–33",
+					"startStepIndex": 18,
+					"endStepIndex": 32,
+					"progressionTag": "C♯m7 – A – E♭m7/F♯ – B – Em – A♭7 – Eadd9 – Em – B",
+					"insight": "Swells with borrowed ♭VII (A), secondary dominant G♯7/A♭7 (V7/ii), and the iconic bittersweet minor plagal cadence Em (iv) → B (I)."
+				},
+				{
+					"id": "hdiyl-sec-4",
+					"title": "4. Verse 2 & Chorus Reprise",
+					"barRange": "Bars 34–59",
+					"startStepIndex": 33,
+					"endStepIndex": 58,
+					"progressionTag": "C♯m – E♭7 – Eadd9/F♯ – B – A – Em – B – F♯sus4",
+					"insight": "Returns through the shimmering pre-chorus and chorus hooks before suspending cleanly on F♯sus4 → F♯sus2 for the outro build."
+				},
+				{
+					"id": "hdiyl-sec-5",
+					"title": "5. Outro Chorus & Fade Cadence",
+					"barRange": "Bars 60–74",
+					"startStepIndex": 59,
+					"endStepIndex": 73,
+					"progressionTag": "B – A♭m7/F♯ – Em – C♯m – A♭7 – Eadd9 – Em – B",
+					"insight": "Revisits the emotional Em (iv) and A♭7 (V7/ii) chorus climb one last time, settling through F♯sus4 → B5 onto pure B Major."
+				}
+			]
+		},
+		"barNotes": {
+			"2": {
+				"roleLabel": "Maj7 Color · B Pedal",
+				"cardSummary": "A♯ adds dreamy maj7 warmth over B bass",
+				"whatItDoes": "Expands the B triad with its major 7th (A♯), softening tonic rest into warm, floating longing while holding B in the bass.",
+				"biggerPicture": "Step 2 of the iconic 3-bar B pedal (B → Bmaj7 → Emaj7/B) that opens the verse.",
+				"whyItWorks": "The melody descends just one half-step (B → A♯) over unchanged B–D♯–F♯ harmony, creating effortless emotional warmth."
+			},
+			"12": {
+				"roleLabel": "IV/5 Dominant Susp.",
+				"cardSummary": "Lush Eadd9 over F♯ bass acts as suspended V",
+				"whatItDoes": "Voices the IV chord (Eadd9) over the dominant 5th degree (F♯) in the bass—a classic pop/gospel 'slash-dominant' sound.",
+				"biggerPicture": "Bridges C♯m/E♭7 smoothly back into B Major in Bar 13 without needing a harsh F♯7.",
+				"whyItWorks": "E, G♯, and B over F♯ act like F♯11 (9th, 11th, 13th), giving the tension of a dominant bass with the warmth of a IV chord."
+			},
+			"20": {
+				"roleLabel": "Borrowed Flat-VII",
+				"cardSummary": "Modal A Major drops a whole step below B",
+				"whatItDoes": "Borrows A Major (♭VII) from Mixolydian/parallel minor, introducing out-of-key A♮ and E–C♯ color.",
+				"biggerPicture": "Gives the chorus hook ('And you come to me...') its unexpected open lift between C♯m7 and D♯m7/F♯.",
+				"whyItWorks": "Moving a whole step below tonic (A → B via E♭m7/F♯) sounds wider and gentler than a leading-tone dominant pull."
+			},
+			"29": {
+				"roleLabel": "Secondary Dom. → ii",
+				"cardSummary": "A♭7 (V7/ii) adds C♮ pull toward C♯m",
+				"whatItDoes": "Turns diatonic G♯m7 (vi7) into bright dominant A♭7/G♯7 (V7/ii), introducing chromatic C♮ (B♯) outside B Major.",
+				"biggerPicture": "Pushes the second half of the chorus through Eadd9 into C♯m (ii), elevating the emotional intensity before Em → B.",
+				"whyItWorks": "Raising B to C♮ creates a classic tritone (C♮ and G♭/F♯) longing to resolve counter-clockwise by 5th toward C♯m."
+			},
+			"32": {
+				"roleLabel": "Minor Plagal Cadence",
+				"cardSummary": "Borrowed Em sighs softly home into B",
+				"whatItDoes": "Flips IV to borrowed minor iv (Em, bringing chromatic G♮) mid-bar before resolving directly onto tonic B Major.",
+				"biggerPicture": "Delivers the chorus's signature bittersweet pop cadence (iv → I), softening the return home.",
+				"whyItWorks": "G♮ drops just one half-step to F♯ while B stays anchored as a shared tone—one of tonal music's warmest voice-leading sighs."
+			}
+		}
+	},
+	"tommy_emmanuel_amazing_grace_guitar_both": {
+		"theorySummary": "77-bar Tommy Emmanuel fingerstyle arrangement of the classic hymn in E Major (9/8): weaves gospel passing diminished chords (A♯°7, G♯°, Gdim7), secondary dominants (V7/IV, V7/V), 9ths/13ths, and a lush Phrygian tag (G6 → Fmaj7 → Emaj9).",
+		"studyGuide": {
+			"vibeAndSound": "Lilting, orchestral 9/8 fingerstyle hymn—builds from simple, vocal open chords in Verse 1 to sparkling gospel jazz voicings and harp harmonics.",
+			"harmonyHook": "Shows how a 3-chord hymn (I–IV–V) transforms through jazz/gospel reharmonization: IV → ♯iv°7 → I/5 bass walks, iii° → IV7 approaches, and chromatic ♭III–♭II endings.",
+			"practiceTips": [
+				"Count the gentle 9/8 sway (1-2-3, 4-5-6, 7-8-9) so the grace notes and inner bass walks breathe naturally.",
+				"Spot the gospel walk at Bars 4, 12, 20, and 60: Aadd9 → A♯dim7 → E/B steps the bass chromatically A → A♯ → B.",
+				"Explore Bars 73–77 at the very end: Tommy slides chromatically down G6 → Fmaj7 (♭III → ♭II) before landing on a glassy Emaj9."
+			],
+			"sections": [
+				{
+					"id": "ag-sec-1",
+					"title": "1. Verse 1 — Gentle Hymn & A♯°7",
+					"barRange": "Bars 1–17",
+					"startStepIndex": 0,
+					"endStepIndex": 16,
+					"progressionTag": "C♯m7 – E – Aadd9 – A♯dim7 – E7 – A – F♯9 – B7",
+					"insight": "Opens softly on vi7 (C♯m7) and bright E Major, introducing the gospel A → A♯°7 → E/B bass walk and V7/V (F♯9) → B7 turnaround."
+				},
+				{
+					"id": "ag-sec-2",
+					"title": "2. Verse 2 — Gospel E7 → G♯° → A7",
+					"barRange": "Bars 18–33",
+					"startStepIndex": 17,
+					"endStepIndex": 32,
+					"progressionTag": "E – C♯m7 – F♯m7 – B7 – E7 – G♯° – A7 – A♯dim7 – B7",
+					"insight": "Enriches the middle stanza with a rising chromatic dominant climb (E7 → G♯° → A7 → A♯dim7 → B6) that drives forward into Bar 33."
+				},
+				{
+					"id": "ag-sec-3",
+					"title": "3. Verse 3 — Singing High Melody",
+					"barRange": "Bars 34–49",
+					"startStepIndex": 33,
+					"endStepIndex": 48,
+					"progressionTag": "E – A7 – E – B/D♯ – E9 – A6 – C♯m7 – F♯7 – B7",
+					"insight": "Lifts the melody higher with airy E6, E9 (V7/IV), A6, and G♯7 → C♯m7 → G13 color substitutions."
+				},
+				{
+					"id": "ag-sec-4",
+					"title": "4. Verse 4 — Jazz Extensions & Turnarounds",
+					"barRange": "Bars 50–65",
+					"startStepIndex": 49,
+					"endStepIndex": 64,
+					"progressionTag": "E6 – E7/G♯ – A – E7/B – Gdim7 – B9/F♯ – G♯° – A7",
+					"insight": "Deepens the hymn with E7/G♯, chromatic passing Gdim7 and Cdim7 chords, and rich F♯9 → C9 tritone color."
+				},
+				{
+					"id": "ag-sec-5",
+					"title": "5. Ending — ♭III–♭II Phrygian Tag",
+					"barRange": "Bars 66–77",
+					"startStepIndex": 65,
+					"endStepIndex": 76,
+					"progressionTag": "C♯m7 – F♯9 – B7 – Asus2 – G6 – Fmaj7 – Emaj9 – Emaj7",
+					"insight": "Winds down softly, then slips through borrowed G6 (♭III) and Fmaj7 (♭II) before blooming onto a luminous Emaj9 → Emaj7 close."
+				}
+			]
+		},
+		"barNotes": {
+			"4": {
+				"roleLabel": "Gospel ♯iv°7 Walk",
+				"cardSummary": "A → A♯°7 steps chromatically toward B bass",
+				"whatItDoes": "Opens on warm Aadd9 (IV) and inserts chromatic passing A♯dim7 (♯iv°7) on the final beat.",
+				"biggerPicture": "Creates the classic gospel/hymn bass climb (A → A♯ → B) into Bar 5's tonic E.",
+				"whyItWorks": "Raising A just one fret to A♯ creates a symmetrical diminished 7th that squeezes half-step inward onto B and E."
+			},
+			"27": {
+				"roleLabel": "Passing Diminished iii°",
+				"cardSummary": "G♯° connects E7 upward into A7",
+				"whatItDoes": "Turns the diatonic 3rd degree into diminished G♯° (iii°), replacing G♯m's 5th D♯ with tight tritone D♮.",
+				"biggerPicture": "Bridges E7 (Bar 26) up into bluesy A7 (Bar 28) inside Verse 2's rising gospel climax.",
+				"whyItWorks": "Shares B, D, and G♯ with E7 (acting like a rootless E7 voicing) while stepping the bass smoothly G♯ → A."
+			},
+			"74": {
+				"roleLabel": "♭III → ♭II Chromatic Tag",
+				"cardSummary": "Borrowed G6 → Fmaj7 glides down to Emaj9",
+				"whatItDoes": "Borrows outside G6 (♭III) and Neapolitan Fmaj7 (♭II), floating colorful 6th and maj7 tones chromatically downward.",
+				"biggerPicture": "Delivers the signature jazz/fingerstyle ending tag right before the final Emaj9 → Emaj7 tonic resolution.",
+				"whyItWorks": "Sliding parallel chord shapes down by step and half-step (G → F → E) resolves gently onto Emaj9 via smooth half-step voice leading."
+			}
+		}
+	},
+	"tommy-emmanuel-windy_and_warm_both": {
+		"theorySummary": "84-bar alternating-thumb Travis picking standard in A Minor: grooves over open-fifth A5 & Asus4 pedal riffs, dips into bright C / F major folk warmth, and flashes surprising A Major / E7 / Bm7 blues-country colors in the middle bridge.",
+		"studyGuide": {
+			"vibeAndSound": "Smoky, swinging thumb-and-fingers groove—steady alternating low A/E bass line supports syncopated bluesy bends and open-string chords.",
+			"harmonyHook": "Blends folk-minor open fifths (A5, Asus4) with a warm relative-major lift (C → F) and a bright parallel A Major / Dorian D7 turnaround bridge.",
+			"practiceTips": [
+				"Lock in the alternating bass thumb pattern in Bars 1–4 before adding the upper melody syncopations.",
+				"Notice how Bars 1–20 stay grounded on A5, Asus4, and Am/C while only shifting the top chord color.",
+				"In Bars 52–65, listen for the bright parallel shift into A Major (A → A7 → Bm7 → D7) before C/E pulls back to A Minor."
+			],
+			"sections": [
+				{
+					"id": "ww-sec-1",
+					"title": "1. Intro & Main A5/Asus4 Riff",
+					"barRange": "Bars 1–20",
+					"startStepIndex": 0,
+					"endStepIndex": 19,
+					"progressionTag": "A5 – E5 – Am – C/E – Asus4 – Em",
+					"insight": "Establishes the bouncy Travis-picking thumb groove, toggling open A5 power chords, Asus4 suspensions, and Am/C/Em chord flashes."
+				},
+				{
+					"id": "ww-sec-2",
+					"title": "2. Bass Walk & Relative Major Lift",
+					"barRange": "Bars 21–44",
+					"startStepIndex": 20,
+					"endStepIndex": 43,
+					"progressionTag": "Am7 – Gadd9/A – Dm/F – E7 – G7 – F♯m7 – C – F – Dm",
+					"insight": "Steps down chromatically (A5 → Amaj7/A♭ → G7 → F♯m7 → Em/G) into warm C → F → Dm major/relative relief."
+				},
+				{
+					"id": "ww-sec-3",
+					"title": "3. Parallel A Major Blues Bridge",
+					"barRange": "Bars 45–65",
+					"startStepIndex": 44,
+					"endStepIndex": 64,
+					"progressionTag": "Am – A5 – A – A7 – E7 – Bm7 – D7 – Emaj7 – C/E",
+					"insight": "Brightens into parallel A Major and dominant A7 blues licks before Dorian D7 and Emaj7 pivot back through C/E."
+				},
+				{
+					"id": "ww-sec-4",
+					"title": "4. Closing Groove & Open-5th Tag",
+					"barRange": "Bars 66–84",
+					"startStepIndex": 65,
+					"endStepIndex": 83,
+					"progressionTag": "Am – C/E – Asus4 – Em – A5 – E5 – A5",
+					"insight": "Returns to the signature A Minor fingerstyle riff and winds down with crisp A5 → E5 alternating-bass turnarounds."
+				}
+			]
+		},
+		"barNotes": {
+			"1": {
+				"roleLabel": "Open-5th Groove Launch",
+				"cardSummary": "A5 → E5 power chords launch Travis thumb groove",
+				"whatItDoes": "Opens on a lean, thirdless A5 power chord (A · E) before tipping onto E5 on the off-beat.",
+				"biggerPicture": "Sets the rhythmic engine of Section 1 without locking down major or minor 3rds until Am enters in Bar 3.",
+				"whyItWorks": "Leaving out the 3rd lets the open A and E strings ring crisply under percussive thumb-picked bass notes."
+			},
+			"4": {
+				"roleLabel": "Suspended Tonic Color",
+				"cardSummary": "Asus4 floats 4th (D) over Am/E turnaround",
+				"whatItDoes": "Replaces Am's C with suspended 4th D (Asus4), creating open tension that relaxes onto Am/E mid-bar.",
+				"biggerPicture": "Forms the melodic hook of the main 4-bar riff (Bars 3–4, repeated in 7–8 and 11–12).",
+				"whyItWorks": "D sits one fret above C on the B string, so lifting one finger resolves the suspension effortlessly back into Am."
+			},
+			"52": {
+				"roleLabel": "Parallel Major Lift",
+				"cardSummary": "Flips A Minor bright into A Major",
+				"whatItDoes": "Brings in bright C♯ to turn tonic A Minor into A Major (I), kicking off the sunny country-blues bridge.",
+				"biggerPicture": "Transforms the second half of the tune (Bars 52–63) into an upbeat A Major / A7 → D7 turnaround before returning to Am.",
+				"whyItWorks": "Sharing the exact same A and E open strings makes flipping C → C♯ sound punchy and seamless."
+			}
+		}
+	},
+	"travis-cannonball_rag_both": {
+		"theorySummary": "113-bar Merle Travis thumb-picking ragtime tour de force in G Major: powered by a roaring Circle-of-Fifths secondary-dominant chain (E [V/ii] → A7 [V7/V] → D7 [V7] → G [I]), classic C → C♯° → D7 → B♭° → Am → G ragtime turnarounds, and a walking-bass C-section bridge.",
+		"studyGuide": {
+			"vibeAndSound": "Lightning-fast, train-chugging acoustic ragtime—rock-steady boom-chick alternating bass drives snappy, syncopated banjo-roll licks.",
+			"harmonyHook": "Textbook ragtime Circle-of-Fifths engine: leaps three steps clockwise to E (V/ii), then falls counter-clockwise step by step (E → A7 → D7 → G) right back home.",
+			"practiceTips": [
+				"Follow the big Circle-of-Fifths wheel during Bars 2–8: watch E jump to the sharp side and march straight back clockwise-to-home (E → A7 → D7 → G).",
+				"Spot the classic ragtime turnaround in Bars 26–29 & 54–57: C → C♯dim → D7 → B♭dim → Am → G walks chromatically upward and downward.",
+				"In Section 3 (Bars 58–68), watch the bass climb stepwise A → B → C → D under Am – F♯dim/A – G/B – Am/C – D5."
+			],
+			"sections": [
+				{
+					"id": "crag-sec-1",
+					"title": "1. A & B Themes — Circle Rag Chain",
+					"barRange": "Bars 1–29",
+					"startStepIndex": 0,
+					"endStepIndex": 28,
+					"progressionTag": "Gmaj7 – E – A7 – Em – D7 – G – C – C♯dim – B♭dim – Am",
+					"insight": "Launches the signature E (V/ii) → A7 (V7/V) → D7 (V7) → G ragtime cycle, adds B7/A color, and closes with a C♯dim/B♭dim turnaround."
+				},
+				{
+					"id": "crag-sec-2",
+					"title": "2. Theme Reprise & Rag Turnaround",
+					"barRange": "Bars 30–57",
+					"startStepIndex": 29,
+					"endStepIndex": 56,
+					"progressionTag": "E – A7 – Em – D7 – G – C – C♯dim – B♭dim – Am – G",
+					"insight": "Replays the roaring secondary-dominant ragtime phrases with fresh thumb-picking momentum before returning cleanly to G."
+				},
+				{
+					"id": "crag-sec-3",
+					"title": "3. Bridge — Walking Bass Lift",
+					"barRange": "Bars 58–69",
+					"startStepIndex": 57,
+					"endStepIndex": 68,
+					"progressionTag": "Am – F♯dim/A – G/B – Am/C – D5 – C – C♯dim – D7",
+					"insight": "Walks the bass steadily up the G Major scale (A → B → C → D) through ii, vii°, I, and V5 before another ragtime turnaround."
+				},
+				{
+					"id": "crag-sec-4",
+					"title": "4. Final Medley & Syncopated Coda",
+					"barRange": "Bars 70–113",
+					"startStepIndex": 69,
+					"endStepIndex": 112,
+					"progressionTag": "E – A7 – D7 – G – Am – G5 – Bm7 – F♯7 – C/G",
+					"insight": "Sweeps through the complete A–B–C ragtime medley one last time, ending with jazzy Bm7 → F♯7 (V7/iii) → C/G sparkle."
+				}
+			]
+		},
+		"barNotes": {
+			"2": {
+				"roleLabel": "Secondary Dom. → ii",
+				"cardSummary": "E Major kicks off 3-step Circle-of-Fifths chain",
+				"whatItDoes": "Jumps clockwise to E Major (V/ii), bringing in crisp G♯ outside G Major to launch the ragtime Circle-of-Fifths cycle.",
+				"biggerPicture": "Kicks off the classic ragtime progression E (V/ii) → A7 (V7/V) → D7 (V7) → G (I) across Bars 2–8.",
+				"whyItWorks": "E sits three fifths clockwise from G, creating high harmonic energy that resolves smoothly counter-clockwise fifth by fifth back home."
+			},
+			"26": {
+				"roleLabel": "Chromatic Ragtime Walk",
+				"cardSummary": "C → C♯dim squeezes bass chromatically to D7",
+				"whatItDoes": "Follows warm subdominant C (IV) with chromatic passing C♯dim (♯iv°), raising C by one fret to C♯.",
+				"biggerPicture": "Drives the signature ragtime turnaround (C → C♯dim → D7 → G) closing Sections 1, 2, and 3.",
+				"whyItWorks": "The bass steps smoothly C → C♯ → D while C♯dim's diminished tritone pulls half-step inward into D7."
+			},
+			"58": {
+				"roleLabel": "Bridge · Walking Bass",
+				"cardSummary": "Starts ascending A → B → C → D bass walk",
+				"whatItDoes": "Opens the contrasting bridge on minor ii (Am), anchoring root A before F♯dim/A, G/B, Am/C, and D5 climb upward.",
+				"biggerPicture": "Changes the ragtime texture in Section 3 with a smooth 4-bar rising scale bass line.",
+				"whyItWorks": "Inverting G over B and Am over C keeps each bass note adjacent by scale step (A → B → C → D), giving unstoppable forward drive."
+			}
+		}
+	},
+	"tommy-emmanuel-classical_gas_both": {
+		"theorySummary": "165-bar acoustic showstopper in A Minor (Tommy Emmanuel's arrangement): marries classical Baroque-folk motifs (Am – Gmaj7/F♯ – Em – Esus4) and bright Dorian IV (D/A, D7) lifts with dramatic brass-style modulations through C, E♭, A♭, and an uplifting parallel A Major coda.",
+		"studyGuide": {
+			"vibeAndSound": "Virtuosic, cinematic acoustic guitar anthem—shifting effortlessly from intimate Baroque fingerpicking to percussive flamenco-pop fanfares.",
+			"harmonyHook": "Turns a nimble descending bass line (A → F♯ → E) and Dorian D/D7 lifts into an orchestral journey via C Major, flat-side E♭/A♭ bursts, and parallel A Major.",
+			"practiceTips": [
+				"Watch the descending bass hook in Bars 1–4: Am → Gmaj7/F♯ → Em → Esus4 → Am walks A → F♯ → E → A smoothly down the strings.",
+				"Spot the bright Dorian IV color in Bars 13, 15, 33, 70, and 132: D/A and D7 raise F to F♯ for sunny acoustic pop energy.",
+				"Notice how Section 2 (Bar 45) & Section 3 (Bar 107) suddenly blast outward into flat-side chords (E♭ → Gm → A♭) before E7 snaps you back to A Minor."
+			],
+			"sections": [
+				{
+					"id": "cg-sec-1",
+					"title": "1. Main Theme & Dorian D7",
+					"barRange": "Bars 1–42",
+					"startStepIndex": 0,
+					"endStepIndex": 41,
+					"progressionTag": "Am – Gmaj7/F♯ – Em – Esus4 – D/A – D7 – G – B♭maj7 – E7",
+					"insight": "States the famous descending A Minor theme, brightens with Dorian D/D7 lifts, passes through B♭maj7 (♭II) → Bm7 → E7, and settles onto relative C Major."
+				},
+				{
+					"id": "cg-sec-2",
+					"title": "2. Fanfare & Chromatic Excursion",
+					"barRange": "Bars 43–84",
+					"startStepIndex": 42,
+					"endStepIndex": 83,
+					"progressionTag": "C – E♭ – Gm – A♭ – Dmaj7 – E – Am – Edim7 – Fmaj7 – E7",
+					"insight": "Launches bold flat-side modulations (E♭ → Gm → A♭) and Edim7 drama before climbing back through D7 → B♭maj7 → Bm7 onto a ringing E dominant plateau."
+				},
+				{
+					"id": "cg-sec-3",
+					"title": "3. E Major Interlude & Reprise",
+					"barRange": "Bars 85–129",
+					"startStepIndex": 84,
+					"endStepIndex": 128,
+					"progressionTag": "Bm7 – B – C♯m7 – Aadd9 – E – Fm/C – E♭ – A♭ – Am",
+					"insight": "Unfolds a lyrical interlude in E Major (Bm7 → B → C♯m7 → E → Aadd9), sweeps back through the E♭–A♭ fanfare, and reprises the A Minor groove."
+				},
+				{
+					"id": "cg-sec-4",
+					"title": "4. Parallel A Major & Tag Finale",
+					"barRange": "Bars 130–165",
+					"startStepIndex": 129,
+					"endStepIndex": 164,
+					"progressionTag": "Am – D7 – E7 – A – Asus2 – B7/A – E5 – G – Fmaj7",
+					"insight": "Drives the theme to a joyful parallel A Major / Asus2 climax (Bars 146–161) before descending Am7/G → G → Fmaj7 for the iconic acoustic ending."
+				}
+			]
+		},
+		"barNotes": {
+			"2": {
+				"roleLabel": "Stepwise Bass Descent",
+				"cardSummary": "Gmaj7/F♯ → Em walks bass F♯ down to E",
+				"whatItDoes": "Voices natural-minor VII (Gmaj7) with its major 7th (F♯) in the bass, stepping smoothly down into Em on beat 3.",
+				"biggerPicture": "Creates the signature falling bass hook (A → F♯ → E) linking Bar 1's Am into Bar 3's Esus4.",
+				"whyItWorks": "F♯ acts as an active Dorian passing tone in the bass between A and E, while G and B carry right into Em."
+			},
+			"13": {
+				"roleLabel": "Dorian IV Pedal Lift",
+				"cardSummary": "D/A raises F to F♯ over steady A pedal",
+				"whatItDoes": "Borrows bright Dorian IV (D Major) while keeping A anchored underneath as a pedal bass.",
+				"biggerPicture": "Punctuates the A Minor groove with an airy, upbeat acoustic-rock lift before dropping back to Am in Bar 14.",
+				"whyItWorks": "Swapping F for F♯ over the unchanged open A pedal creates instant major sparkle without leaving the fingerboard position."
+			},
+			"45": {
+				"roleLabel": "Chromatic Key Shift",
+				"cardSummary": "Sudden E♭ → Gm fanfare leaps to flat side",
+				"whatItDoes": "Steps abruptly out of C Major (Bar 44) onto flat-side E♭ Major and Gm, shifting far counter-clockwise on the Circle.",
+				"biggerPicture": "Ignites Section 2's dramatic brass-like interlude (E♭ → Gm → A♭ → E♭/G) before E7 snaps back to A Minor.",
+				"whyItWorks": "G stays in the inner voice as a chromatic pivot (C's 5th becomes E♭'s 3rd), smoothing a dramatic 3-flat modulation."
+			},
+			"146": {
+				"roleLabel": "Parallel A Major Climax",
+				"cardSummary": "Flips A Minor anthem bright into A Major",
+				"whatItDoes": "Transforms the home key from A Minor into open, triumphant A Major (I), followed by shimmering Asus2/E pedals.",
+				"biggerPicture": "Lifts Section 4's high-energy coda into sunlit major territory before the closing Am7/G → G → Fmaj7 descent.",
+				"whyItWorks": "Open A, B, and E strings vibrate sympathetically across A and Asus2, letting C♯ ring as a joyful surprise."
+			}
+		}
+	},
+	"bach_bwv1007_cello_suite_1_prelude_cello": {
+		"theorySummary": "42-bar solo cello masterpiece in G Major: turns rapid 16th-note string crossings (bariolage) into a complete harmonic journey—anchoring open G2, climbing clockwise through A7 → D and E7 → Am → D♯° → D7, peaking on Bar 22's D7 cadenza, and sweeping across open-A3 bariolage to G.",
+		"studyGuide": {
+			"vibeAndSound": "Continuous 16th-note bow crossings across open cello strings weave bass, inner harmony, and singing top melody into a single golden line.",
+			"harmonyHook": "A masterclass in Circle of Fifths navigation: anchors home with I–IVmaj7–Imaj7–I over open G2, climbs clockwise via A7 → D and E7 → Am, and resolves home via G7 → C.",
+			"practiceTips": [
+				"Memorize Bars 1–4 first: the open G2 C/G string stays anchored on every downbeat while upper voices outline G → Cmaj7/G → Gmaj7 → G.",
+				"Watch the Circle wheel in Bars 6–15: Bach steps clockwise to D via A7/C♯ (V7/V), then pivots through E7/D (V7/ii) and D♯dim (♯v°) back to D7.",
+				"In Bars 31–36, keep the bow loose crossing against the open A3 string while the left hand walks stepwise down D and C strings."
+			],
+			"sections": [
+				{
+					"id": "bwv1007-sec-1",
+					"title": "1. Opening G2 Pedal",
+					"barRange": "Bars 1–4",
+					"startStepIndex": 0,
+					"endStepIndex": 3,
+					"progressionTag": "G – Cmaj7/G – Gmaj7 – G",
+					"insight": "Establishes G Major over an open G2 bass drone, rocking between I and IVmaj7/G and gentle F♯ shimmer before departing in Bar 5."
+				},
+				{
+					"id": "bwv1007-sec-2",
+					"title": "2. Circle Climb to D & Em",
+					"barRange": "Bars 5–15",
+					"startStepIndex": 4,
+					"endStepIndex": 14,
+					"progressionTag": "G/B – A7/C♯ – D – Em – E7/D – Am/C – D♯dim – D7/F♯",
+					"insight": "Climbs clockwise around the Circle via A7/C♯ (V7/V) into D Major, detours through Em and E7/D (V7/ii) → Am, and squeezes D♯dim back to D7."
+				},
+				{
+					"id": "bwv1007-sec-3",
+					"title": "3. V7/IV Return & D7 Cadenza",
+					"barRange": "Bars 16–30",
+					"startStepIndex": 15,
+					"endStepIndex": 29,
+					"progressionTag": "G7 – C/G – Gmaj7 – F♯m7/C♯ – D7 – A7 – D7",
+					"insight": "Adds F♮ to turn G into G7 (V7/IV → C/G), then settles onto an extended 5-bar D7 dominant cadenza (Bars 21–25) before climbing again."
+				},
+				{
+					"id": "bwv1007-sec-4",
+					"title": "4. Open-A Bariolage & Finale",
+					"barRange": "Bars 31–42",
+					"startStepIndex": 30,
+					"endStepIndex": 41,
+					"progressionTag": "F♯m7/A – D – Bm7 – Am7 – D – Dm – G/D – Dsus4 – D7 – G",
+					"insight": "Crosses rapidly against the ringing open A3 string across Bars 31–36, darkens momentarily via Dm (v), and builds Dsus4 → D7 to a resounding final G chord."
+				}
+			]
+		},
+		"barNotes": {
+			"1": {
+				"roleLabel": "Tonic · Launches G2 Pedal",
+				"cardSummary": "Opens iconic 4-bar G2 string-crossing pedal",
+				"whatItDoes": "Anchors G Major (I) on the lowest open G2 string while upper 16ths arpeggiate B and D in cello bariolage.",
+				"biggerPicture": "Establishes the resonant open-G2 bass pedal spanning Bars 1–2 and sets up the opening 4-bar tonic frame.",
+				"whyItWorks": "Because G2 rings freely on an open string, every bow crossing sounds like two cellos—bass drone plus singing melody."
+			},
+			"6": {
+				"roleLabel": "Secondary Dom. → V",
+				"cardSummary": "A7/C♯ climbs half-step C♯ → D into V",
+				"whatItDoes": "Secondary dominant V7/V (A7/C♯) introduces chromatic C♯ directly in the bass (1st inversion) to propel toward D.",
+				"biggerPicture": "Steps clockwise from G/B (Bar 5) onto D Major (Bar 7), launching Section 2's tonal excursion.",
+				"whyItWorks": "The cello bass climbs cleanly B → C♯ → D by half-step while A7's C♯–G tritone collapses straight into D–F♯."
+			},
+			"13": {
+				"roleLabel": "Chromatic Dim. Bridge",
+				"cardSummary": "D♯dim squeezes D♯ → E between Am chords",
+				"whatItDoes": "Injects sharp diminished tension (D♯dim = ♯v° / leading tone to Em) right inside the A Minor sequence.",
+				"biggerPicture": "Connects Am/C (Bar 12) cleanly into Am7/E → Am7/G (Bar 14) on the way back to D7.",
+				"whyItWorks": "Chromatic D♯ sits one semitone below E, giving the melody razor-sharp Baroque pull into Bar 14."
+			},
+			"22": {
+				"roleLabel": "Cadenza Dominant Hold",
+				"cardSummary": "Holds dramatic D7 cadenza before resolution",
+				"whatItDoes": "Sustains dominant V7 (D7/A) in the middle of the cello's dramatic cascading scale flourish.",
+				"biggerPicture": "Marks the famous structural midpoint climax of the Prelude (Bars 21–25) before spinning back toward G in Bar 25.",
+				"whyItWorks": "Suspending D7 over alternating bass tones (C → A → D → F♯) builds enormous harmonic pressure to resolve home."
+			}
+		}
+	},
+	"saint_saens_le_cygne_the_swan_cello": {
+		"theorySummary": "27-bar Romantic cello cantabile in G Major (6/4): floats a serene singing line (G → Gmaj7 → Am7/G → Em) over rippling piano-inspired arpeggios, dips gracefully into minor color (Gm → F♯7 → Bm → Fm → C7 → Fmaj7), and glides back onto a tranquil G Major close.",
+		"studyGuide": {
+			"vibeAndSound": "Pure Romantic cantabile—long, singing legato phrases on the cello's A and D strings gliding effortlessly like a swan over calm water.",
+			"harmonyHook": "Teaches subtle chromatic darkening: borrows parallel Gm (i) in Bar 7 so F♯7 (V7/iii) can lift into B Minor (iii), then drifts flat-side (Fm → C7 → Fmaj7) before returning to G.",
+			"practiceTips": [
+				"Follow Bars 1–4 closely: the bass holds G across G → Gmaj7 → Am7/G (an unbroken G pedal) before gently releasing to Em.",
+				"Notice the harmonic magic in Bar 7: dropping B to B♭ turns G Major into Gm for two beats, smoothly pivoting via F♯7 into B Minor (Bar 9).",
+				"Trace the romantic flat-side sequence in Bars 12–14: Am → Fm/G♯ → C7/G → Fmaj7 steps down chromatically before D7 brings you back home."
+			],
+			"sections": [
+				{
+					"id": "swan-sec-1",
+					"title": "1. Serene G Theme & Gm Shadow",
+					"barRange": "Bars 1–7",
+					"startStepIndex": 0,
+					"endStepIndex": 6,
+					"progressionTag": "G – Gmaj7 – Am7/G – Em – G – Gm – F♯7",
+					"insight": "Floats the famous melody over a G pedal (Bars 1–3), reprises it in Bars 5–6, then turns suddenly dark via parallel Gm → F♯7 (V7/iii)."
+				},
+				{
+					"id": "swan-sec-2",
+					"title": "2. B Minor & Romantic Flat Sequence",
+					"barRange": "Bars 8–17",
+					"startStepIndex": 7,
+					"endStepIndex": 16,
+					"progressionTag": "Bm/F♯ – F♯7 – Bm – D7 – Fm/G♯ – C7 – Fmaj7 – D",
+					"insight": "Visits B Minor (iii), cascades through tender flat-side harmony (Fm/G♯ → C7 → Fmaj7), and pivots through Dm/A into D7 (V7)."
+				},
+				{
+					"id": "swan-sec-3",
+					"title": "3. Lyrical Reprise & Peaceful Close",
+					"barRange": "Bars 18–27",
+					"startStepIndex": 17,
+					"endStepIndex": 26,
+					"progressionTag": "G – Am7/G – Em – E7 – Am – F♯dim/A – G/B – Em7 – G/D",
+					"insight": "Glides back into the G Major opening motif, enriches it with E7 (V7/ii) → Am → F♯dim/A, and drifts softly out across Em7 and G/D."
+				}
+			]
+		},
+		"barNotes": {
+			"2": {
+				"roleLabel": "Maj7 Cantabile Shimmer",
+				"cardSummary": "F♯ warms G into Gmaj7 over G pedal",
+				"whatItDoes": "Expands G Major into lush Gmaj7 (Imaj7), letting the cello float on singing F♯ while the G pedal holds below.",
+				"biggerPicture": "Bridges opening tonic G (Bar 1) toward Am7/G (Bar 3) on the initial 3-bar G pedal.",
+				"whyItWorks": "Half-step tension between F♯ and root G gives the melody yearning beauty without disturbing the calm bass."
+			},
+			"7": {
+				"roleLabel": "Parallel Minor → V7/iii",
+				"cardSummary": "Gm darkens Bar 6; F♯7 pivots toward Bm",
+				"whatItDoes": "Flips bright G Major into parallel Gm (introducing B♭), then fires F♯7 (V7/iii) mid-bar with chromatic A♯.",
+				"biggerPicture": "Triggers the swan's emotional turning point, modulating smoothly from G Major out to B Minor (iii) in Bars 8–9.",
+				"whyItWorks": "D acts as a shared tone bridging Gm and F♯7, while F♯7's A♯–E tritone resolves cleanly into Bm (B–D–F♯)."
+			},
+			"13": {
+				"roleLabel": "Chromatic Sequence (IV7)",
+				"cardSummary": "C7/G chains from Fm toward Fmaj7",
+				"whatItDoes": "Follows borrowed Fm/G♯ (Bar 12) with bluesy/dominant C7 (IV7), pulling flatward via chromatic B♭.",
+				"biggerPicture": "Steers the middle development cleanly onto remote Fmaj7 (♭VIImaj7) in Bar 14 before D Major re-centers G.",
+				"whyItWorks": "Fm/G♯ (A♭) steps down half-step in the bass to C7/G (G) → Fmaj7 (F), keeping every voice close together."
+			}
+		}
+	},
+	"corelli_op3_no1_grave_violin": {
+		"theorySummary": "19-bar Baroque trio-sonata Grave in F Major: showcases Corelli's signature 'chain of suspensions' and walking bass lines (I–V–IV–I), weaving vi7–iii7 voice exchanges, V7/vi tonicizations (A7 → B♭), and broad plagal/authentic cadences.",
+		"studyGuide": {
+			"vibeAndSound": "Noble, unhurried Baroque violin poise—overlapping voices lean across barlines like a slow cathedral conversation.",
+			"harmonyHook": "Masterclass in Baroque bass counterpoint: stepwise 1st-inversion chords (F/A, B♭/D, Em/B) keep the low end singing while Circle-of-Fifths chains pull gently forward.",
+			"practiceTips": [
+				"Listen to Bars 1–4: notice how F → Gm7 → C → F/A → B♭ → F/C → F weaves smoothly through 1st and 2nd inversions rather than static root jumps.",
+				"Follow Bars 9–12: Corelli confirms F Major in Bars 9–10, then slips through Em/B → Dm → A7 (V7/vi) → B♭/D for classic Baroque expressiveness.",
+				"In Bars 15–19, hear the rising bass line F/A → Gm/B♭ → F/C → B♭ → C → F carry the final cadence grandly home."
+			],
+			"sections": [
+				{
+					"id": "cor-sec-1",
+					"title": "1. Baroque Opening & F Cadence",
+					"barRange": "Bars 1–9",
+					"startStepIndex": 0,
+					"endStepIndex": 8,
+					"progressionTag": "F – Gm7 – C – F/A – B♭ – F/C – Dm7/F – C7 – F",
+					"insight": "Presents the stately F Major theme over walking inversions (F/A, F/C), touches vi7–iii7 counterpoint in Bar 7, and closes firmly with C7 → F."
+				},
+				{
+					"id": "cor-sec-2",
+					"title": "2. Applied A7 & Grand Closing Cadence",
+					"barRange": "Bars 10–19",
+					"startStepIndex": 9,
+					"endStepIndex": 18,
+					"progressionTag": "C7 – F/A – Em/B – Dm – A7 – B♭/D – B♭maj7 – C – F",
+					"insight": "Pivots via Em/B → Dm into secondary dominant A7 (V7/vi), resolves deceptively onto B♭/D, and builds an ascending bass line (F/A → Gm/B♭ → F/C → C → F) home."
+				}
+			]
+		},
+		"barNotes": {
+			"7": {
+				"roleLabel": "Chain of Suspensions",
+				"cardSummary": "Dm7/F → Am7/E walks bass down F → E",
+				"whatItDoes": "Links relative minor Dm7 (vi7) and mediant Am7 (iii7) through smooth 1st/3rd inversions.",
+				"biggerPicture": "Creates Corelli's hallmark Baroque sigh right before the Bar 8–9 C7 → F cadence.",
+				"whyItWorks": "F steps down to E in the bass while A and C hold steady as shared tones between Dm7 and Am7."
+			},
+			"12": {
+				"roleLabel": "Secondary Dom. → Deceptive",
+				"cardSummary": "A7 (V7/vi) resolves deceptively to B♭/D",
+				"whatItDoes": "Introduces raised C♯ inside secondary dominant A7 (V7/vi), pointing strongly toward D Minor (Dm).",
+				"biggerPicture": "Instead of landing on Dm, surprises the ear with 1st-inversion B♭/D (IV), keeping the closing phrase airborne.",
+				"whyItWorks": "C♯ steps up a half-step to D (B♭'s 3rd in the bass) while A stays anchored—so B♭/D fulfills the melodic pull smoothly."
+			}
+		}
+	},
+	"massenet_thais_meditation_violin": {
+		"theorySummary": "71-bar Romantic solo violin showpiece in D Major: floats an ecstatic opening melody (D → G → Em → A7), borrows melancholic flat-VII (C) and V/ii (B) colors, climbs through remote flat keys (C7 → F → A♯m) to an A♯dim climax, and dissolves into shimmering harmonic echoes (C♯7, D♯7 → D).",
+		"studyGuide": {
+			"vibeAndSound": "Rapturous, glowing Romantic violin lyricism—slow, singing arches build from tender prayer to passionate height and back to hushed serenity.",
+			"harmonyHook": "Shows how Romantic composers stretch a simple D Major melody: borrowing Mixolydian ♭VII (C) and V/ii (B → Em), modulating briefly up to F Major and A♯m/B♭m, and closing with delicate chromatic neighbors (C♯7, D♯7).",
+			"practiceTips": [
+				"In Bars 6–10, hear the classic D Major song progression (G → Em → A7 → D) turn bittersweet in Bar 14–16 via C (♭VII) → B (V/ii) → Em.",
+				"Trace the dramatic middle storm in Bars 27–38: C → C7 → F/C → Am → A♯m → A7 → A♯dim leaps boldly to the flat side before A7 pulls home to D.",
+				"In the coda (Bars 58–71), savor the magical side-steps around tonic D: C♯7 (Bar 59) and D♯7 → Gdim/A♯ (Bar 61) kiss D from a half-step below and above."
+			],
+			"sections": [
+				{
+					"id": "med-sec-1",
+					"title": "1. D Major Prayer & ♭VII–V/ii Turn",
+					"barRange": "Bars 1–21",
+					"startStepIndex": 0,
+					"endStepIndex": 20,
+					"progressionTag": "D – G – Em – A7 – C – B – Em – Bsus4 – A7 – D",
+					"insight": "States the famous soaring D Major theme over gentle D/A bass oscillations, adding poignant color via Mixolydian C (♭VII) and B (V/ii) → Em → A7."
+				},
+				{
+					"id": "med-sec-2",
+					"title": "2. Passionate Flat-Side Climax",
+					"barRange": "Bars 22–40",
+					"startStepIndex": 21,
+					"endStepIndex": 39,
+					"progressionTag": "C – F♯7 – Em – A7 – C7 – F/C – A♯m – A7 – A♯dim – G",
+					"insight": "Surges upward through F♯7 (V7/vi), modulates boldly via C7 → F Major into remote A♯m/B♭m, and peaks on A7 → A♯dim → G → C♯dim before D returns."
+				},
+				{
+					"id": "med-sec-3",
+					"title": "3. Ecstatic Theme Reprise",
+					"barRange": "Bars 41–58",
+					"startStepIndex": 40,
+					"endStepIndex": 57,
+					"progressionTag": "D – G – Em – A7 – C/G – B – Em – Bsus4 – A7 – D",
+					"insight": "Reclaims the soaring D Major prayer at full romantic intensity, sweeping cleanly back through the C → B → Em → A7 arc."
+				},
+				{
+					"id": "med-sec-4",
+					"title": "4. Chromatic Neighbours & Coda",
+					"barRange": "Bars 59–71",
+					"startStepIndex": 58,
+					"endStepIndex": 70,
+					"progressionTag": "C♯7 – D – D♯7 – Gdim/A♯ – D – G/B – F♯/A♯ – A7 – D",
+					"insight": "Floats gently around tonic D using half-step dominant neighbors (C♯7 below, D♯7 above), a warm F♯/A♯ → A7 cadence, and quiet final D chords."
+				}
+			]
+		},
+		"barNotes": {
+			"14": {
+				"roleLabel": "Borrowed Flat-VII",
+				"cardSummary": "C Major (♭VII) softens D Major with C♮",
+				"whatItDoes": "Replaces D Major's sharp leading tone C♯ with warm C♮, introducing flat-VII (C/E → C/G) color.",
+				"biggerPicture": "Creates the tender aching turn in Section 1 leading straight into B (V/ii) and Em in Bars 15–16.",
+				"whyItWorks": "Lowering C♯ to C♮ creates a descending chromatic sigh (D → C♯ → C♮ → B) straight into Bar 15's B chord."
+			},
+			"36": {
+				"roleLabel": "Climax Diminished Bridge",
+				"cardSummary": "A7 → A♯dim pushes chromatically toward peak",
+				"whatItDoes": "Paired after A7 (V7), A♯dim (♯v°) squeezes the bass chromatically up (A → A♯) at the climax of the storm.",
+				"biggerPicture": "Marks the emotional peak of Section 2 before A7 releases back through G → C♯dim onto D Major in Bar 40.",
+				"whyItWorks": "Stepping the bass just one half-step upward from A to A♯ turns stable dominant tension into urgent upward yearning."
+			},
+			"59": {
+				"roleLabel": "Chromatic Neighbor Dom.",
+				"cardSummary": "C♯7 kisses D from a half-step below",
+				"whatItDoes": "Places dominant C♯7 (V7/iii) directly between two D Major chords before stepping its 7th (B) down to A.",
+				"biggerPicture": "Opens the dreamy coda's half-step harmonic halos (C♯7 below D in Bar 59, D♯7 above D in Bar 61).",
+				"whyItWorks": "C♯ and E♯ sit a single half-step below D and F♯, so resolving C♯7 straight up onto D Major feels weightless and shimmering."
+			}
+		}
+	},
+	"mozart_k156_mvt2_adagio_violin": {
+		"theorySummary": "88-bar Classical slow-movement quartet gem in E Minor (Adagio): contrasts poignant E Minor sighs (Em/G → B7/D♯) against luminous G Major (III) cantabile periods, then ventures through Neapolitan Fdim/G♯, A♯m, and F♯7/C♯ harmonic drama before a hushed recapitulation.",
+		"studyGuide": {
+			"vibeAndSound": "Intimate, tearful Classical chamber Adagio—sighing two-note motifs and delicate 1st-inversion suspensions carry Mozart's hallmark singing elegance.",
+			"harmonyHook": "Textbook sonata-form minor-key architecture: establishes E Minor via Em/G → B7/D♯, lifts smoothly to relative G Major (III) via A7 → D7, and explores chromatic diminished/V7/V drama in the development.",
+			"practiceTips": [
+				"Notice the opening 2-bar sigh (Em/G → B7/D♯): putting G in the bass and D♯ in the bass makes the progression glide rather than thud on root chords.",
+				"Follow the sunny lift into G Major (III) starting at Bar 5: D7 → G (Bars 10–14) temporarily makes G feel like home.",
+				"In the development (Bars 29–50), watch how Fdim/G♯, A♯m, and F♯7 (V7/V) pull tension sharply before B7 resolves back to Em."
+			],
+			"sections": [
+				{
+					"id": "k156-sec-1",
+					"title": "1. Exposition — Em to G Major",
+					"barRange": "Bars 1–14",
+					"startStepIndex": 0,
+					"endStepIndex": 13,
+					"progressionTag": "Em/G – B7/D♯ – B7 – G – Cmaj7 – A7 – D7 – G",
+					"insight": "Opens in tragic E Minor (Em/G → B7/D♯), then blooms into relative G Major (III) via Cmaj7 and an A7 → D7 → G cadence."
+				},
+				{
+					"id": "k156-sec-2",
+					"title": "2. Exposition Repeat",
+					"barRange": "Bars 15–28",
+					"startStepIndex": 14,
+					"endStepIndex": 27,
+					"progressionTag": "Em/G – B7/D♯ – B7 – G – Cmaj7 – A7 – D7 – G",
+					"insight": "Repeats the lyrical E Minor → G Major exposition period, anchoring the bright G Major close before the development turns dark."
+				},
+				{
+					"id": "k156-sec-3",
+					"title": "3. Chromatic Development",
+					"barRange": "Bars 29–51",
+					"startStepIndex": 28,
+					"endStepIndex": 50,
+					"progressionTag": "Fdim/G♯ – G7/B – A♯m – Bm – F♯7/C♯ – B/D♯ – Edim/A♯ – C7/E",
+					"insight": "Weaves Neapolitan Fdim/G♯, rising chromatic A♯m → Bm, and urgent F♯7 (V7/V) → B7 turns to drive back to E Minor in Bars 45–51."
+				},
+				{
+					"id": "k156-sec-4",
+					"title": "4. Recapitulation & Quiet Close",
+					"barRange": "Bars 52–88",
+					"startStepIndex": 51,
+					"endStepIndex": 87,
+					"progressionTag": "Em/G – B7/D♯ – G – Fdim/G♯ – F♯7/C♯ – B/D♯ – Em/B – Em",
+					"insight": "Reprises the full thematic journey with heightened chromatic urgency (Bars 66–86) before settling calmly onto pure E Minor in Bar 88."
+				}
+			]
+		},
+		"barNotes": {
+			"2": {
+				"roleLabel": "Dominant · Leading Bass",
+				"cardSummary": "B7/D♯ puts leading tone D♯ in bass toward Em",
+				"whatItDoes": "Voices dominant B7 in 1st inversion, putting E Minor's raised leading tone D♯ in the bass with the D♯–A tritone.",
+				"biggerPicture": "Creates the aching Classical sigh following Bar 1's Em/G before B7 shifts into root-position push in Bars 3–4.",
+				"whyItWorks": "F♯ and B stay closely connected while D♯ (a half-step below E) pulls urgently upward toward tonic E."
+			},
+			"10": {
+				"roleLabel": "Secondary Dom. → III",
+				"cardSummary": "D7 (V7/III) locks in bright G Major arrival",
+				"whatItDoes": "Fires dominant D7 (V7/III) right after A7 (Bar 9), resolving straight onto relative major G (III).",
+				"biggerPicture": "Completes the Exposition's classic minor-to-relative-major modulation (Em → G Major) spanning Bars 5–14.",
+				"whyItWorks": "D7's tritone (F♯ and C) pulls inward into G and B, dropping cleanly counter-clockwise by 5th on the Circle of Fifths."
+			},
+			"29": {
+				"roleLabel": "Chromatic Dim. Pivot",
+				"cardSummary": "Fdim/G♯ jolts out of G Major into development",
+				"whatItDoes": "Introduces Neapolitan/chromatic diminished Fdim/G♯ (♭ii°) with borrowed F♮ before stepping onto Am (iv).",
+				"biggerPicture": "Shatters Bar 28's serene G Major close to launch Mozart's turbulent harmonic development.",
+				"whyItWorks": "Fdim's G♯ bass walks by half-step directly into A Minor (G♯ → A), turning shock into smooth voice leading."
+			}
+		}
+	}
+}

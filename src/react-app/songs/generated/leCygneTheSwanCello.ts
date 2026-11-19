@@ -58,39 +58,81 @@ export const LE_CYGNE_THE_SWAN_CELLO_SPEC: SongDocument = {
 		[154560, 56],
 	],
 	theorySummary:
-		"Ingested from MusicXML in G Major (6/4, 67 BPM) with polyphonic timing, dynamics, and ergonomic cello fingerings.",
+		"27-bar Romantic cello cantabile in G Major (6/4): floats a serene singing line (G → Gmaj7 → Am7/G → Em) over rippling piano-inspired arpeggios, dips gracefully into minor color (Gm → F♯7 → Bm → Fm → C7 → Fmaj7), and glides back onto a tranquil G Major close.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML cello arrangement of Le Cygne (The Swan) in G Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Pure Romantic cantabile—long, singing legato phrases on the cello's A and D strings gliding effortlessly like a swan over calm water.",
 		harmonyHook:
-			"Follows G Major chord functions (I · Imaj7 · ii7 · vi · i) bar-by-bar on the Circle of Fifths.",
+			"Teaches subtle chromatic darkening: borrows parallel Gm (i) in Bar 7 so F♯7 (V7/iii) can lift into B Minor (iii), then drifts flat-side (Fm → C7 → Fmaj7) before returning to G.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Follow Bars 1–4 closely: the bass holds G across G → Gmaj7 → Am7/G (an unbroken G pedal) before gently releasing to Em.",
+			"Notice the harmonic magic in Bar 7: dropping B to B♭ turns G Major into Gm for two beats, smoothly pivoting via F♯7 into B Minor (Bar 9).",
+			"Trace the romantic flat-side sequence in Bars 12–14: Am → Fm/G♯ → C7/G → Fmaj7 steps down chromatically before D7 brings you back home.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–14",
+				id: "swan-sec-1",
+				title: "1. Serene G Theme & Gm Shadow",
+				barRange: "Bars 1–7",
 				startStepIndex: 0,
-				endStepIndex: 13,
-				progressionTag: "G – Gmaj7 – Am7/G – Em – G – Gmaj7",
+				endStepIndex: 6,
+				progressionTag: "G – Gmaj7 – Am7/G – Em – G – Gm – F♯7",
 				insight:
-					"Measures 1–14 (I – Imaj7 – ii7 – vi – I) weaves through G → Gmaj7 → Am7/G → Em in G Major.",
+					"Floats the famous melody over a G pedal (Bars 1–3), reprises it in Bars 5–6, then turns suddenly dark via parallel Gm → F♯7 (V7/iii).",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Closing Section",
-				barRange: "Bars 15–27",
-				startStepIndex: 14,
-				endStepIndex: 26,
-				progressionTag: "D – Dm/F – Dm – G – Am7/G – Em",
+				id: "swan-sec-2",
+				title: "2. B Minor & Romantic Flat Sequence",
+				barRange: "Bars 8–17",
+				startStepIndex: 7,
+				endStepIndex: 16,
+				progressionTag: "Bm/F♯ – F♯7 – Bm – D7 – Fm/G♯ – C7 – Fmaj7 – D",
 				insight:
-					"Measures 15–27 (V – v – v – I – ii7) weaves through D → Dm/F → Dm → G in G Major.",
+					"Visits B Minor (iii), cascades through tender flat-side harmony (Fm/G♯ → C7 → Fmaj7), and pivots through Dm/A into D7 (V7).",
+			},
+			{
+				id: "swan-sec-3",
+				title: "3. Lyrical Reprise & Peaceful Close",
+				barRange: "Bars 18–27",
+				startStepIndex: 17,
+				endStepIndex: 26,
+				progressionTag: "G – Am7/G – Em – E7 – Am – F♯dim/A – G/B – Em7 – G/D",
+				insight:
+					"Glides back into the G Major opening motif, enriches it with E7 (V7/ii) → Am → F♯dim/A, and drifts softly out across Em7 and G/D.",
 			},
 		],
+	},
+	barNotes: {
+		"2": {
+			roleLabel: "Maj7 Cantabile Shimmer",
+			cardSummary: "F♯ warms G into Gmaj7 over G pedal",
+			whatItDoes:
+				"Expands G Major into lush Gmaj7 (Imaj7), letting the cello float on singing F♯ while the G pedal holds below.",
+			biggerPicture:
+				"Bridges opening tonic G (Bar 1) toward Am7/G (Bar 3) on the initial 3-bar G pedal.",
+			whyItWorks:
+				"Half-step tension between F♯ and root G gives the melody yearning beauty without disturbing the calm bass.",
+		},
+		"7": {
+			roleLabel: "Parallel Minor → V7/iii",
+			cardSummary: "Gm darkens Bar 6; F♯7 pivots toward Bm",
+			whatItDoes:
+				"Flips bright G Major into parallel Gm (introducing B♭), then fires F♯7 (V7/iii) mid-bar with chromatic A♯.",
+			biggerPicture:
+				"Triggers the swan's emotional turning point, modulating smoothly from G Major out to B Minor (iii) in Bars 8–9.",
+			whyItWorks:
+				"D acts as a shared tone bridging Gm and F♯7, while F♯7's A♯–E tritone resolves cleanly into Bm (B–D–F♯).",
+		},
+		"13": {
+			roleLabel: "Chromatic Sequence (IV7)",
+			cardSummary: "C7/G chains from Fm toward Fmaj7",
+			whatItDoes:
+				"Follows borrowed Fm/G♯ (Bar 12) with bluesy/dominant C7 (IV7), pulling flatward via chromatic B♭.",
+			biggerPicture:
+				"Steers the middle development cleanly onto remote Fmaj7 (♭VIImaj7) in Bar 14 before D Major re-centers G.",
+			whyItWorks:
+				"Fm/G♯ (A♭) steps down half-step in the bass to C7/G (G) → Fmaj7 (F), keeping every voice close together.",
+		},
 	},
 	chords: {
 		G: {

@@ -89,59 +89,91 @@ export const MEDITATION_FROM_THAIS_VIOLIN_SPEC: SongDocument = {
 		[264960, 57],
 	],
 	theorySummary:
-		"Ingested from MusicXML in D Major (4/4, 65 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+		"71-bar Romantic solo violin showpiece in D Major: floats an ecstatic opening melody (D → G → Em → A7), borrows melancholic flat-VII (C) and V/ii (B) colors, climbs through remote flat keys (C7 → F → A♯m) to an A♯dim climax, and dissolves into shimmering harmonic echoes (C♯7, D♯7 → D).",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML violin arrangement of Méditation (from Thaïs) in D Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Rapturous, glowing Romantic violin lyricism—slow, singing arches build from tender prayer to passionate height and back to hushed serenity.",
 		harmonyHook:
-			"Tracks D Major harmony bar-by-bar, spotlighting applied tension (V/ii, V7/vi, V7/iii) around the Circle of Fifths.",
+			"Shows how Romantic composers stretch a simple D Major melody: borrowing Mixolydian ♭VII (C) and V/ii (B → Em), modulating briefly up to F Major and A♯m/B♭m, and closing with delicate chromatic neighbors (C♯7, D♯7).",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"In Bars 6–10, hear the classic D Major song progression (G → Em → A7 → D) turn bittersweet in Bar 14–16 via C (♭VII) → B (V/ii) → Em.",
+			"Trace the dramatic middle storm in Bars 27–38: C → C7 → F/C → Am → A♯m → A7 → A♯dim leaps boldly to the flat side before A7 pulls home to D.",
+			"In the coda (Bars 58–71), savor the magical side-steps around tonic D: C♯7 (Bar 59) and D♯7 → Gdim/A♯ (Bar 61) kiss D from a half-step below and above.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–17",
+				id: "med-sec-1",
+				title: "1. D Major Prayer & ♭VII–V/ii Turn",
+				barRange: "Bars 1–21",
 				startStepIndex: 0,
-				endStepIndex: 16,
-				progressionTag: "D – G – Em – A7 – A7/C♯ – D",
+				endStepIndex: 20,
+				progressionTag: "D – G – Em – A7 – C – B – Em – Bsus4 – A7 – D",
 				insight:
-					"Measures 1–17 (I – IV – ii – V7 – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"States the famous soaring D Major theme over gentle D/A bass oscillations, adding poignant color via Mixolydian C (♭VII) and B (V/ii) → Em → A7.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 18–38",
-				startStepIndex: 17,
-				endStepIndex: 37,
-				progressionTag: "Em – Bsus4 – A7 – D – C/E – F♯7",
+				id: "med-sec-2",
+				title: "2. Passionate Flat-Side Climax",
+				barRange: "Bars 22–40",
+				startStepIndex: 21,
+				endStepIndex: 39,
+				progressionTag: "C – F♯7 – Em – A7 – C7 – F/C – A♯m – A7 – A♯dim – G",
 				insight:
-					"Measures 18–38 (ii – VIsus4 – V7 – I – ♭VII) introduces secondary dominant pull around the Circle of Fifths.",
+					"Surges upward through F♯7 (V7/vi), modulates boldly via C7 → F Major into remote A♯m/B♭m, and peaks on A7 → A♯dim → G → C♯dim before D returns.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 39–57",
-				startStepIndex: 38,
-				endStepIndex: 56,
-				progressionTag: "G – D – G – Em – A7 – A7/C♯",
+				id: "med-sec-3",
+				title: "3. Ecstatic Theme Reprise",
+				barRange: "Bars 41–58",
+				startStepIndex: 40,
+				endStepIndex: 57,
+				progressionTag: "D – G – Em – A7 – C/G – B – Em – Bsus4 – A7 – D",
 				insight:
-					"Measures 39–57 (IV – I – IV – ii – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Reclaims the soaring D Major prayer at full romantic intensity, sweeping cleanly back through the C → B → Em → A7 arc.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 58–71",
-				startStepIndex: 57,
+				id: "med-sec-4",
+				title: "4. Chromatic Neighbours & Coda",
+				barRange: "Bars 59–71",
+				startStepIndex: 58,
 				endStepIndex: 70,
-				progressionTag: "D – C♯7 – D – D♯7 – D – G/B",
+				progressionTag: "C♯7 – D – D♯7 – Gdim/A♯ – D – G/B – F♯/A♯ – A7 – D",
 				insight:
-					"Measures 58–71 (I – V7/iii – I – ♯I7 – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Floats gently around tonic D using half-step dominant neighbors (C♯7 below, D♯7 above), a warm F♯/A♯ → A7 cadence, and quiet final D chords.",
 			},
 		],
+	},
+	barNotes: {
+		"14": {
+			roleLabel: "Borrowed Flat-VII",
+			cardSummary: "C Major (♭VII) softens D Major with C♮",
+			whatItDoes:
+				"Replaces D Major's sharp leading tone C♯ with warm C♮, introducing flat-VII (C/E → C/G) color.",
+			biggerPicture:
+				"Creates the tender aching turn in Section 1 leading straight into B (V/ii) and Em in Bars 15–16.",
+			whyItWorks:
+				"Lowering C♯ to C♮ creates a descending chromatic sigh (D → C♯ → C♮ → B) straight into Bar 15's B chord.",
+		},
+		"36": {
+			roleLabel: "Climax Diminished Bridge",
+			cardSummary: "A7 → A♯dim pushes chromatically toward peak",
+			whatItDoes:
+				"Paired after A7 (V7), A♯dim (♯v°) squeezes the bass chromatically up (A → A♯) at the climax of the storm.",
+			biggerPicture:
+				"Marks the emotional peak of Section 2 before A7 releases back through G → C♯dim onto D Major in Bar 40.",
+			whyItWorks:
+				"Stepping the bass just one half-step upward from A to A♯ turns stable dominant tension into urgent upward yearning.",
+		},
+		"59": {
+			roleLabel: "Chromatic Neighbor Dom.",
+			cardSummary: "C♯7 kisses D from a half-step below",
+			whatItDoes:
+				"Places dominant C♯7 (V7/iii) directly between two D Major chords before stepping its 7th (B) down to A.",
+			biggerPicture:
+				"Opens the dreamy coda's half-step harmonic halos (C♯7 below D in Bar 59, D♯7 above D in Bar 61).",
+			whyItWorks:
+				"C♯ and E♯ sit a single half-step below D and F♯, so resolving C♯7 straight up onto D Major feels weightless and shimmering.",
+		},
 	},
 	chords: {
 		D: {

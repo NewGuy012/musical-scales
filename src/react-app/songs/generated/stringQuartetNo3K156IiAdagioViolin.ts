@@ -19,59 +19,93 @@ export const STRING_QUARTET_NO_3_K_156_II_ADAGIO_VIOLIN_SPEC: SongDocument = {
 		[195840, 40],
 	],
 	theorySummary:
-		"Ingested from MusicXML in E Minor (4/4, 40 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+		"88-bar Classical slow-movement quartet gem in E Minor (Adagio): contrasts poignant E Minor sighs (Em/G → B7/D♯) against luminous G Major (III) cantabile periods, then ventures through Neapolitan Fdim/G♯, A♯m, and F♯7/C♯ harmonic drama before a hushed recapitulation.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML violin arrangement of String Quartet No. 3 (K. 156) — II. Adagio in E Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Intimate, tearful Classical chamber Adagio—sighing two-note motifs and delicate 1st-inversion suspensions carry Mozart's hallmark singing elegance.",
 		harmonyHook:
-			"Tracks E Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Textbook sonata-form minor-key architecture: establishes E Minor via Em/G → B7/D♯, lifts smoothly to relative G Major (III) via A7 → D7, and explores chromatic diminished/V7/V drama in the development.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Notice the opening 2-bar sigh (Em/G → B7/D♯): putting G in the bass and D♯ in the bass makes the progression glide rather than thud on root chords.",
+			"Follow the sunny lift into G Major (III) starting at Bar 5: D7 → G (Bars 10–14) temporarily makes G feel like home.",
+			"In the development (Bars 29–50), watch how Fdim/G♯, A♯m, and F♯7 (V7/V) pull tension sharply before B7 resolves back to Em.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–25",
+				id: "k156-sec-1",
+				title: "1. Exposition — Em to G Major",
+				barRange: "Bars 1–14",
 				startStepIndex: 0,
-				endStepIndex: 24,
-				progressionTag: "Em/G – B7/D♯ – B7/A – B7 – G – Cmaj7",
+				endStepIndex: 13,
+				progressionTag: "Em/G – B7/D♯ – B7 – G – Cmaj7 – A7 – D7 – G",
 				insight:
-					"Measures 1–25 (i – V7 – V7 – V7 – III) weaves through Em/G → B7/D♯ → B7/A → B7 in E Minor.",
+					"Opens in tragic E Minor (Em/G → B7/D♯), then blooms into relative G Major (III) via Cmaj7 and an A7 → D7 → G cadence.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 26–46",
-				startStepIndex: 25,
-				endStepIndex: 45,
-				progressionTag: "G – Fdim/G♯ – G7/B – A♯m – F♯7/C♯ – B/D♯",
+				id: "k156-sec-2",
+				title: "2. Exposition Repeat",
+				barRange: "Bars 15–28",
+				startStepIndex: 14,
+				endStepIndex: 27,
+				progressionTag: "Em/G – B7/D♯ – B7 – G – Cmaj7 – A7 – D7 – G",
 				insight:
-					"Measures 26–46 (III – ♭ii° – III7 – ♯iv – V7/V) introduces secondary dominant pull around the Circle of Fifths.",
+					"Repeats the lyrical E Minor → G Major exposition period, anchoring the bright G Major close before the development turns dark.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 47–68",
-				startStepIndex: 46,
-				endStepIndex: 67,
-				progressionTag: "B7 – Am7 – F♯7/A♯ – Em – Em/G – B7/D♯",
+				id: "k156-sec-3",
+				title: "3. Chromatic Development",
+				barRange: "Bars 29–51",
+				startStepIndex: 28,
+				endStepIndex: 50,
+				progressionTag:
+					"Fdim/G♯ – G7/B – A♯m – Bm – F♯7/C♯ – B/D♯ – Edim/A♯ – C7/E",
 				insight:
-					"Measures 47–68 (V7 – iv7 – V7/V – i – i) introduces secondary dominant pull around the Circle of Fifths.",
+					"Weaves Neapolitan Fdim/G♯, rising chromatic A♯m → Bm, and urgent F♯7 (V7/V) → B7 turns to drive back to E Minor in Bars 45–51.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 69–88",
-				startStepIndex: 68,
+				id: "k156-sec-4",
+				title: "4. Recapitulation & Quiet Close",
+				barRange: "Bars 52–88",
+				startStepIndex: 51,
 				endStepIndex: 87,
-				progressionTag: "F♯7/C♯ – B/D♯ – F♯m7/E – Em – B7/F♯ – G♯m/B",
+				progressionTag:
+					"Em/G – B7/D♯ – G – Fdim/G♯ – F♯7/C♯ – B/D♯ – Em/B – Em",
 				insight:
-					"Measures 69–88 (V7/V – V – ii7 – i – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Reprises the full thematic journey with heightened chromatic urgency (Bars 66–86) before settling calmly onto pure E Minor in Bar 88.",
 			},
 		],
+	},
+	barNotes: {
+		"2": {
+			roleLabel: "Dominant · Leading Bass",
+			cardSummary: "B7/D♯ puts leading tone D♯ in bass toward Em",
+			whatItDoes:
+				"Voices dominant B7 in 1st inversion, putting E Minor's raised leading tone D♯ in the bass with the D♯–A tritone.",
+			biggerPicture:
+				"Creates the aching Classical sigh following Bar 1's Em/G before B7 shifts into root-position push in Bars 3–4.",
+			whyItWorks:
+				"F♯ and B stay closely connected while D♯ (a half-step below E) pulls urgently upward toward tonic E.",
+		},
+		"10": {
+			roleLabel: "Secondary Dom. → III",
+			cardSummary: "D7 (V7/III) locks in bright G Major arrival",
+			whatItDoes:
+				"Fires dominant D7 (V7/III) right after A7 (Bar 9), resolving straight onto relative major G (III).",
+			biggerPicture:
+				"Completes the Exposition's classic minor-to-relative-major modulation (Em → G Major) spanning Bars 5–14.",
+			whyItWorks:
+				"D7's tritone (F♯ and C) pulls inward into G and B, dropping cleanly counter-clockwise by 5th on the Circle of Fifths.",
+		},
+		"29": {
+			roleLabel: "Chromatic Dim. Pivot",
+			cardSummary: "Fdim/G♯ jolts out of G Major into development",
+			whatItDoes:
+				"Introduces Neapolitan/chromatic diminished Fdim/G♯ (♭ii°) with borrowed F♮ before stepping onto Am (iv).",
+			biggerPicture:
+				"Shatters Bar 28's serene G Major close to launch Mozart's turbulent harmonic development.",
+			whyItWorks:
+				"Fdim's G♯ bass walks by half-step directly into A Minor (G♯ → A), turning shock into smooth voice leading.",
+		},
 	},
 	chords: {
 		"Em/G": {

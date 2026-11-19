@@ -16,59 +16,122 @@ export const HOW_DEEP_IS_YOUR_LOVE_GUITAR_SPEC: SongDocument = {
 	tempoMap: [[0, 100]],
 	capo: 2,
 	theorySummary:
-		"Ingested from MusicXML in B Major (4/4, 100 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"74-bar pop-soul harmonic masterclass in B Major (played with Capo 2): blends lush maj7 tonic pedals (B → Bmaj7 → Emaj7/B), signature pop IV/5 dominant suspensions (Eadd9/F♯), secondary dominants (V7/vi, V7/V, V7/ii), borrowed ♭VII (A), and an iconic minor plagal cadence (Em → B).",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of How Deep Is Your Love in B Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Warm, glowing fingerstyle pop ballad (Capo 2)—open-string shapes let 7ths and add9s ring effortlessly like an electric piano.",
 		harmonyHook:
-			"Tracks B Major harmony bar-by-bar, spotlighting applied tension (V7/ii, V7/vi) around the Circle of Fifths.",
+			"Classic 70s songwriting alchemy: substitutes lush IV/5 (Eadd9/F♯) for plain V7, tonicizes vi and ii with applied dominants, and seals every chorus with minor iv → I (Em → B).",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Play Bars 1–3 slowly: B stays in the bass across B → Bmaj7 → Emaj7/B while the upper melody steps gently B → A♯ → G♯.",
+			"Feel how Eadd9/F♯ (Bars 12, 16) acts as a gentle, suspended dominant (IV over the 5th degree F♯) rather than a harsh F♯7.",
+			"Listen for the emotional peak at Bars 25 & 32: borrowing minor Em (iv) with G♮ softens the return to B Major—the signature minor plagal hook.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–19",
+				id: "hdiyl-sec-1",
+				title: "1. Intro & Verse 1 — B Pedal",
+				barRange: "Bars 1–8",
 				startStepIndex: 0,
-				endStepIndex: 18,
-				progressionTag: "B – Bmaj7 – Emaj7/B – A♭m7/F♯ – B – Bmaj7",
+				endStepIndex: 7,
+				progressionTag: "B – Bmaj7 – Emaj7/B – A♭m7/F♯ – B – F♯5",
 				insight:
-					"Measures 1–19 (I – Imaj7 – IVmaj7 – vi7 – I) weaves through B → Bmaj7 → Emaj7/B → A♭m7/F♯ in B Major.",
+					"Drifts gently over a B bass pedal (B → Bmaj7 → Emaj7/B) and steps down through vi7/7th-in-bass (G♯m7/F♯) before F♯5 opens the pre-chorus.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 20–37",
-				startStepIndex: 19,
-				endStepIndex: 36,
-				progressionTag: "A – E♭m7/F♯ – E♭m/F♯ – B – A♭m7/F♯ – Em",
+				id: "hdiyl-sec-2",
+				title: "2. Pre-Chorus — V7/vi & IV/5 Lift",
+				barRange: "Bars 9–18",
+				startStepIndex: 8,
+				endStepIndex: 17,
+				progressionTag:
+					"B/F♯ – E♭7 – C♯m – Eadd9/F♯ – B – A♭m7 – C♯m7 – E – C♯7/B",
 				insight:
-					"Measures 20–37 (♭VII – iii7 – iii – I – vi7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Uses D♯7/E♭7 (V7/vi) to lean into ii (C♯m), suspends IV/5 (Eadd9/F♯), and sparks a bright C♯7 (V7/V) lift toward the chorus.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 38–57",
-				startStepIndex: 37,
-				endStepIndex: 56,
-				progressionTag: "A♭m7 – C♯m7 – Eadd9/F♯ – E – E♭m7 – C♯m7",
+				id: "hdiyl-sec-3",
+				title: "3. Chorus — ♭VII & Minor Plagal Em→B",
+				barRange: "Bars 19–33",
+				startStepIndex: 18,
+				endStepIndex: 32,
+				progressionTag: "C♯m7 – A – E♭m7/F♯ – B – Em – A♭7 – Eadd9 – Em – B",
 				insight:
-					"Measures 38–57 (vi7 – ii7 – IV – IV – iii7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Swells with borrowed ♭VII (A), secondary dominant G♯7/A♭7 (V7/ii), and the iconic bittersweet minor plagal cadence Em (iv) → B (I).",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 58–74",
-				startStepIndex: 57,
+				id: "hdiyl-sec-4",
+				title: "4. Verse 2 & Chorus Reprise",
+				barRange: "Bars 34–59",
+				startStepIndex: 33,
+				endStepIndex: 58,
+				progressionTag: "C♯m – E♭7 – Eadd9/F♯ – B – A – Em – B – F♯sus4",
+				insight:
+					"Returns through the shimmering pre-chorus and chorus hooks before suspending cleanly on F♯sus4 → F♯sus2 for the outro build.",
+			},
+			{
+				id: "hdiyl-sec-5",
+				title: "5. Outro Chorus & Fade Cadence",
+				barRange: "Bars 60–74",
+				startStepIndex: 59,
 				endStepIndex: 73,
-				progressionTag: "F♯sus4 – F♯sus2 – B – A♭m7/F♯ – Em – C♯m",
+				progressionTag: "B – A♭m7/F♯ – Em – C♯m – A♭7 – Eadd9 – Em – B",
 				insight:
-					"Measures 58–74 (Vsus4 – Vsus2 – I – vi7 – iv) introduces secondary dominant pull around the Circle of Fifths.",
+					"Revisits the emotional Em (iv) and A♭7 (V7/ii) chorus climb one last time, settling through F♯sus4 → B5 onto pure B Major.",
 			},
 		],
+	},
+	barNotes: {
+		"2": {
+			roleLabel: "Maj7 Color · B Pedal",
+			cardSummary: "A♯ adds dreamy maj7 warmth over B bass",
+			whatItDoes:
+				"Expands the B triad with its major 7th (A♯), softening tonic rest into warm, floating longing while holding B in the bass.",
+			biggerPicture:
+				"Step 2 of the iconic 3-bar B pedal (B → Bmaj7 → Emaj7/B) that opens the verse.",
+			whyItWorks:
+				"The melody descends just one half-step (B → A♯) over unchanged B–D♯–F♯ harmony, creating effortless emotional warmth.",
+		},
+		"12": {
+			roleLabel: "IV/5 Dominant Susp.",
+			cardSummary: "Lush Eadd9 over F♯ bass acts as suspended V",
+			whatItDoes:
+				"Voices the IV chord (Eadd9) over the dominant 5th degree (F♯) in the bass—a classic pop/gospel 'slash-dominant' sound.",
+			biggerPicture:
+				"Bridges C♯m/E♭7 smoothly back into B Major in Bar 13 without needing a harsh F♯7.",
+			whyItWorks:
+				"E, G♯, and B over F♯ act like F♯11 (9th, 11th, 13th), giving the tension of a dominant bass with the warmth of a IV chord.",
+		},
+		"20": {
+			roleLabel: "Borrowed Flat-VII",
+			cardSummary: "Modal A Major drops a whole step below B",
+			whatItDoes:
+				"Borrows A Major (♭VII) from Mixolydian/parallel minor, introducing out-of-key A♮ and E–C♯ color.",
+			biggerPicture:
+				"Gives the chorus hook ('And you come to me...') its unexpected open lift between C♯m7 and D♯m7/F♯.",
+			whyItWorks:
+				"Moving a whole step below tonic (A → B via E♭m7/F♯) sounds wider and gentler than a leading-tone dominant pull.",
+		},
+		"29": {
+			roleLabel: "Secondary Dom. → ii",
+			cardSummary: "A♭7 (V7/ii) adds C♮ pull toward C♯m",
+			whatItDoes:
+				"Turns diatonic G♯m7 (vi7) into bright dominant A♭7/G♯7 (V7/ii), introducing chromatic C♮ (B♯) outside B Major.",
+			biggerPicture:
+				"Pushes the second half of the chorus through Eadd9 into C♯m (ii), elevating the emotional intensity before Em → B.",
+			whyItWorks:
+				"Raising B to C♮ creates a classic tritone (C♮ and G♭/F♯) longing to resolve counter-clockwise by 5th toward C♯m.",
+		},
+		"32": {
+			roleLabel: "Minor Plagal Cadence",
+			cardSummary: "Borrowed Em sighs softly home into B",
+			whatItDoes:
+				"Flips IV to borrowed minor iv (Em, bringing chromatic G♮) mid-bar before resolving directly onto tonic B Major.",
+			biggerPicture:
+				"Delivers the chorus's signature bittersweet pop cadence (iv → I), softening the return home.",
+			whyItWorks:
+				"G♮ drops just one half-step to F♯ while B stays anchored as a shared tone—one of tonal music's warmest voice-leading sighs.",
+		},
 	},
 	chords: {
 		B: {

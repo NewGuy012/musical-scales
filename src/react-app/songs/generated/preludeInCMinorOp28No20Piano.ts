@@ -15,29 +15,91 @@ export const PRELUDE_IN_C_MINOR_OP_28_NO_20_PIANO_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 120]],
 	theorySummary:
-		"Ingested from MusicXML in C Minor (4/4, 120 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+		"13-bar Romantic harmony jewel in C Minor: opens with a solemn funeral-march cadence (i–iv7–V–i), sequences it down a major 3rd to A♭ (VI), descends down a 6-note chromatic bass line (C–B–B♭–A–A♭–G) under diminished & tritone-sub tension, and whispers an unforgettable pp echo.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML piano arrangement of Prelude in C Minor, Op. 28 No. 20 in C Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Heavy, orchestral piano block chords marching in dotted rhythms—opening ff like a funeral procession before dropping to p and a ghostly pp echo.",
 		harmonyHook:
-			"Tracks C Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Packs four chords per bar so every beat shifts voice leading: sequential transposition (Cm → A♭), a 6-step chromatic bass walk, and tritone-like A♭7 → G7 tension.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Notice how Bar 2 copies Bar 1's exact chord shape (i → iv7 → V → i) starting on A♭ (VI) instead of Cm (i).",
+			"Trace the slow chromatic bass descent across Bars 5–6: C → B → B♭ → A → A♭ → G.",
+			"Compare Bars 9–12 (pp) against Bars 5–8 (p)—same aching descent, transformed purely by soft dynamics and register.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Main Theme",
-				barRange: "Bars 1–13",
+				id: "chopin20-sec-1",
+				title: "1. Funeral March & A♭ Sequence",
+				barRange: "Bars 1–4",
 				startStepIndex: 0,
-				endStepIndex: 12,
-				progressionTag: "Cm – A♭ – G7 – D7 – Cm – Am7",
+				endStepIndex: 3,
+				progressionTag: "Cm – A♭ – G7 – D7/G",
 				insight:
-					"Measures 1–13 (i – VI – V7 – V7/V – i) introduces secondary dominant pull around the Circle of Fifths.",
+					"States a full minor cadence inside Bar 1, sequences it down to A♭ (VI) in Bar 2, drives through V7/iv (C7 → Fm) in Bar 3, and pauses on a dramatic half cadence in Bar 4.",
+			},
+			{
+				id: "chopin20-sec-2",
+				title: "2. Chromatic Bass Descent (p)",
+				barRange: "Bars 5–8",
+				startStepIndex: 4,
+				endStepIndex: 7,
+				progressionTag: "Cm – Bm – Gm/B♭ – Am7 – A♭7 – G7 – Cm",
+				insight:
+					"Glides down a chromatic bass staircase (C → B → B♭ → A → A♭ → G) in Bars 5–6, resolving via a tight Bar 7 cadence and Bar 8 Neapolitan D♭ → G7 → Cm turn.",
+			},
+			{
+				id: "chopin20-sec-3",
+				title: "3. Whispered Echo (pp) & Finale",
+				barRange: "Bars 9–13",
+				startStepIndex: 8,
+				endStepIndex: 12,
+				progressionTag: "Bm – Gm/B♭ – Am7 – A♭7 – G7 – Cm",
+				insight:
+					"Replays the chromatic descent at a hushed pp before settling onto one bare, solemn C Minor final chord in Bar 13.",
 			},
 		],
+	},
+	barNotes: {
+		"1": {
+			roleLabel: "Tonic · 4-Beat Cadence",
+			cardSummary: "Full i–iv7–V–i funeral cadence in 1 bar",
+			whatItDoes:
+				"Grounds C Minor (i) while packing four distinct block chords (Cm → Fm7 → G → Cm) into four march beats.",
+			biggerPicture:
+				"Establishes the dark tonic cadence motif in Section 1 that Bar 2 immediately transposes into A♭ Major.",
+			whyItWorks:
+				"Keeping C on top and in the outer voice frame lets the inner chord tones cycle smoothly from subdominant warmth (Fm7) through harmonic-minor leading tone B (G) back to Cm.",
+		},
+		"2": {
+			roleLabel: "Sequential Echo (VI)",
+			cardSummary: "Transposes Bar 1's cadence down into A♭",
+			whatItDoes:
+				"Opens on warm submediant A♭ (VI) and cycles A♭ → D♭ → E♭7 → A♭, momentarily visiting A♭ Major as a mini key.",
+			biggerPicture:
+				"Answers Bar 1's C Minor phrase with a major-key sequential echo a major 3rd lower.",
+			whyItWorks:
+				"Shares C and E♭ with Cm so the sudden leap to A♭ feels cohesive, while E♭7's G–D♭ tritone cleanly cadences onto A♭.",
+		},
+		"5": {
+			roleLabel: "Chromatic Bass Launch",
+			cardSummary: "Starts chromatic bass walk C → B → B♭",
+			whatItDoes:
+				"Lands on C Minor (i) from Bar 4's dominant, then immediately slips down via Bm and Gm/B♭ to start a long lament bass.",
+			biggerPicture:
+				"Opens Section 2's tender piano (p) chromatic descent spanning Bars 5–6 before Bar 7's cadence.",
+			whyItWorks:
+				"Each beat drops the bass exactly one half-step (C → B → B♭) while holding G on top as a common melodic anchor.",
+		},
+		"6": {
+			roleLabel: "Chromatic Slide → V7",
+			cardSummary: "Chromatic A → A♭ → G bass lands on G7",
+			whatItDoes:
+				"Continues the falling bass from Bar 5 (Am7 → A♭7 → G7 → G7/F), adding raised 6th A and borrowed A♭7 color before V7.",
+			biggerPicture:
+				"Climaxes the 2-bar chromatic bass lament (C–B–B♭–A–A♭–G) and sets up Bar 7's resolution onto Cm/E♭.",
+			whyItWorks:
+				"A♭7 sits one half-step above G7 (a tritone-sub style push) before stepping down onto G7/F, whose 7th (F) pulls downward to E♭ in Bar 7.",
+		},
 	},
 	chords: {
 		Cm: {

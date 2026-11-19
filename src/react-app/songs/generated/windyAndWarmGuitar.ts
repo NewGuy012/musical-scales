@@ -15,59 +15,91 @@ export const WINDY_AND_WARM_GUITAR_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 144]],
 	theorySummary:
-		"Ingested from MusicXML in A Minor (4/4, 144 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"84-bar alternating-thumb Travis picking standard in A Minor: grooves over open-fifth A5 & Asus4 pedal riffs, dips into bright C / F major folk warmth, and flashes surprising A Major / E7 / Bm7 blues-country colors in the middle bridge.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Windy and Warm in A Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Smoky, swinging thumb-and-fingers groove—steady alternating low A/E bass line supports syncopated bluesy bends and open-string chords.",
 		harmonyHook:
-			"Follows A Minor chord functions (i5 · i · isus4 · v · i7) bar-by-bar on the Circle of Fifths.",
+			"Blends folk-minor open fifths (A5, Asus4) with a warm relative-major lift (C → F) and a bright parallel A Major / Dorian D7 turnaround bridge.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Lock in the alternating bass thumb pattern in Bars 1–4 before adding the upper melody syncopations.",
+			"Notice how Bars 1–20 stay grounded on A5, Asus4, and Am/C while only shifting the top chord color.",
+			"In Bars 52–65, listen for the bright parallel shift into A Major (A → A7 → Bm7 → D7) before C/E pulls back to A Minor.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
+				id: "ww-sec-1",
+				title: "1. Intro & Main A5/Asus4 Riff",
 				barRange: "Bars 1–20",
 				startStepIndex: 0,
 				endStepIndex: 19,
-				progressionTag: "A5 – Am – Asus4 – Am – Em – Am",
+				progressionTag: "A5 – E5 – Am – C/E – Asus4 – Em",
 				insight:
-					"Measures 1–20 (i5 – i – isus4 – i – v) weaves through A5 → Am → Asus4 → Am in A Minor.",
+					"Establishes the bouncy Travis-picking thumb groove, toggling open A5 power chords, Asus4 suspensions, and Am/C/Em chord flashes.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
+				id: "ww-sec-2",
+				title: "2. Bass Walk & Relative Major Lift",
 				barRange: "Bars 21–44",
 				startStepIndex: 20,
 				endStepIndex: 43,
-				progressionTag: "Am7 – Am – Gadd9/A – Am – Dm/F – E7",
+				progressionTag: "Am7 – Gadd9/A – Dm/F – E7 – G7 – F♯m7 – C – F – Dm",
 				insight:
-					"Measures 21–44 (i7 – i – VII – i – iv) weaves through Am7 → Am → Gadd9/A → Am in A Minor.",
+					"Steps down chromatically (A5 → Amaj7/A♭ → G7 → F♯m7 → Em/G) into warm C → F → Dm major/relative relief.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 45–64",
+				id: "ww-sec-3",
+				title: "3. Parallel A Major Blues Bridge",
+				barRange: "Bars 45–65",
 				startStepIndex: 44,
-				endStepIndex: 63,
-				progressionTag: "Asus4 – Am – Em – Am – Asus4 – Am",
+				endStepIndex: 64,
+				progressionTag: "Am – A5 – A – A7 – E7 – Bm7 – D7 – Emaj7 – C/E",
 				insight:
-					"Measures 45–64 (isus4 – i – v – i – isus4) weaves through Asus4 → Am → Em → Am in A Minor.",
+					"Brightens into parallel A Major and dominant A7 blues licks before Dorian D7 and Emaj7 pivot back through C/E.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 65–84",
-				startStepIndex: 64,
+				id: "ww-sec-4",
+				title: "4. Closing Groove & Open-5th Tag",
+				barRange: "Bars 66–84",
+				startStepIndex: 65,
 				endStepIndex: 83,
-				progressionTag: "C/E – Am – Asus4 – Am – Em – Am",
+				progressionTag: "Am – C/E – Asus4 – Em – A5 – E5 – A5",
 				insight:
-					"Measures 65–84 (III – i – isus4 – i – v) weaves through C/E → Am → Asus4 → Am in A Minor.",
+					"Returns to the signature A Minor fingerstyle riff and winds down with crisp A5 → E5 alternating-bass turnarounds.",
 			},
 		],
+	},
+	barNotes: {
+		"1": {
+			roleLabel: "Open-5th Groove Launch",
+			cardSummary: "A5 → E5 power chords launch Travis thumb groove",
+			whatItDoes:
+				"Opens on a lean, thirdless A5 power chord (A · E) before tipping onto E5 on the off-beat.",
+			biggerPicture:
+				"Sets the rhythmic engine of Section 1 without locking down major or minor 3rds until Am enters in Bar 3.",
+			whyItWorks:
+				"Leaving out the 3rd lets the open A and E strings ring crisply under percussive thumb-picked bass notes.",
+		},
+		"4": {
+			roleLabel: "Suspended Tonic Color",
+			cardSummary: "Asus4 floats 4th (D) over Am/E turnaround",
+			whatItDoes:
+				"Replaces Am's C with suspended 4th D (Asus4), creating open tension that relaxes onto Am/E mid-bar.",
+			biggerPicture:
+				"Forms the melodic hook of the main 4-bar riff (Bars 3–4, repeated in 7–8 and 11–12).",
+			whyItWorks:
+				"D sits one fret above C on the B string, so lifting one finger resolves the suspension effortlessly back into Am.",
+		},
+		"52": {
+			roleLabel: "Parallel Major Lift",
+			cardSummary: "Flips A Minor bright into A Major",
+			whatItDoes:
+				"Brings in bright C♯ to turn tonic A Minor into A Major (I), kicking off the sunny country-blues bridge.",
+			biggerPicture:
+				"Transforms the second half of the tune (Bars 52–63) into an upbeat A Major / A7 → D7 turnaround before returning to Am.",
+			whyItWorks:
+				"Sharing the exact same A and E open strings makes flipping C → C♯ sound punchy and seamless.",
+		},
 	},
 	chords: {
 		A5: {

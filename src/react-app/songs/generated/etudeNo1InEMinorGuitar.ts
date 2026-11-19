@@ -18,59 +18,91 @@ export const ETUDE_NO_1_IN_E_MINOR_GUITAR_SPEC: SongDocument = {
 		[3840, 120],
 	],
 	theorySummary:
-		"Ingested from MusicXML in E Minor (4/4, 120 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"61-bar fingerstyle arpeggio showcase in E Minor: keeps the guitar's open E and B strings ringing while movable chromatic shapes, secondary dominants (E7 = V7/iv, F♯7 = V7/V), and symmetric diminished chords glide seamlessly up and down the neck.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Étude No. 1 in E Minor in E Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Hypnotic, perpetual-motion 16th-note right-hand arpeggio stream—dark, driving Brazilian classical guitar counterpoint.",
 		harmonyHook:
-			"Tracks E Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Exploits open guitar strings (E and B) as resonant pedals underneath shifting chromatic chords, applied dominants (E7 → Am, F♯7 → B7), and sliding diminished bridges.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Keep your right-hand arpeggio pattern relaxed and mechanical so you can listen purely to the left hand walking up and down the bass strings.",
+			"Notice Bars 11–12 (E/A♭ → E/B) and 23–24 (E7): Villa-Lobos turns the tonic E into major/dominant V/iv to pull into A Minor (iv).",
+			"Spot the sliding diminished chords (Edim in Bars 31–32 & 37–38) gliding effortlessly against open E and B strings.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–17",
+				id: "vl1-sec-1",
+				title: "1. Open-String Pedal & V/iv Pull",
+				barRange: "Bars 1–15",
 				startStepIndex: 0,
-				endStepIndex: 16,
-				progressionTag: "Em – Am/E – Em – B7/F♯ – Em/G – E/A♭",
+				endStepIndex: 14,
+				progressionTag: "Em – Am/E – B7/F♯ – E/A♭ – Am – Em7",
 				insight:
-					"Measures 1–17 (i – iv – i – V7 – i) weaves through Em → Am/E → Em → B7/F♯ in E Minor.",
+					"Locks the right-hand arpeggio pattern over Em and Am/E pedals, passes through B7, and brightens E to major (V/iv) to pull warmly into Am.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 18–33",
-				startStepIndex: 17,
-				endStepIndex: 32,
-				progressionTag: "Em/B – Bsus4 – B7 – E7 – C♯m/E – Am/E",
+				id: "vl1-sec-2",
+				title: "2. Climbing E7 & Diminished Slides",
+				barRange: "Bars 16–32",
+				startStepIndex: 15,
+				endStepIndex: 31,
+				progressionTag: "Em/B – Bsus4 – B7 – E7 – C♯m/E – Am/E – Edim",
 				insight:
-					"Measures 18–33 (i – Vsus4 – V7 – I7 – ♯vi) weaves through Em/B → Bsus4 → B7 → E7 in E Minor.",
+					"Moves up the fretboard through B7 and E7 (V7/iv), visiting Dorian C♯m (♯vi) before unleashing shimmering Edim diminished tension.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 34–49",
-				startStepIndex: 33,
-				endStepIndex: 48,
-				progressionTag: "Am/E – E7 – Edim – Am/E – E7 – Em",
+				id: "vl1-sec-3",
+				title: "3. High-Fret Tension & Bmaj7 Shift",
+				barRange: "Bars 33–46",
+				startStepIndex: 32,
+				endStepIndex: 45,
+				progressionTag: "Am/E – E7 – Edim – Am/E – Em – Bmaj7/B♭",
 				insight:
-					"Measures 34–49 (iv – I7 – i° – iv – I7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Repeats the E7–Edim–Am cycle higher up, then drops onto tonic Em and surprises the ear with lush Bmaj7 in Bar 46.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 50–61",
-				startStepIndex: 49,
+				id: "vl1-sec-4",
+				title: "4. Circle Chain & Arpeggio Coda",
+				barRange: "Bars 47–61",
+				startStepIndex: 46,
 				endStepIndex: 60,
-				progressionTag: "C♯m7 – F♯m – B7 – Em – Am/C – C♯m7/E",
+				progressionTag: "F♯7 – C♯m7 – F♯m – B7 – Em – Am/C – C♯m7/E",
 				insight:
-					"Measures 50–61 (♯vi7 – ii – V7 – i – iv) weaves through C♯m7 → F♯m → B7 → Em in E Minor.",
+					"Drives a Circle-of-Fifths chain (F♯7 → B7 → Em) via C♯m7 and F♯m before resting across E Minor pedals and an open high harmonic/chordal finish.",
 			},
 		],
+	},
+	barNotes: {
+		"11": {
+			roleLabel: "Secondary Dom. → iv",
+			cardSummary: "Brightens Em to E (V/iv) aiming at Am",
+			whatItDoes:
+				"Turns dark Em into bright E Major (with 3rd G♯/A♭ in the bass), transforming tonic into an active secondary dominant V/iv.",
+			biggerPicture:
+				"Pulls the opening E Minor phrase up toward A Minor (iv) in Bar 13, breaking out of the tonic pedal.",
+			whyItWorks:
+				"Raising G to G♯ creates a half-step leading tone straight into A, while keeping open high strings ringing over the fretted bass.",
+		},
+		"31": {
+			roleLabel: "Chromatic Dim. Bridge",
+			cardSummary: "Edim slides tension against open E/B strings",
+			whatItDoes:
+				"Stacks diminished minor 3rds (E · G · B♭) over the ringing arpeggio pattern, injecting sharp, rootless instability.",
+			biggerPicture:
+				"Creates high-neck climax tension between E7 (Bar 30) and the resolving Am/E arrival (Bar 33).",
+			whyItWorks:
+				"Diminished symmetry lets the left hand shift cleanly up the fingerboard while open guitar strings tie the sonority together.",
+		},
+		"47": {
+			roleLabel: "Secondary Dom. → V",
+			cardSummary: "F♯7 launches final Circle chain home",
+			whatItDoes:
+				"Fires dominant F♯7 (V7/V) with its tritone (A♯ and E), stepping one fifth clockwise past B7.",
+			biggerPicture:
+				"Launches the closing Circle-of-Fifths journey (F♯7 → … → B7 → Em) that brings the étude home.",
+			whyItWorks:
+				"F♯7 steps counter-clockwise by 5th into B7 (after C♯m7–F♯m), setting up the final V7 → i resolution.",
+		},
 	},
 	chords: {
 		Em: {

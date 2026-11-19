@@ -15,69 +15,101 @@ export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 	timeSignature: "9/8",
 	tempoMap: [[0, 78]],
 	theorySummary:
-		"Ingested from MusicXML in E Major (9/8, 78 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"77-bar Tommy Emmanuel fingerstyle arrangement of the classic hymn in E Major (9/8): weaves gospel passing diminished chords (A♯°7, G♯°, Gdim7), secondary dominants (V7/IV, V7/V), 9ths/13ths, and a lush Phrygian tag (G6 → Fmaj7 → Emaj9).",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Amazing Grace in E Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Lilting, orchestral 9/8 fingerstyle hymn—builds from simple, vocal open chords in Verse 1 to sparkling gospel jazz voicings and harp harmonics.",
 		harmonyHook:
-			"Tracks E Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Shows how a 3-chord hymn (I–IV–V) transforms through jazz/gospel reharmonization: IV → ♯iv°7 → I/5 bass walks, iii° → IV7 approaches, and chromatic ♭III–♭II endings.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Count the gentle 9/8 sway (1-2-3, 4-5-6, 7-8-9) so the grace notes and inner bass walks breathe naturally.",
+			"Spot the gospel walk at Bars 4, 12, 20, and 60: Aadd9 → A♯dim7 → E/B steps the bass chromatically A → A♯ → B.",
+			"Explore Bars 73–77 at the very end: Tommy slides chromatically down G6 → Fmaj7 (♭III → ♭II) before landing on a glassy Emaj9.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "Verse 1",
+				id: "ag-sec-1",
+				title: "1. Verse 1 — Gentle Hymn & A♯°7",
 				barRange: "Bars 1–17",
 				startStepIndex: 0,
 				endStepIndex: 16,
-				progressionTag: "C♯m7 – E – Eaug/G♯ – Aadd9 – E – C♯m7",
+				progressionTag: "C♯m7 – E – Aadd9 – A♯dim7 – E7 – A – F♯9 – B7",
 				insight:
-					"Measures 1–17 (vi7 – I – I+ – IV – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Opens softly on vi7 (C♯m7) and bright E Major, introducing the gospel A → A♯°7 → E/B bass walk and V7/V (F♯9) → B7 turnaround.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Verse 2",
+				id: "ag-sec-2",
+				title: "2. Verse 2 — Gospel E7 → G♯° → A7",
 				barRange: "Bars 18–33",
 				startStepIndex: 17,
 				endStepIndex: 32,
-				progressionTag: "E – E/G♯ – Aadd9 – E6 – E – C♯m7",
+				progressionTag: "E – C♯m7 – F♯m7 – B7 – E7 – G♯° – A7 – A♯dim7 – B7",
 				insight:
-					"Measures 18–33 (I – I – IV – I – I) weaves through E → E/G♯ → Aadd9 → E6 in E Major.",
+					"Enriches the middle stanza with a rising chromatic dominant climb (E7 → G♯° → A7 → A♯dim7 → B6) that drives forward into Bar 33.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Verse 3",
+				id: "ag-sec-3",
+				title: "3. Verse 3 — Singing High Melody",
 				barRange: "Bars 34–49",
 				startStepIndex: 33,
 				endStepIndex: 48,
-				progressionTag: "E – A7 – E – Esus2 – E – A",
+				progressionTag: "E – A7 – E – B/D♯ – E9 – A6 – C♯m7 – F♯7 – B7",
 				insight:
-					"Measures 34–49 (I – IV7 – I – Isus2 – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Lifts the melody higher with airy E6, E9 (V7/IV), A6, and G♯7 → C♯m7 → G13 color substitutions.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Verse 4",
+				id: "ag-sec-4",
+				title: "4. Verse 4 — Jazz Extensions & Turnarounds",
 				barRange: "Bars 50–65",
 				startStepIndex: 49,
 				endStepIndex: 64,
-				progressionTag: "E6 – E7/G♯ – A – E7/B – E6 – C♯m7",
+				progressionTag: "E6 – E7/G♯ – A – E7/B – Gdim7 – B9/F♯ – G♯° – A7",
 				insight:
-					"Measures 50–65 (I – I7 – IV – I7 – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Deepens the hymn with E7/G♯, chromatic passing Gdim7 and Cdim7 chords, and rich F♯9 → C9 tritone color.",
 			},
 			{
-				id: "imp-sec-5",
-				title: "5. Ending",
+				id: "ag-sec-5",
+				title: "5. Ending — ♭III–♭II Phrygian Tag",
 				barRange: "Bars 66–77",
 				startStepIndex: 65,
 				endStepIndex: 76,
-				progressionTag: "C♯m7 – F♯9 – Asus2 – E – C♯m7 – F♯7",
+				progressionTag: "C♯m7 – F♯9 – B7 – Asus2 – G6 – Fmaj7 – Emaj9 – Emaj7",
 				insight:
-					"Measures 66–77 (vi7 – V7/V – IVsus2 – I – vi7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Winds down softly, then slips through borrowed G6 (♭III) and Fmaj7 (♭II) before blooming onto a luminous Emaj9 → Emaj7 close.",
 			},
 		],
+	},
+	barNotes: {
+		"4": {
+			roleLabel: "Gospel ♯iv°7 Walk",
+			cardSummary: "A → A♯°7 steps chromatically toward B bass",
+			whatItDoes:
+				"Opens on warm Aadd9 (IV) and inserts chromatic passing A♯dim7 (♯iv°7) on the final beat.",
+			biggerPicture:
+				"Creates the classic gospel/hymn bass climb (A → A♯ → B) into Bar 5's tonic E.",
+			whyItWorks:
+				"Raising A just one fret to A♯ creates a symmetrical diminished 7th that squeezes half-step inward onto B and E.",
+		},
+		"27": {
+			roleLabel: "Passing Diminished iii°",
+			cardSummary: "G♯° connects E7 upward into A7",
+			whatItDoes:
+				"Turns the diatonic 3rd degree into diminished G♯° (iii°), replacing G♯m's 5th D♯ with tight tritone D♮.",
+			biggerPicture:
+				"Bridges E7 (Bar 26) up into bluesy A7 (Bar 28) inside Verse 2's rising gospel climax.",
+			whyItWorks:
+				"Shares B, D, and G♯ with E7 (acting like a rootless E7 voicing) while stepping the bass smoothly G♯ → A.",
+		},
+		"74": {
+			roleLabel: "♭III → ♭II Chromatic Tag",
+			cardSummary: "Borrowed G6 → Fmaj7 glides down to Emaj9",
+			whatItDoes:
+				"Borrows outside G6 (♭III) and Neapolitan Fmaj7 (♭II), floating colorful 6th and maj7 tones chromatically downward.",
+			biggerPicture:
+				"Delivers the signature jazz/fingerstyle ending tag right before the final Emaj9 → Emaj7 tonic resolution.",
+			whyItWorks:
+				"Sliding parallel chord shapes down by step and half-step (G → F → E) resolves gently onto Emaj9 via smooth half-step voice leading.",
+		},
 	},
 	chords: {
 		"C♯m7": {

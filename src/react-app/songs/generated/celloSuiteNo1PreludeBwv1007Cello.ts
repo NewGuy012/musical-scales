@@ -15,49 +15,102 @@ export const CELLO_SUITE_NO_1_PRELUDE_BWV_1007_CELLO_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 80]],
 	theorySummary:
-		"Ingested from MusicXML in G Major (4/4, 80 BPM) with polyphonic timing, dynamics, and ergonomic cello fingerings.",
+		"42-bar solo cello masterpiece in G Major: turns rapid 16th-note string crossings (bariolage) into a complete harmonic journey—anchoring open G2, climbing clockwise through A7 → D and E7 → Am → D♯° → D7, peaking on Bar 22's D7 cadenza, and sweeping across open-A3 bariolage to G.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML cello arrangement of Cello Suite No. 1 — Prelude (BWV 1007) in G Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Continuous 16th-note bow crossings across open cello strings weave bass, inner harmony, and singing top melody into a single golden line.",
 		harmonyHook:
-			"Tracks G Major harmony bar-by-bar, spotlighting applied tension (V7/V, V7/ii) around the Circle of Fifths.",
+			"A masterclass in Circle of Fifths navigation: anchors home with I–IVmaj7–Imaj7–I over open G2, climbs clockwise via A7 → D and E7 → Am, and resolves home via G7 → C.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Memorize Bars 1–4 first: the open G2 C/G string stays anchored on every downbeat while upper voices outline G → Cmaj7/G → Gmaj7 → G.",
+			"Watch the Circle wheel in Bars 6–15: Bach steps clockwise to D via A7/C♯ (V7/V), then pivots through E7/D (V7/ii) and D♯dim (♯v°) back to D7.",
+			"In Bars 31–36, keep the bow loose crossing against the open A3 string while the left hand walks stepwise down D and C strings.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–15",
+				id: "bwv1007-sec-1",
+				title: "1. Opening G2 Pedal",
+				barRange: "Bars 1–4",
 				startStepIndex: 0,
+				endStepIndex: 3,
+				progressionTag: "G – Cmaj7/G – Gmaj7 – G",
+				insight:
+					"Establishes G Major over an open G2 bass drone, rocking between I and IVmaj7/G and gentle F♯ shimmer before departing in Bar 5.",
+			},
+			{
+				id: "bwv1007-sec-2",
+				title: "2. Circle Climb to D & Em",
+				barRange: "Bars 5–15",
+				startStepIndex: 4,
 				endStepIndex: 14,
-				progressionTag: "G – Cmaj7/G – Gmaj7 – G – G/B – A7/C♯",
+				progressionTag: "G/B – A7/C♯ – D – Em – E7/D – Am/C – D♯dim – D7/F♯",
 				insight:
-					"Measures 1–15 (I – IVmaj7 – Imaj7 – I – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Climbs clockwise around the Circle via A7/C♯ (V7/V) into D Major, detours through Em and E7/D (V7/ii) → Am, and squeezes D♯dim back to D7.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 16–29",
+				id: "bwv1007-sec-3",
+				title: "3. V7/IV Return & D7 Cadenza",
+				barRange: "Bars 16–30",
 				startStepIndex: 15,
-				endStepIndex: 28,
-				progressionTag: "G7 – C/G – Gmaj7 – Gmaj7/D – F♯m7/C♯ – D7/C",
+				endStepIndex: 29,
+				progressionTag: "G7 – C/G – Gmaj7 – F♯m7/C♯ – D7 – A7 – D7",
 				insight:
-					"Measures 16–29 (I7 – IV – Imaj7 – Imaj7 – vii7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Adds F♮ to turn G into G7 (V7/IV → C/G), then settles onto an extended 5-bar D7 dominant cadenza (Bars 21–25) before climbing again.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Closing Section",
-				barRange: "Bars 30–42",
-				startStepIndex: 29,
+				id: "bwv1007-sec-4",
+				title: "4. Open-A Bariolage & Finale",
+				barRange: "Bars 31–42",
+				startStepIndex: 30,
 				endStepIndex: 41,
-				progressionTag: "D7/C – F♯m7/A – D – Bm7/D – Bm7/A – Am7",
+				progressionTag:
+					"F♯m7/A – D – Bm7 – Am7 – D – Dm – G/D – Dsus4 – D7 – G",
 				insight:
-					"Measures 30–42 (V7 – vii7 – V – iii7 – iii7) weaves through D7/C → F♯m7/A → D → Bm7/D in G Major.",
+					"Crosses rapidly against the ringing open A3 string across Bars 31–36, darkens momentarily via Dm (v), and builds Dsus4 → D7 to a resounding final G chord.",
 			},
 		],
+	},
+	barNotes: {
+		"1": {
+			roleLabel: "Tonic · Launches G2 Pedal",
+			cardSummary: "Opens iconic 4-bar G2 string-crossing pedal",
+			whatItDoes:
+				"Anchors G Major (I) on the lowest open G2 string while upper 16ths arpeggiate B and D in cello bariolage.",
+			biggerPicture:
+				"Establishes the resonant open-G2 bass pedal spanning Bars 1–2 and sets up the opening 4-bar tonic frame.",
+			whyItWorks:
+				"Because G2 rings freely on an open string, every bow crossing sounds like two cellos—bass drone plus singing melody.",
+		},
+		"6": {
+			roleLabel: "Secondary Dom. → V",
+			cardSummary: "A7/C♯ climbs half-step C♯ → D into V",
+			whatItDoes:
+				"Secondary dominant V7/V (A7/C♯) introduces chromatic C♯ directly in the bass (1st inversion) to propel toward D.",
+			biggerPicture:
+				"Steps clockwise from G/B (Bar 5) onto D Major (Bar 7), launching Section 2's tonal excursion.",
+			whyItWorks:
+				"The cello bass climbs cleanly B → C♯ → D by half-step while A7's C♯–G tritone collapses straight into D–F♯.",
+		},
+		"13": {
+			roleLabel: "Chromatic Dim. Bridge",
+			cardSummary: "D♯dim squeezes D♯ → E between Am chords",
+			whatItDoes:
+				"Injects sharp diminished tension (D♯dim = ♯v° / leading tone to Em) right inside the A Minor sequence.",
+			biggerPicture:
+				"Connects Am/C (Bar 12) cleanly into Am7/E → Am7/G (Bar 14) on the way back to D7.",
+			whyItWorks:
+				"Chromatic D♯ sits one semitone below E, giving the melody razor-sharp Baroque pull into Bar 14.",
+		},
+		"22": {
+			roleLabel: "Cadenza Dominant Hold",
+			cardSummary: "Holds dramatic D7 cadenza before resolution",
+			whatItDoes:
+				"Sustains dominant V7 (D7/A) in the middle of the cello's dramatic cascading scale flourish.",
+			biggerPicture:
+				"Marks the famous structural midpoint climax of the Prelude (Bars 21–25) before spinning back toward G in Bar 25.",
+			whyItWorks:
+				"Suspending D7 over alternating bass tones (C → A → D → F♯) builds enormous harmonic pressure to resolve home.",
+		},
 	},
 	chords: {
 		G: {

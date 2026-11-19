@@ -9,7 +9,15 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { basename, extname, join, relative, resolve, sep } from "node:path";
+import {
+	basename,
+	dirname,
+	extname,
+	join,
+	relative,
+	resolve,
+	sep,
+} from "node:path";
 import { parseArgs } from "node:util";
 import {
 	encodeWavPcm16,
@@ -41,6 +49,7 @@ const WATCH_DEBOUNCE_MS = 250;
 const REPO_ROOT = resolve(import.meta.dir, "..");
 const SONGS_DIR = join(REPO_ROOT, "songs");
 const OVERRIDES_PATH = join(SONGS_DIR, "overrides.json");
+const ANNOTATIONS_PATH = join(SONGS_DIR, "annotations.json");
 const MUSICXML_DIR = join(SONGS_DIR, "musicxml");
 const MIRROR_MANIFEST_FILENAME = ".mirror-manifest.json";
 const INGEST_CACHE_FILENAME = ".ingest-cache.json";
@@ -298,9 +307,78 @@ function validateImportOptionsObject(
 		"subtitle",
 		"key",
 		"partId",
+		"theorySummary",
 	] as const) {
 		if (meta[strKey] !== undefined && typeof meta[strKey] !== "string") {
 			throw new Error(`Invalid ${strKey} in "${sourceLabel}".`);
+		}
+	}
+	if (meta.studyGuide !== undefined) {
+		const sg = meta.studyGuide as Record<string, unknown>;
+		if (
+			!sg ||
+			typeof sg !== "object" ||
+			Array.isArray(sg) ||
+			typeof sg.vibeAndSound !== "string" ||
+			typeof sg.harmonyHook !== "string" ||
+			!Array.isArray(sg.practiceTips) ||
+			!Array.isArray(sg.sections)
+		) {
+			throw new Error(`Invalid studyGuide in "${sourceLabel}".`);
+		}
+		for (const sec of sg.sections) {
+			const s = sec as Record<string, unknown>;
+			if (
+				!s ||
+				typeof s !== "object" ||
+				typeof s.id !== "string" ||
+				typeof s.title !== "string" ||
+				typeof s.barRange !== "string" ||
+				typeof s.startStepIndex !== "number" ||
+				typeof s.endStepIndex !== "number" ||
+				typeof s.progressionTag !== "string" ||
+				typeof s.insight !== "string"
+			) {
+				throw new Error(`Invalid studyGuide section in "${sourceLabel}".`);
+			}
+		}
+	}
+	if (meta.barNotes !== undefined) {
+		const bn = meta.barNotes as Record<string, unknown>;
+		if (!bn || typeof bn !== "object" || Array.isArray(bn)) {
+			throw new Error(`Invalid barNotes in "${sourceLabel}".`);
+		}
+		for (const [barKey, noteObj] of Object.entries(bn)) {
+			if (!/^\d+$/.test(barKey)) {
+				throw new Error(`Invalid bar number "${barKey}" in "${sourceLabel}".`);
+			}
+			const note = noteObj as Record<string, unknown>;
+			if (!note || typeof note !== "object" || Array.isArray(note)) {
+				throw new Error(`Invalid barNotes[${barKey}] in "${sourceLabel}".`);
+			}
+			for (const k of [
+				"roleLabel",
+				"contextualRoman",
+				"cardSummary",
+				"whatItDoes",
+				"biggerPicture",
+				"whyItWorks",
+			] as const) {
+				if (note[k] !== undefined && typeof note[k] !== "string") {
+					throw new Error(
+						`Invalid barNotes[${barKey}].${k} in "${sourceLabel}".`,
+					);
+				}
+			}
+			if (
+				note.devices !== undefined &&
+				(!Array.isArray(note.devices) ||
+					note.devices.some((d) => typeof d !== "string"))
+			) {
+				throw new Error(
+					`Invalid barNotes[${barKey}].devices in "${sourceLabel}".`,
+				);
+			}
 		}
 	}
 	return meta as MusicXmlImportOptions;
@@ -332,6 +410,12 @@ export async function loadCuratedOverrides(
 		);
 	}
 	return result;
+}
+
+export async function loadCuratedAnnotations(
+	annotationsPath = ANNOTATIONS_PATH,
+): Promise<CuratedOverridesMap> {
+	return loadCuratedOverrides(annotationsPath);
 }
 
 async function collectMusicXmlFiles(dir: string): Promise<string[]> {
@@ -634,16 +718,30 @@ export async function syncFromMusicXmlFolder(options?: {
 	sourceDir?: string;
 	musicXmlDir?: string;
 	overridesPath?: string;
+	annotationsPath?: string;
 	generatedSongsDir?: string;
 	generatedCatalogPath?: string;
 }): Promise<SyncSummary> {
 	const musicXmlDir = options?.musicXmlDir ?? MUSICXML_DIR;
 	const overridesPath = options?.overridesPath ?? OVERRIDES_PATH;
+	const annotationsPath =
+		options?.annotationsPath ??
+		(options?.overridesPath
+			? join(dirname(options.overridesPath), "annotations.json")
+			: ANNOTATIONS_PATH);
 	const generatedDir = options?.generatedSongsDir ?? GENERATED_SONGS_DIR;
 	const catalogPath = options?.generatedCatalogPath ?? GENERATED_CATALOG_PATH;
 
 	const mirror = await mirrorSourceMusicXml(options?.sourceDir, musicXmlDir);
+	const annotations = await loadCuratedAnnotations(annotationsPath);
 	const overrides = await loadCuratedOverrides(overridesPath);
+	const mergedCurated: CuratedOverridesMap = { ...annotations };
+	for (const [stem, entry] of Object.entries(overrides)) {
+		mergedCurated[stem] = {
+			...(mergedCurated[stem] ?? {}),
+			...entry,
+		};
+	}
 	const files = await collectMusicXmlFiles(musicXmlDir);
 	await mkdir(generatedDir, { recursive: true });
 
@@ -668,7 +766,7 @@ export async function syncFromMusicXmlFolder(options?: {
 	for (const filePath of files) {
 		const relPath = relative(musicXmlDir, filePath).replace(/\\/g, "/");
 		const bytes = new Uint8Array(await readFile(filePath));
-		const meta = await resolveImportOptions(filePath, overrides);
+		const meta = await resolveImportOptions(filePath, mergedCurated);
 		const fileBase = basename(filePath, extname(filePath));
 		const cacheKey = sha256Hex(
 			`${sha256Hex(bytes)}|${canonicalizeImportOptions(meta)}|${compilerFingerprint}`,
@@ -914,7 +1012,11 @@ async function runWatchMode(
 
 	watchers.push(
 		watch(SONGS_DIR, (_event, filename) => {
-			if (!filename || filename === "overrides.json") {
+			if (
+				!filename ||
+				filename === "overrides.json" ||
+				filename === "annotations.json"
+			) {
 				scheduleSync();
 			}
 		}),
@@ -924,6 +1026,7 @@ async function runWatchMode(
 		sourceDir && (await dirExists(sourceDir)) ? sourceDir : null,
 		relative(REPO_ROOT, MUSICXML_DIR),
 		relative(REPO_ROOT, OVERRIDES_PATH),
+		relative(REPO_ROOT, ANNOTATIONS_PATH),
 	]
 		.filter(Boolean)
 		.join(", ");
@@ -1032,10 +1135,18 @@ async function main(): Promise<void> {
 		quantizeSubdivision,
 		splitHalfBarHarmony: values["split-chords"] ? true : undefined,
 	};
+	const annotations = await loadCuratedAnnotations();
 	const overrides = await loadCuratedOverrides();
+	const mergedCurated: CuratedOverridesMap = { ...annotations };
+	for (const [stem, entry] of Object.entries(overrides)) {
+		mergedCurated[stem] = {
+			...(mergedCurated[stem] ?? {}),
+			...entry,
+		};
+	}
 	const importOptions = await resolveImportOptions(
 		inputPath,
-		overrides,
+		mergedCurated,
 		cliOptions,
 	);
 

@@ -15,39 +15,61 @@ export const SONATA_DA_CHIESA_OP_3_NO_1_GRAVE_VIOLIN_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 60]],
 	theorySummary:
-		"Ingested from MusicXML in F Major (4/4, 60 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+		"19-bar Baroque trio-sonata Grave in F Major: showcases Corelli's signature 'chain of suspensions' and walking bass lines (I–V–IV–I), weaving vi7–iii7 voice exchanges, V7/vi tonicizations (A7 → B♭), and broad plagal/authentic cadences.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML violin arrangement of Sonata da Chiesa, Op. 3 No. 1 — Grave in F Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Noble, unhurried Baroque violin poise—overlapping voices lean across barlines like a slow cathedral conversation.",
 		harmonyHook:
-			"Tracks F Major harmony bar-by-bar, spotlighting applied tension (V7/vi) around the Circle of Fifths.",
+			"Masterclass in Baroque bass counterpoint: stepwise 1st-inversion chords (F/A, B♭/D, Em/B) keep the low end singing while Circle-of-Fifths chains pull gently forward.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Listen to Bars 1–4: notice how F → Gm7 → C → F/A → B♭ → F/C → F weaves smoothly through 1st and 2nd inversions rather than static root jumps.",
+			"Follow Bars 9–12: Corelli confirms F Major in Bars 9–10, then slips through Em/B → Dm → A7 (V7/vi) → B♭/D for classic Baroque expressiveness.",
+			"In Bars 15–19, hear the rising bass line F/A → Gm/B♭ → F/C → B♭ → C → F carry the final cadence grandly home.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–12",
+				id: "cor-sec-1",
+				title: "1. Baroque Opening & F Cadence",
+				barRange: "Bars 1–9",
 				startStepIndex: 0,
-				endStepIndex: 11,
-				progressionTag: "F – C – B♭ – F – C – C/G",
+				endStepIndex: 8,
+				progressionTag: "F – Gm7 – C – F/A – B♭ – F/C – Dm7/F – C7 – F",
 				insight:
-					"Measures 1–12 (I – V – IV – I – V) introduces secondary dominant pull around the Circle of Fifths.",
+					"Presents the stately F Major theme over walking inversions (F/A, F/C), touches vi7–iii7 counterpoint in Bar 7, and closes firmly with C7 → F.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Closing Section",
-				barRange: "Bars 13–19",
-				startStepIndex: 12,
+				id: "cor-sec-2",
+				title: "2. Applied A7 & Grand Closing Cadence",
+				barRange: "Bars 10–19",
+				startStepIndex: 9,
 				endStepIndex: 18,
-				progressionTag: "F – C – F/A – F/C – F/A – C",
+				progressionTag: "C7 – F/A – Em/B – Dm – A7 – B♭/D – B♭maj7 – C – F",
 				insight:
-					"Measures 13–19 (I – V – I – I – I) weaves through F → C → F/A → F/C in F Major.",
+					"Pivots via Em/B → Dm into secondary dominant A7 (V7/vi), resolves deceptively onto B♭/D, and builds an ascending bass line (F/A → Gm/B♭ → F/C → C → F) home.",
 			},
 		],
+	},
+	barNotes: {
+		"7": {
+			roleLabel: "Chain of Suspensions",
+			cardSummary: "Dm7/F → Am7/E walks bass down F → E",
+			whatItDoes:
+				"Links relative minor Dm7 (vi7) and mediant Am7 (iii7) through smooth 1st/3rd inversions.",
+			biggerPicture:
+				"Creates Corelli's hallmark Baroque sigh right before the Bar 8–9 C7 → F cadence.",
+			whyItWorks:
+				"F steps down to E in the bass while A and C hold steady as shared tones between Dm7 and Am7.",
+		},
+		"12": {
+			roleLabel: "Secondary Dom. → Deceptive",
+			cardSummary: "A7 (V7/vi) resolves deceptively to B♭/D",
+			whatItDoes:
+				"Introduces raised C♯ inside secondary dominant A7 (V7/vi), pointing strongly toward D Minor (Dm).",
+			biggerPicture:
+				"Instead of landing on Dm, surprises the ear with 1st-inversion B♭/D (IV), keeping the closing phrase airborne.",
+			whyItWorks:
+				"C♯ steps up a half-step to D (B♭'s 3rd in the bass) while A stays anchored—so B♭/D fulfills the melodic pull smoothly.",
+		},
 	},
 	chords: {
 		F: {

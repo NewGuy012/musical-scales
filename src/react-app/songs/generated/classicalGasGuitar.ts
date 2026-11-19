@@ -15,59 +15,103 @@ export const CLASSICAL_GAS_GUITAR_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 192]],
 	theorySummary:
-		"Ingested from MusicXML in A Minor (4/4, 192 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"165-bar acoustic showstopper in A Minor (Tommy Emmanuel's arrangement): marries classical Baroque-folk motifs (Am – Gmaj7/F♯ – Em – Esus4) and bright Dorian IV (D/A, D7) lifts with dramatic brass-style modulations through C, E♭, A♭, and an uplifting parallel A Major coda.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Classical Gas in A Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Virtuosic, cinematic acoustic guitar anthem—shifting effortlessly from intimate Baroque fingerpicking to percussive flamenco-pop fanfares.",
 		harmonyHook:
-			"Tracks A Minor harmony bar-by-bar, spotlighting applied tension (V7/V, V/V) around the Circle of Fifths.",
+			"Turns a nimble descending bass line (A → F♯ → E) and Dorian D/D7 lifts into an orchestral journey via C Major, flat-side E♭/A♭ bursts, and parallel A Major.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Watch the descending bass hook in Bars 1–4: Am → Gmaj7/F♯ → Em → Esus4 → Am walks A → F♯ → E → A smoothly down the strings.",
+			"Spot the bright Dorian IV color in Bars 13, 15, 33, 70, and 132: D/A and D7 raise F to F♯ for sunny acoustic pop energy.",
+			"Notice how Section 2 (Bar 45) & Section 3 (Bar 107) suddenly blast outward into flat-side chords (E♭ → Gm → A♭) before E7 snaps you back to A Minor.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
+				id: "cg-sec-1",
+				title: "1. Main Theme & Dorian D7",
 				barRange: "Bars 1–42",
 				startStepIndex: 0,
 				endStepIndex: 41,
-				progressionTag: "Am – Gmaj7/F♯ – Esus4 – Am – Gmaj7/F♯ – Am/E",
+				progressionTag:
+					"Am – Gmaj7/F♯ – Em – Esus4 – D/A – D7 – G – B♭maj7 – E7",
 				insight:
-					"Measures 1–42 (i – VIImaj7 – Vsus4 – i – VIImaj7) introduces secondary dominant pull around the Circle of Fifths.",
+					"States the famous descending A Minor theme, brightens with Dorian D/D7 lifts, passes through B♭maj7 (♭II) → Bm7 → E7, and settles onto relative C Major.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
+				id: "cg-sec-2",
+				title: "2. Fanfare & Chromatic Excursion",
 				barRange: "Bars 43–84",
 				startStepIndex: 42,
 				endStepIndex: 83,
-				progressionTag: "C – G7 – E♭ – A♭ – G/B – Dmaj7/C♯",
+				progressionTag:
+					"C – E♭ – Gm – A♭ – Dmaj7 – E – Am – Edim7 – Fmaj7 – E7",
 				insight:
-					"Measures 43–84 (III – VII7 – ♭V – ♯VII – VII) weaves through C → G7 → E♭ → A♭ in A Minor.",
+					"Launches bold flat-side modulations (E♭ → Gm → A♭) and Edim7 drama before climbing back through D7 → B♭maj7 → Bm7 onto a ringing E dominant plateau.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
+				id: "cg-sec-3",
+				title: "3. E Major Interlude & Reprise",
 				barRange: "Bars 85–129",
 				startStepIndex: 84,
 				endStepIndex: 128,
-				progressionTag: "Bm7 – B – C♯m7/B – E – Bm7 – Aadd9",
+				progressionTag: "Bm7 – B – C♯m7 – Aadd9 – E – Fm/C – E♭ – A♭ – Am",
 				insight:
-					"Measures 85–129 (ii7 – V/V – ♯iii7 – V – ii7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Unfolds a lyrical interlude in E Major (Bm7 → B → C♯m7 → E → Aadd9), sweeps back through the E♭–A♭ fanfare, and reprises the A Minor groove.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
+				id: "cg-sec-4",
+				title: "4. Parallel A Major & Tag Finale",
 				barRange: "Bars 130–165",
 				startStepIndex: 129,
 				endStepIndex: 164,
-				progressionTag: "Am/E – D/A – Am – D7 – Em7 – Fmaj7",
+				progressionTag: "Am – D7 – E7 – A – Asus2 – B7/A – E5 – G – Fmaj7",
 				insight:
-					"Measures 130–165 (i – IV – i – IV7 – v7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Drives the theme to a joyful parallel A Major / Asus2 climax (Bars 146–161) before descending Am7/G → G → Fmaj7 for the iconic acoustic ending.",
 			},
 		],
+	},
+	barNotes: {
+		"2": {
+			roleLabel: "Stepwise Bass Descent",
+			cardSummary: "Gmaj7/F♯ → Em walks bass F♯ down to E",
+			whatItDoes:
+				"Voices natural-minor VII (Gmaj7) with its major 7th (F♯) in the bass, stepping smoothly down into Em on beat 3.",
+			biggerPicture:
+				"Creates the signature falling bass hook (A → F♯ → E) linking Bar 1's Am into Bar 3's Esus4.",
+			whyItWorks:
+				"F♯ acts as an active Dorian passing tone in the bass between A and E, while G and B carry right into Em.",
+		},
+		"13": {
+			roleLabel: "Dorian IV Pedal Lift",
+			cardSummary: "D/A raises F to F♯ over steady A pedal",
+			whatItDoes:
+				"Borrows bright Dorian IV (D Major) while keeping A anchored underneath as a pedal bass.",
+			biggerPicture:
+				"Punctuates the A Minor groove with an airy, upbeat acoustic-rock lift before dropping back to Am in Bar 14.",
+			whyItWorks:
+				"Swapping F for F♯ over the unchanged open A pedal creates instant major sparkle without leaving the fingerboard position.",
+		},
+		"45": {
+			roleLabel: "Chromatic Key Shift",
+			cardSummary: "Sudden E♭ → Gm fanfare leaps to flat side",
+			whatItDoes:
+				"Steps abruptly out of C Major (Bar 44) onto flat-side E♭ Major and Gm, shifting far counter-clockwise on the Circle.",
+			biggerPicture:
+				"Ignites Section 2's dramatic brass-like interlude (E♭ → Gm → A♭ → E♭/G) before E7 snaps back to A Minor.",
+			whyItWorks:
+				"G stays in the inner voice as a chromatic pivot (C's 5th becomes E♭'s 3rd), smoothing a dramatic 3-flat modulation.",
+		},
+		"146": {
+			roleLabel: "Parallel A Major Climax",
+			cardSummary: "Flips A Minor anthem bright into A Major",
+			whatItDoes:
+				"Transforms the home key from A Minor into open, triumphant A Major (I), followed by shimmering Asus2/E pedals.",
+			biggerPicture:
+				"Lifts Section 4's high-energy coda into sunlit major territory before the closing Am7/G → G → Fmaj7 descent.",
+			whyItWorks:
+				"Open A, B, and E strings vibrate sympathetically across A and Asus2, letting C♯ ring as a joyful surprise.",
+		},
 	},
 	chords: {
 		Am: {

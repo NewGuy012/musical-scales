@@ -15,59 +15,81 @@ export const MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC: SongDocument = {
 	timeSignature: "2/4",
 	tempoMap: [[0, 80]],
 	theorySummary:
-		"Ingested from MusicXML in F Minor (2/4, 80 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+		"78-bar Viennese miniature in F Minor: alternates plaintive minor dance themes with Dorian IV7 (B♭7) lifts, sunlit A♭ / D♭ major episodes, and a magical Bar 68 Picardy third modulation to F Major that glows peacefully to the end.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML piano arrangement of Moment Musicaux No. 3, Op. 94 (D. 780) in F Minor with polyphonic timing, dynamics, and instrument fingerings.",
+			"Light, folk-like 2/4 staccato accompaniment under a wistful, singing melody—playful yet bittersweet, ending with an unexpected ray of F Major sunshine.",
 		harmonyHook:
-			"Tracks F Minor harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Showcases modal color in F Minor: raised Dorian 6th (B♭7 = IV7), smooth relative-major detours to A♭ (III) and D♭ (VI), and a Picardy-third ending in F Major.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Notice how Bar 3 uses B♭7 (major IV7 with D♮) instead of B♭m (iv)—that single raised note gives Schubert's melody its signature sweet-sour ache.",
+			"Hear how Bars 19–34 step sideways into bright A♭ Major (III) and D♭ Major (VI) before C7 pulls everything back to F Minor.",
+			"Listen closely at Bars 65–68: Am (♯iii) nudges the ear up toward F Major so the final 11 bars bloom in pure major.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–20",
+				id: "schub780-sec-1",
+				title: "1. F Minor Dance & Dorian B♭7",
+				barRange: "Bars 1–18",
 				startStepIndex: 0,
-				endStepIndex: 19,
-				progressionTag: "Fm – B♭7 – A♭ – A♭maj7 – Fm – Fm/C",
+				endStepIndex: 17,
+				progressionTag: "Fm – B♭7 – A♭ – A♭maj7 – Fm",
 				insight:
-					"Measures 1–20 (i – IV7 – III – IIImaj7 – i) weaves through Fm → B♭7 → A♭ → A♭maj7 in F Minor.",
+					"Establishes the bouncing F Minor accompaniment and spotlights raised-6th Dorian color (B♭7) sliding through relative major A♭ back to Fm.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 21–40",
-				startStepIndex: 20,
-				endStepIndex: 39,
-				progressionTag: "A♭add9 – B♭add9 – A♭ – D♭ – E♭7 – A♭",
+				id: "schub780-sec-2",
+				title: "2. Relative A♭ & D♭ Major Lift",
+				barRange: "Bars 19–35",
+				startStepIndex: 18,
+				endStepIndex: 34,
+				progressionTag: "A♭ – D♭maj7 – A♭add9 – B♭add9 – E♭7 – C7",
 				insight:
-					"Measures 21–40 (III – IV – III – VI – VII7) weaves through A♭add9 → B♭add9 → A♭ → D♭ in F Minor.",
+					"Moves cleanly into bright A♭ Major (III) and D♭maj7 (VImaj7) before C7 (V7) reasserts F Minor's dominant pull.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 41–61",
-				startStepIndex: 40,
-				endStepIndex: 60,
-				progressionTag: "A♭/E♭ – A♭ – C7 – Fm/C – C7 – Fm/C",
+				id: "schub780-sec-3",
+				title: "3. Minor Reprise & G7/B Pivot",
+				barRange: "Bars 36–64",
+				startStepIndex: 35,
+				endStepIndex: 63,
+				progressionTag: "Fm/C – C7 – A♭7 – B♭m/D♭ – Fm – Edim/B♭ – G7/B",
 				insight:
-					"Measures 41–61 (III – III – V7 – i – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Alternates dark Fm/C–C7 tension with warm A♭–Fm reprises before Edim/B♭ and G7/B (V7/V) build dramatic harmonic suspense.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 62–78",
-				startStepIndex: 61,
+				id: "schub780-sec-4",
+				title: "4. Picardy F Major Finale",
+				barRange: "Bars 65–78",
+				startStepIndex: 64,
 				endStepIndex: 77,
-				progressionTag: "Fm – Edim/B♭ – G7/B – Am/C – Am – F",
+				progressionTag: "Am/C – F – C7/F – E♭dim7 – F",
 				insight:
-					"Measures 62–78 (i – vii° – V7/V – ♯iii – ♯iii) introduces secondary dominant pull around the Circle of Fifths.",
+					"Flips from F Minor into radiant F Major (Picardy turn) at Bar 68, lingering gently over C7/F pedal tensions until the final major triad.",
 			},
 		],
+	},
+	barNotes: {
+		"3": {
+			roleLabel: "Dorian IV7 Color",
+			cardSummary: "Raised D♮ turns iv into sweet-sour B♭7",
+			whatItDoes:
+				"Substitutes bright major-quality Dorian IV7 (B♭7) for natural minor iv (B♭m), introducing D♮ outside F Minor.",
+			biggerPicture:
+				"Gives Section 1's opening dance theme its signature Schubertian lift before stepping smoothly into A♭ (III) in Bar 4.",
+			whyItWorks:
+				"D♮ creates a buoyant half-step neighbor motion back toward D♭/C while sharing F and A♭ with the surrounding F Minor / A♭ chords.",
+		},
+		"68": {
+			roleLabel: "Picardy Major Turn",
+			cardSummary: "Miraculous shift from F Minor to F Major",
+			whatItDoes:
+				"Replaces dark A♭ with radiant A♮, turning the home key from F Minor into pure, sunlit F Major (I).",
+			biggerPicture:
+				"Launches the final 11-bar F Major coda (Bars 68–78) where all earlier minor shadows dissolve.",
+			whyItWorks:
+				"Bars 65–67 gently prepared A♮ inside Am (♯iii), so arriving on F Major feels both surprising and deeply earned.",
+		},
 	},
 	chords: {
 		Fm: {

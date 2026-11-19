@@ -17,7 +17,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 120,
 		barCount: 13,
 		theorySummary:
-			"Ingested from MusicXML in C Minor (4/4, 120 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+			"13-bar Romantic harmony jewel in C Minor: opens with a solemn funeral-march cadence (i–iv7–V–i), sequences it down a major 3rd to A♭ (VI), descends down a 6-note chromatic bass line (C–B–B♭–A–A♭–G) under diminished & tritone-sub tension, and whispers an unforgettable pp echo.",
 	},
 	{
 		id: "sonata-da-chiesa-op-3-no-1-grave-violin",
@@ -33,7 +33,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 60,
 		barCount: 19,
 		theorySummary:
-			"Ingested from MusicXML in F Major (4/4, 60 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+			"19-bar Baroque trio-sonata Grave in F Major: showcases Corelli's signature 'chain of suspensions' and walking bass lines (I–V–IV–I), weaving vi7–iii7 voice exchanges, V7/vi tonicizations (A7 → B♭), and broad plagal/authentic cadences.",
 	},
 	{
 		id: "le-cygne-the-swan-cello",
@@ -49,7 +49,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 67,
 		barCount: 27,
 		theorySummary:
-			"Ingested from MusicXML in G Major (6/4, 67 BPM) with polyphonic timing, dynamics, and ergonomic cello fingerings.",
+			"27-bar Romantic cello cantabile in G Major (6/4): floats a serene singing line (G → Gmaj7 → Am7/G → Em) over rippling piano-inspired arpeggios, dips gracefully into minor color (Gm → F♯7 → Bm → Fm → C7 → Fmaj7), and glides back onto a tranquil G Major close.",
 	},
 	{
 		id: "lagrima-guitar",
@@ -65,7 +65,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 128,
 		barCount: 32,
 		theorySummary:
-			"Ingested from MusicXML in E Major (3/4, 128 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"32-bar romantic guitar miniature in binary A–A–B–B form: contrasts singing E Major harmony (Eadd9, 3-bar B7 tension, deceptive vi7, V7/V) in the A section against a tender parallel E Minor flip in the B section.",
 	},
 	{
 		id: "prelude-in-c-major-bwv-846-piano",
@@ -81,7 +81,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 88,
 		barCount: 35,
 		theorySummary:
-			"Ingested from MusicXML in C Major (4/4, 88 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+			"35-bar masterclass in harmonic voice leading over unbroken arpeggios: opens with a textbook C bass pedal (I–ii7–V7–I), modulates clockwise to G Major (V), descends chromatically through diminished & borrowed minor color, and rests over an 8-bar G dominant pedal before a plagal coda.",
 	},
 	{
 		id: "cello-suite-no-1-prelude-bwv-1007-cello",
@@ -97,7 +97,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 80,
 		barCount: 42,
 		theorySummary:
-			"Ingested from MusicXML in G Major (4/4, 80 BPM) with polyphonic timing, dynamics, and ergonomic cello fingerings.",
+			"42-bar solo cello masterpiece in G Major: turns rapid 16th-note string crossings (bariolage) into a complete harmonic journey—anchoring open G2, climbing clockwise through A7 → D and E7 → Am → D♯° → D7, peaking on Bar 22's D7 cadenza, and sweeping across open-A3 bariolage to G.",
 	},
 	{
 		id: "etude-no-1-in-e-minor-guitar",
@@ -113,7 +113,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 120,
 		barCount: 61,
 		theorySummary:
-			"Ingested from MusicXML in E Minor (4/4, 120 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"61-bar fingerstyle arpeggio showcase in E Minor: keeps the guitar's open E and B strings ringing while movable chromatic shapes, secondary dominants (E7 = V7/iv, F♯7 = V7/V), and symmetric diminished chords glide seamlessly up and down the neck.",
 	},
 	{
 		id: "meditation-from-thais-violin",
@@ -129,7 +129,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 65,
 		barCount: 71,
 		theorySummary:
-			"Ingested from MusicXML in D Major (4/4, 65 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+			"71-bar Romantic solo violin showpiece in D Major: floats an ecstatic opening melody (D → G → Em → A7), borrows melancholic flat-VII (C) and V/ii (B) colors, climbs through remote flat keys (C7 → F → A♯m) to an A♯dim climax, and dissolves into shimmering harmonic echoes (C♯7, D♯7 → D).",
 	},
 	{
 		id: "moment-musicaux-no-3-op-94-d-780-piano",
@@ -145,7 +145,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 80,
 		barCount: 78,
 		theorySummary:
-			"Ingested from MusicXML in F Minor (2/4, 80 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+			"78-bar Viennese miniature in F Minor: alternates plaintive minor dance themes with Dorian IV7 (B♭7) lifts, sunlit A♭ / D♭ major episodes, and a magical Bar 68 Picardy third modulation to F Major that glows peacefully to the end.",
 	},
 	{
 		id: "string-quartet-no-3-k-156-ii-adagio-violin",
@@ -161,7 +161,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 40,
 		barCount: 88,
 		theorySummary:
-			"Ingested from MusicXML in E Minor (4/4, 40 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+			"88-bar Classical slow-movement quartet gem in E Minor (Adagio): contrasts poignant E Minor sighs (Em/G → B7/D♯) against luminous G Major (III) cantabile periods, then ventures through Neapolitan Fdim/G♯, A♯m, and F♯7/C♯ harmonic drama before a hushed recapitulation.",
 	},
 	{
 		id: "how-deep-is-your-love-guitar",
@@ -178,7 +178,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		barCount: 74,
 		capo: 2,
 		theorySummary:
-			"Ingested from MusicXML in B Major (4/4, 100 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"74-bar pop-soul harmonic masterclass in B Major (played with Capo 2): blends lush maj7 tonic pedals (B → Bmaj7 → Emaj7/B), signature pop IV/5 dominant suspensions (Eadd9/F♯), secondary dominants (V7/vi, V7/V, V7/ii), borrowed ♭VII (A), and an iconic minor plagal cadence (Em → B).",
 	},
 	{
 		id: "amazing-grace-guitar",
@@ -194,7 +194,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 78,
 		barCount: 77,
 		theorySummary:
-			"Ingested from MusicXML in E Major (9/8, 78 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"77-bar Tommy Emmanuel fingerstyle arrangement of the classic hymn in E Major (9/8): weaves gospel passing diminished chords (A♯°7, G♯°, Gdim7), secondary dominants (V7/IV, V7/V), 9ths/13ths, and a lush Phrygian tag (G6 → Fmaj7 → Emaj9).",
 	},
 	{
 		id: "windy-and-warm-guitar",
@@ -210,7 +210,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 144,
 		barCount: 84,
 		theorySummary:
-			"Ingested from MusicXML in A Minor (4/4, 144 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"84-bar alternating-thumb Travis picking standard in A Minor: grooves over open-fifth A5 & Asus4 pedal riffs, dips into bright C / F major folk warmth, and flashes surprising A Major / E7 / Bm7 blues-country colors in the middle bridge.",
 	},
 	{
 		id: "cannonball-rag-guitar",
@@ -226,7 +226,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 200,
 		barCount: 113,
 		theorySummary:
-			"Ingested from MusicXML in G Major (4/4, 200 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"113-bar Merle Travis thumb-picking ragtime tour de force in G Major: powered by a roaring Circle-of-Fifths secondary-dominant chain (E [V/ii] → A7 [V7/V] → D7 [V7] → G [I]), classic C → C♯° → D7 → B♭° → Am → G ragtime turnarounds, and a walking-bass C-section bridge.",
 	},
 	{
 		id: "classical-gas-guitar",
@@ -242,7 +242,7 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		bpm: 192,
 		barCount: 165,
 		theorySummary:
-			"Ingested from MusicXML in A Minor (4/4, 192 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+			"165-bar acoustic showstopper in A Minor (Tommy Emmanuel's arrangement): marries classical Baroque-folk motifs (Am – Gmaj7/F♯ – Em – Esus4) and bright Dorian IV (D/A, D7) lifts with dramatic brass-style modulations through C, E♭, A♭, and an uplifting parallel A Major coda.",
 	},
 ];
 

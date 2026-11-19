@@ -15,59 +15,91 @@ export const CANNONBALL_RAG_GUITAR_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 200]],
 	theorySummary:
-		"Ingested from MusicXML in G Major (4/4, 200 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"113-bar Merle Travis thumb-picking ragtime tour de force in G Major: powered by a roaring Circle-of-Fifths secondary-dominant chain (E [V/ii] → A7 [V7/V] → D7 [V7] → G [I]), classic C → C♯° → D7 → B♭° → Am → G ragtime turnarounds, and a walking-bass C-section bridge.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Cannonball Rag in G Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Lightning-fast, train-chugging acoustic ragtime—rock-steady boom-chick alternating bass drives snappy, syncopated banjo-roll licks.",
 		harmonyHook:
-			"Tracks G Major harmony bar-by-bar, spotlighting applied tension (V/ii, V7/V, V7/iii) around the Circle of Fifths.",
+			"Textbook ragtime Circle-of-Fifths engine: leaps three steps clockwise to E (V/ii), then falls counter-clockwise step by step (E → A7 → D7 → G) right back home.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Follow the big Circle-of-Fifths wheel during Bars 2–8: watch E jump to the sharp side and march straight back clockwise-to-home (E → A7 → D7 → G).",
+			"Spot the classic ragtime turnaround in Bars 26–29 & 54–57: C → C♯dim → D7 → B♭dim → Am → G walks chromatically upward and downward.",
+			"In Section 3 (Bars 58–68), watch the bass climb stepwise A → B → C → D under Am – F♯dim/A – G/B – Am/C – D5.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
+				id: "crag-sec-1",
+				title: "1. A & B Themes — Circle Rag Chain",
 				barRange: "Bars 1–29",
 				startStepIndex: 0,
 				endStepIndex: 28,
-				progressionTag: "Gmaj7 – E – A7 – Em – D7 – G",
+				progressionTag: "Gmaj7 – E – A7 – Em – D7 – G – C – C♯dim – B♭dim – Am",
 				insight:
-					"Measures 1–29 (Imaj7 – V/ii – V7/V – vi – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Launches the signature E (V/ii) → A7 (V7/V) → D7 (V7) → G ragtime cycle, adds B7/A color, and closes with a C♯dim/B♭dim turnaround.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
+				id: "crag-sec-2",
+				title: "2. Theme Reprise & Rag Turnaround",
 				barRange: "Bars 30–57",
 				startStepIndex: 29,
 				endStepIndex: 56,
-				progressionTag: "E – A7 – Em – D7 – G – Gmaj7/F♯",
+				progressionTag: "E – A7 – Em – D7 – G – C – C♯dim – B♭dim – Am – G",
 				insight:
-					"Measures 30–57 (V/ii – V7/V – vi – V7 – I) introduces secondary dominant pull around the Circle of Fifths.",
+					"Replays the roaring secondary-dominant ragtime phrases with fresh thumb-picking momentum before returning cleanly to G.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Bridge / Contrast",
-				barRange: "Bars 58–87",
+				id: "crag-sec-3",
+				title: "3. Bridge — Walking Bass Lift",
+				barRange: "Bars 58–69",
 				startStepIndex: 57,
-				endStepIndex: 86,
-				progressionTag: "Am – F♯dim/A – G/B – Am/C – D5 – D/A",
+				endStepIndex: 68,
+				progressionTag: "Am – F♯dim/A – G/B – Am/C – D5 – C – C♯dim – D7",
 				insight:
-					"Measures 58–87 (ii – vii° – I – ii – V5) introduces secondary dominant pull around the Circle of Fifths.",
+					"Walks the bass steadily up the G Major scale (A → B → C → D) through ii, vii°, I, and V5 before another ragtime turnaround.",
 			},
 			{
-				id: "imp-sec-4",
-				title: "4. Closing Section",
-				barRange: "Bars 88–113",
-				startStepIndex: 87,
+				id: "crag-sec-4",
+				title: "4. Final Medley & Syncopated Coda",
+				barRange: "Bars 70–113",
+				startStepIndex: 69,
 				endStepIndex: 112,
-				progressionTag: "G – D7 – G – C – D7 – B♭dim",
+				progressionTag: "E – A7 – D7 – G – Am – G5 – Bm7 – F♯7 – C/G",
 				insight:
-					"Measures 88–113 (I – V7 – I – IV – V7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Sweeps through the complete A–B–C ragtime medley one last time, ending with jazzy Bm7 → F♯7 (V7/iii) → C/G sparkle.",
 			},
 		],
+	},
+	barNotes: {
+		"2": {
+			roleLabel: "Secondary Dom. → ii",
+			cardSummary: "E Major kicks off 3-step Circle-of-Fifths chain",
+			whatItDoes:
+				"Jumps clockwise to E Major (V/ii), bringing in crisp G♯ outside G Major to launch the ragtime Circle-of-Fifths cycle.",
+			biggerPicture:
+				"Kicks off the classic ragtime progression E (V/ii) → A7 (V7/V) → D7 (V7) → G (I) across Bars 2–8.",
+			whyItWorks:
+				"E sits three fifths clockwise from G, creating high harmonic energy that resolves smoothly counter-clockwise fifth by fifth back home.",
+		},
+		"26": {
+			roleLabel: "Chromatic Ragtime Walk",
+			cardSummary: "C → C♯dim squeezes bass chromatically to D7",
+			whatItDoes:
+				"Follows warm subdominant C (IV) with chromatic passing C♯dim (♯iv°), raising C by one fret to C♯.",
+			biggerPicture:
+				"Drives the signature ragtime turnaround (C → C♯dim → D7 → G) closing Sections 1, 2, and 3.",
+			whyItWorks:
+				"The bass steps smoothly C → C♯ → D while C♯dim's diminished tritone pulls half-step inward into D7.",
+		},
+		"58": {
+			roleLabel: "Bridge · Walking Bass",
+			cardSummary: "Starts ascending A → B → C → D bass walk",
+			whatItDoes:
+				"Opens the contrasting bridge on minor ii (Am), anchoring root A before F♯dim/A, G/B, Am/C, and D5 climb upward.",
+			biggerPicture:
+				"Changes the ragtime texture in Section 3 with a smooth 4-bar rising scale bass line.",
+			whyItWorks:
+				"Inverting G over B and Am over C keeps each bass note adjacent by scale step (A → B → C → D), giving unstoppable forward drive.",
+		},
 	},
 	chords: {
 		Gmaj7: {

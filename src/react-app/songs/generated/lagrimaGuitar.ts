@@ -18,49 +18,91 @@ export const LAGRIMA_GUITAR_SPEC: SongDocument = {
 		[23040, 128],
 	],
 	theorySummary:
-		"Ingested from MusicXML in E Major (3/4, 128 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
+		"32-bar romantic guitar miniature in binary A–A–B–B form: contrasts singing E Major harmony (Eadd9, 3-bar B7 tension, deceptive vi7, V7/V) in the A section against a tender parallel E Minor flip in the B section.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Lágrima in E Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Delicate, tear-drop fingerstyle waltz—crystal-clear upper melody singing on the high E string over soft thumb accompaniment.",
 		harmonyHook:
-			"Tracks E Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"Teaches parallel-key contrast (E Major vs. E Minor) alongside a textbook deceptive cadence (B7 → C♯m7/B) and V7/V chromatic climb.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Watch the highlighted fretboard/fingerboard markers to keep left-hand position shifts economical.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"In Bars 2–4, notice how B7 holds for three bars while the bass quietly alternates F♯ and D♯/E♭ to keep momentum alive.",
+			"Listen at Bar 5: instead of resolving B7 home to E, Tárrega surprises you with C♯m7/B (vi7) and walks the 7th B down in the bass.",
+			"Compare Bar 1's bright Eadd9 (G♯) against Bar 17's Em (G♮)—dropping that single note one fret transforms the entire mood.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–11",
+				id: "lagrima-sec-1",
+				title: "1. A Section — Singing E Major",
+				barRange: "Bars 1–8",
 				startStepIndex: 0,
-				endStepIndex: 10,
-				progressionTag: "Eadd9 – B7 – B7/E♭ – B7 – C♯m7/B – F♯m/C♯",
+				endStepIndex: 7,
+				progressionTag: "Eadd9 – B7 – C♯m7/B – F♯m – F♯7/B♭ – Em",
 				insight:
-					"Measures 1–11 (I – V7 – V7 – V7 – vi7) introduces secondary dominant pull around the Circle of Fifths.",
+					"Pairs shimmering Eadd9 and 3-bar B7 tension with a deceptive vi7 twist (Bar 5) and secondary dominant F♯7/B♭ (V7/V) before dipping onto Em.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 12–21",
-				startStepIndex: 11,
-				endStepIndex: 20,
-				progressionTag: "B7 – C♯m7/B – F♯m/C♯ – F♯7/B♭ – Em – B",
+				id: "lagrima-sec-2",
+				title: "2. A Repeat — Lyric Echo",
+				barRange: "Bars 9–16",
+				startStepIndex: 8,
+				endStepIndex: 15,
+				progressionTag: "Eadd9 – B7 – C♯m7/B – F♯m – F♯7/B♭ – Em",
 				insight:
-					"Measures 12–21 (V7 – vi7 – ii – V7/V – i) introduces secondary dominant pull around the Circle of Fifths.",
+					"Repeats the E Major theme cleanly, reinforcing the B7 → C♯m7 deceptive cadence and smooth bass voice leading.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Closing Section",
-				barRange: "Bars 22–32",
-				startStepIndex: 21,
+				id: "lagrima-sec-3",
+				title: "3. B Section — Parallel E Minor",
+				barRange: "Bars 17–24",
+				startStepIndex: 16,
+				endStepIndex: 23,
+				progressionTag: "Em – B – Em – Bm7/F♯ – Em",
+				insight:
+					"Flips straight into parallel E Minor (i), pairing dark Em against major V (B) and modal minor v7 (Bm7/F♯) for melancholic contrast.",
+			},
+			{
+				id: "lagrima-sec-4",
+				title: "4. B Repeat — Quiet Minor Close",
+				barRange: "Bars 25–32",
+				startStepIndex: 24,
 				endStepIndex: 31,
-				progressionTag: "Bm7/F♯ – Em/G – Em – B – Em – Bm7/F♯",
+				progressionTag: "Em – B – Em – Bm7/F♯ – Em",
 				insight:
-					"Measures 22–32 (v7 – i – i – V – i) weaves through Bm7/F♯ → Em/G → Em → B in E Major.",
+					"Repeats the aching E Minor phrase, easing from Bm7/F♯ through Em/G–Em/B inversions onto a serene final E Minor chord.",
 			},
 		],
+	},
+	barNotes: {
+		"1": {
+			roleLabel: "Tonic · Add9 Sparkle",
+			cardSummary: "Eadd9 chimes open E–F♯ shimmer; turns to B7/E♭",
+			whatItDoes:
+				"Opens E Major (I) with a bell-like F♯ (9th) above the triad before stepping to 1st-inversion B7/E♭ on beat 3.",
+			biggerPicture:
+				"Establishes the singing waltz texture and launches the A section's opening 4-bar dominant tension arc.",
+			whyItWorks:
+				"F♯ sits right next to G♯ on the high E/B strings for guitar resonance, while the bass slips down a half-step (E → D♯/E♭).",
+		},
+		"5": {
+			roleLabel: "Deceptive Cadence",
+			cardSummary: "Surprises B7 by landing on C♯m7/B instead of E",
+			whatItDoes:
+				"Instead of resolving 3 bars of B7 back to E, lands on relative minor C♯m7 (vi7) with its 7th (B) held in the bass.",
+			biggerPicture:
+				"Creates a deceptive cadence that extends the 8-bar A section through F♯m (ii) and F♯7 (V7/V) instead of ending early.",
+			whyItWorks:
+				"Holding B from B7 as a smooth pedal bass lets upper voices shift subtly to C♯m7, then step the bass down B → A into F♯m.",
+		},
+		"17": {
+			roleLabel: "Parallel Minor Flip",
+			cardSummary: "Lowers G♯ to G♮, turning E Major into Em",
+			whatItDoes:
+				"Opens the B section in parallel E Minor (i), replacing bright G♯ with reflective G♮.",
+			biggerPicture:
+				"Creates the classic A (Major) vs. B (Minor) emotional contrast that defines Lágrima ('Teardrop').",
+			whyItWorks:
+				"Shares root E and 5th B with E Major, so changing only the 3rd by one fret shifts the mood instantly without jarring the ear.",
+		},
 	},
 	chords: {
 		Eadd9: {

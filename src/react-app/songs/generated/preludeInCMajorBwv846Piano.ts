@@ -15,49 +15,131 @@ export const PRELUDE_IN_C_MAJOR_BWV_846_PIANO_SPEC: SongDocument = {
 	timeSignature: "4/4",
 	tempoMap: [[0, 88]],
 	theorySummary:
-		"Ingested from MusicXML in C Major (4/4, 88 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
+		"35-bar masterclass in harmonic voice leading over unbroken arpeggios: opens with a textbook C bass pedal (I–ii7–V7–I), modulates clockwise to G Major (V), descends chromatically through diminished & borrowed minor color, and rests over an 8-bar G dominant pedal before a plagal coda.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML piano arrangement of Prelude in C Major (BWV 846) in C Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"Shimmering, harp-like broken chords across 35 steady bars—every measure changes harmonic pressure by shifting just one or two notes smoothly by step.",
 		harmonyHook:
-			"Tracks C Major harmony bar-by-bar, spotlighting applied tension (V7/V) around the Circle of Fifths.",
+			"A living textbook of Circle of Fifths gravity, 3rd-inversion 7th chords (7th in the bass forcing a half-step drop), chromatic inner voices, and pedal-point suspense.",
 		practiceTips: [
-			"Click any bar to open the Bar Theory Coach and see what the chord is doing, how it connects, and why the voice leading works.",
-			"Follow left-hand accompaniment shapes and right-hand voice leading across the keyboard.",
-			"Use the Circle of Fifths wheel to spot secondary dominants, borrowed chords, and bass pedals.",
+			"Play just the two-note left-hand shapes in Bars 1–4 first to hear how C stays anchored in the bass while Dm7/C steps down to G7/B and back to C.",
+			"Trace the chromatic descent in Bars 12–15 (G → Gm → Dm/F → Fm → C/E): one inner voice falls half-step by half-step (B → B♭ → A → A♭ → G).",
+			"Notice Bars 24–31 all sit on a G bass pedal—tension builds right over the dominant bass before resolving in Bar 32.",
 		],
 		sections: [
 			{
-				id: "imp-sec-1",
-				title: "1. Opening Theme",
-				barRange: "Bars 1–15",
+				id: "bwv846-sec-1",
+				title: "1. Opening C Pedal",
+				barRange: "Bars 1–4",
 				startStepIndex: 0,
-				endStepIndex: 14,
-				progressionTag: "C – Dm7/C – G7/B – C – Am – D7/C",
+				endStepIndex: 3,
+				progressionTag: "C – Dm7/C – G7/B – C",
 				insight:
-					"Measures 1–15 (I – ii7 – V7 – I – vi) introduces secondary dominant pull around the Circle of Fifths.",
+					"Anchors C Major with a textbook I–ii7–V7–I turnaround over a stationary C pedal in Bars 1–2 before leading-tone B steps back home.",
 			},
 			{
-				id: "imp-sec-2",
-				title: "2. Development",
-				barRange: "Bars 16–28",
-				startStepIndex: 15,
-				endStepIndex: 27,
-				progressionTag: "Fmaj7/E – Dm – G – C – C7 – F",
+				id: "bwv846-sec-2",
+				title: "2. Modulation to G (V)",
+				barRange: "Bars 5–11",
+				startStepIndex: 4,
+				endStepIndex: 10,
+				progressionTag: "Am – D7/C – G/B – Cmaj7/B – Am7 – D7 – G",
 				insight:
-					"Measures 16–28 (IVmaj7 – ii – V – I – I7) weaves through Fmaj7/E → Dm → G → C in C Major.",
+					"Pivots through vi (Am) and introduces borrowed F♯ in D7/C (V7/V) to tonicize G Major cleanly via a descending C → B → A bass walk.",
 			},
 			{
-				id: "imp-sec-3",
-				title: "3. Closing Section",
-				barRange: "Bars 29–35",
-				startStepIndex: 28,
+				id: "bwv846-sec-3",
+				title: "3. Chromatic Descent Home",
+				barRange: "Bars 12–19",
+				startStepIndex: 11,
+				endStepIndex: 18,
+				progressionTag: "Gm – Dm/F – Fm – C/E – Fmaj7/E – Dm – G – C",
+				insight:
+					"Melts G Major back to C Major by flattening B to B♭ (Gm) and A to A♭ (Fm), letting the bass walk smoothly down F → E → D → G → C.",
+			},
+			{
+				id: "bwv846-sec-4",
+				title: "4. V7/IV & Diminished Tension",
+				barRange: "Bars 20–24",
+				startStepIndex: 19,
+				endStepIndex: 23,
+				progressionTag: "C7 – F – F♯dim – Fm/A♭ – G7",
+				insight:
+					"Adds B♭ to turn C into V7/IV (pushing to F), then squeezes F → F♯ → A♭ toward the G7 dominant cadence.",
+			},
+			{
+				id: "bwv846-sec-5",
+				title: "5. Dominant G Pedal & Coda",
+				barRange: "Bars 25–35",
+				startStepIndex: 24,
 				endStepIndex: 34,
-				progressionTag: "C/G – G7 – C – F – Cmaj7 – C",
+				progressionTag: "C/G – G7 – Cm/G – C/G – G7 – C – F – Cmaj7 – C",
 				insight:
-					"Measures 29–35 (I – V7 – I – IV – Imaj7) weaves through C/G → G7 → C → F in C Major.",
+					"Suspends C/G, G7, and even minor Cm/G over an unbroken G bass pedal before resolving to C and adding a gentle IV → I plagal sigh.",
 			},
 		],
+	},
+	barNotes: {
+		"1": {
+			roleLabel: "Tonic · Launches C Pedal",
+			cardSummary: "Sets C Major home; launches C bass pedal",
+			whatItDoes:
+				"Grounds the C Major tonic (I) in root position—bright, settled, and open—while setting up the 2-bar C bass drone.",
+			biggerPicture:
+				"Opens Section 1 ('Opening C Pedal', Bars 1–4) as the stable baseline for a classic I → ii7 → V7 → I turnaround.",
+			whyItWorks:
+				"Locks in scale degrees 1–3–5 (C · E · G) and keeps C in the bass into Bar 2 so the harmonic shift feels effortless.",
+		},
+		"2": {
+			roleLabel: "Pre-Dominant · C Pedal",
+			cardSummary: "7th (C) in bass leans down toward G7/B",
+			whatItDoes:
+				"Pre-dominant ii7 (Dm7/C) puts its dissonant 7th (C) directly in the bass (3rd inversion), creating forward lean rather than rest.",
+			biggerPicture:
+				"Bridges home C (Bar 1) to dominant G7/B (Bar 3) as step 2 of the opening ii–V–I progression.",
+			whyItWorks:
+				"Holds C from Bar 1 as a pedal bass; because C is Dm7's 7th, gravity pulls it down a half-step to B while D and F carry smoothly into G7/B.",
+		},
+		"3": {
+			roleLabel: "Dominant · Leading Bass",
+			cardSummary: "Leading-tone bass B pulls a half-step to C",
+			whatItDoes:
+				"Dominant V7 (G7/B) places C Major's leading tone (B) right in the bass (1st inversion) alongside the urgent B–F tritone.",
+			biggerPicture:
+				"Climaxes the opening I → ii7 → V7 → I phrase right before resolving home in Bar 4.",
+			whyItWorks:
+				"G7's tritone pulls symmetrically inward (B rises a half-step to C while F drops a half-step to E), completing a smooth C → B → C bass neighbor line.",
+		},
+		"6": {
+			roleLabel: "Secondary Dom. → V",
+			cardSummary: "Borrowed F♯ tonicizes G Major (V)",
+			whatItDoes:
+				"Secondary dominant V7/V (D7/C) introduces F♯ outside C Major, with the 7th (C) in the bass demanding downward resolution.",
+			biggerPicture:
+				"Pivots Section 2 away from Am (Bar 5) toward a temporary key center on G Major (V) across Bars 7–11.",
+			whyItWorks:
+				"D7's tritone (F♯ and C) pulls straight into G/B (F♯ rises a half-step to G while C steps down to B) on a falling C → B bass line.",
+		},
+		"20": {
+			roleLabel: "Secondary Dom. → IV",
+			cardSummary: "Adds B♭ to aim straight at F (IV)",
+			whatItDoes:
+				"Turns stable tonic C into secondary dominant C7 (V7/IV) by introducing borrowed B♭, destabilizing home base.",
+			biggerPicture:
+				"Launches Section 4's dramatic climb: V7/IV (C7) → IV (F) → ♯iv° (F♯dim) → iv (Fm/A♭) → V7 (G7).",
+			whyItWorks:
+				"C7's E–B♭ tritone pulls straight into F Major (E steps up to F while B♭ drops a half-step to A), resolving counter-clockwise by 5th.",
+		},
+		"28": {
+			roleLabel: "Parallel Minor Color",
+			cardSummary: "Darkens C/G with E♭ over the G pedal",
+			whatItDoes:
+				"Temporarily swaps major E for parallel-minor E♭ (Cm/G) while keeping the insistent G dominant bass ringing below.",
+			biggerPicture:
+				"Adds a poignant shadow right in the middle of the 8-bar G dominant pedal (Bars 24–31) before brightening back to C/G.",
+			whyItWorks:
+				"Chromatic voice leading (E → E♭ → E) creates intense longing over the stationary G bass without changing the chord's dominant-pedal anchor.",
+		},
 	},
 	chords: {
 		C: {
