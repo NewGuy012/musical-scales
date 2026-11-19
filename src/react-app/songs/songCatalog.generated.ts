@@ -64,6 +64,21 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 			"Ingested from MusicXML in F Major (4/4, 60 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
 	},
 	{
+		id: "meditation-from-thais-violin",
+		title: "Méditation (from Thaïs)",
+		composerOrSource: "Jules Massenet",
+		subtitle: "D Major (4/4) · violin MusicXML",
+		instruments: ["violin"],
+		keySlot: 2,
+		keyMode: "major",
+		keyLabel: "D Major",
+		timeSignature: "4/4",
+		bpm: 65,
+		barCount: 71,
+		theorySummary:
+			"Ingested from MusicXML in D Major (4/4, 65 BPM) with polyphonic timing, dynamics, and ergonomic violin fingerings.",
+	},
+	{
 		id: "string-quartet-no-3-k-156-ii-adagio-violin",
 		title: "String Quartet No. 3 (K. 156) — II. Adagio",
 		composerOrSource: "W.A. Mozart",
@@ -92,6 +107,21 @@ export const GENERATED_SONG_CATALOG: SongCatalogEntry[] = [
 		barCount: 27,
 		theorySummary:
 			"Ingested from MusicXML in G Major (6/4, 67 BPM) with polyphonic timing, dynamics, and ergonomic cello fingerings.",
+	},
+	{
+		id: "moment-musicaux-no-3-op-94-d-780-piano",
+		title: "Moment Musicaux No. 3, Op. 94 (D. 780)",
+		composerOrSource: "Franz Schubert",
+		subtitle: "F Minor (2/4) · piano MusicXML",
+		instruments: ["piano"],
+		keySlot: 8,
+		keyMode: "minor",
+		keyLabel: "F Minor",
+		timeSignature: "2/4",
+		bpm: 80,
+		barCount: 78,
+		theorySummary:
+			"Ingested from MusicXML in F Minor (2/4, 80 BPM) with polyphonic timing, dynamics, and ergonomic piano fingerings.",
 	},
 	{
 		id: "lagrima-guitar",
@@ -188,6 +218,10 @@ export async function loadGeneratedSongById(id: string): Promise<SongExample> {
 			const mod = await import("./generated/sonataDaChiesaOp3No1GraveViolin");
 			return hydrateSong(mod.SONATA_DA_CHIESA_OP_3_NO_1_GRAVE_VIOLIN_SPEC);
 		}
+		case "meditation-from-thais-violin": {
+			const mod = await import("./generated/meditationFromThaisViolin");
+			return hydrateSong(mod.MEDITATION_FROM_THAIS_VIOLIN_SPEC);
+		}
 		case "string-quartet-no-3-k-156-ii-adagio-violin": {
 			const mod =
 				await import("./generated/stringQuartetNo3K156IiAdagioViolin");
@@ -196,6 +230,10 @@ export async function loadGeneratedSongById(id: string): Promise<SongExample> {
 		case "le-cygne-the-swan-cello": {
 			const mod = await import("./generated/leCygneTheSwanCello");
 			return hydrateSong(mod.LE_CYGNE_THE_SWAN_CELLO_SPEC);
+		}
+		case "moment-musicaux-no-3-op-94-d-780-piano": {
+			const mod = await import("./generated/momentMusicauxNo3Op94D780Piano");
+			return hydrateSong(mod.MOMENT_MUSICAUX_NO_3_OP_94_D_780_PIANO_SPEC);
 		}
 		case "lagrima-guitar": {
 			const mod = await import("./generated/lagrimaGuitar");

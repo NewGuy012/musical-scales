@@ -970,17 +970,17 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("synced 11-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
-		expect(SONG_CATALOG).toHaveLength(11);
+	test("synced 13-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
+		expect(SONG_CATALOG).toHaveLength(13);
 		const byInst = {
 			piano: SONG_CATALOG.filter((e) => e.instruments.includes("piano")),
 			guitar: SONG_CATALOG.filter((e) => e.instruments.includes("guitar")),
 			violin: SONG_CATALOG.filter((e) => e.instruments.includes("violin")),
 			cello: SONG_CATALOG.filter((e) => e.instruments.includes("cello")),
 		};
-		expect(byInst.piano).toHaveLength(2);
+		expect(byInst.piano).toHaveLength(3);
 		expect(byInst.guitar).toHaveLength(5);
-		expect(byInst.violin).toHaveLength(2);
+		expect(byInst.violin).toHaveLength(3);
 		expect(byInst.cello).toHaveLength(2);
 
 		const keyById = Object.fromEntries(
@@ -989,7 +989,9 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		expect(keyById["cello-suite-no-1-prelude-bwv-1007-cello"]).toBe("G Major");
 		expect(keyById["prelude-in-c-major-bwv-846-piano"]).toBe("C Major");
 		expect(keyById["prelude-in-c-minor-op-28-no-20-piano"]).toBe("C Minor");
+		expect(keyById["moment-musicaux-no-3-op-94-d-780-piano"]).toBe("F Minor");
 		expect(keyById["sonata-da-chiesa-op-3-no-1-grave-violin"]).toBe("F Major");
+		expect(keyById["meditation-from-thais-violin"]).toBe("D Major");
 		expect(keyById["string-quartet-no-3-k-156-ii-adagio-violin"]).toBe(
 			"E Minor",
 		);
