@@ -27,9 +27,9 @@
 	height: 36px;
 	display: grid;
 	place-items: center;
-	border-radius: 10px;
+	border-radius: 9px;
 	overflow: hidden;
-	background: var(--bg-card);
+	background: transparent;
 	border: 1px solid var(--border-hairline);
 	flex-shrink: 0;
 }
