@@ -27,9 +27,11 @@ musical-scales/
 │   ├── favicon.svg
 │   └── logo.png                      # App brand icon
 ├── songs/
-│   └── musicxml/                     # Drop .musicxml / .xml / .mxl scores (+ optional .meta.json)
+│   ├── overrides.json                # Centralized curated title/composer/instrument/key overrides
+│   └── musicxml/                     # Mirrored & local .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
-│   ├── ingest-songs.ts               # CLI MusicXML folder sync, single-file import & WAV preview
+│   ├── dev.ts                        # Initial song sync + --watch + Bun --hot dev server
+│   ├── ingest-songs.ts               # Mirror, incremental compiler, --watch, single-file CLI & WAV preview
 │   └── preview.ts                    # Local Bun.serve production preview (dist/client + Worker /api/*)
 ├── src/
 │   ├── react-app/
@@ -153,9 +155,10 @@ flowchart TD
 ```text
 External Python Pipeline (Video / Audio / Sheet Music)
   └──▶ MusicXML (.musicxml / .xml / .mxl)
-         ├──▶ Offline CLI (`bun run ingest-songs`)
-         │      ├── Scans `songs/musicxml/` (+ optional `.meta.json` sidecars)
-         │      ├── Compiles `src/react-app/songs/generated/<id>.ts`
+         ├──▶ Offline CLI (`bun run ingest-songs` / `--watch`)
+         │      ├── Optionally mirrors `*.musicxml` from `SONGS_SOURCE_DIR` (tracked via `.mirror-manifest.json`)
+         │      ├── Scans `songs/musicxml/` (+ `songs/overrides.json` & `.meta.json` sidecars)
+         │      ├── Incrementally compiles `src/react-app/songs/generated/<id>.ts`
          │      └── Regenerates `src/react-app/songs/songCatalog.generated.ts`
          │
          └──▶ In-Browser Upload / Drop (Music Teacher -> Learn with Real Songs)

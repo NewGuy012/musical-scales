@@ -102,12 +102,13 @@ describe("Musical Scales UI rendering", () => {
 		expect(chordsSectionIdx).toBeGreaterThan(neighborsSectionIdx);
 		expect(musicTeacherIdx).toBeGreaterThan(chordsSectionIdx);
 
-		// Music Teacher -> Learn with Real Songs controls & empty MusicXML state
+		// Music Teacher -> Learn with Real Songs controls & synced repertoire
 		expect(html).toContain('id="panel-instrument" class="instrument-panel"');
 		expect(html).toContain("songs-instrument-bar");
 		expect(html).toContain('id="songs-tab-piano"');
 		expect(html).toContain("Synced with Piano above");
-		expect(html).toContain("No Piano scores yet");
+		expect(html).toContain("Prelude in C Major (BWV 846)");
+		expect(html).toContain("Prelude in C Minor, Op. 28 No. 20");
 		expect(html).not.toContain("Load MusicXML File");
 		expect(html).not.toContain("Piano Repertoire");
 	});

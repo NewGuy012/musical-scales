@@ -1,4 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	loadCuratedOverrides,
+	mirrorSourceMusicXml,
+	resolveImportOptions,
+	syncFromMusicXmlFolder,
+} from "../scripts/ingest-songs";
 import {
 	encodeWavPcm16,
 	renderTimedSequenceOfflineSamples,
@@ -18,6 +27,7 @@ import {
 	resolveExplicitChordSymbol,
 	solveInstrumentStops,
 } from "../src/react-app/musicxml";
+import { SONG_CATALOG, loadSongById } from "../src/react-app/songs/songCatalog";
 import {
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
@@ -820,5 +830,204 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 			{ key: "F# Minor" },
 		);
 		expect(pinned.songDoc.keyLabel).toBe("F♯ Minor");
+	});
+
+	test("mirrors *.musicxml only, prunes deleted source files safely, honors override precedence, and caches builds", async () => {
+		const tmpRoot = await mkdtemp(join(tmpdir(), "musicxml-sync-test-"));
+		try {
+			const sourceDir = join(tmpRoot, "source");
+			const musicXmlDir = join(tmpRoot, "songs", "musicxml");
+			const overridesPath = join(tmpRoot, "songs", "overrides.json");
+			const generatedDir = join(tmpRoot, "generated");
+			const catalogPath = join(tmpRoot, "songCatalog.generated.ts");
+
+			await mkdir(sourceDir, { recursive: true });
+			await mkdir(musicXmlDir, { recursive: true });
+
+			const makeScore = (
+				title: string,
+				step: string,
+			) => `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>${title}</work-title></work>
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1"><measure number="1">
+    <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+    <note><pitch><step>${step}</step><octave>4</octave></pitch><duration>16</duration></note>
+  </measure></part>
+</score-partwise>`;
+
+			// Populate source dir with 2 converted .musicxml files and ignored raw files
+			await writeFile(
+				join(sourceDir, "alpha_piece.musicxml"),
+				makeScore("Raw Alpha", "C"),
+			);
+			await writeFile(
+				join(sourceDir, "beta_piece.musicxml"),
+				makeScore("Raw Beta", "D"),
+			);
+			await writeFile(join(sourceDir, "raw_ignore.mxl"), "zip");
+			await writeFile(join(sourceDir, "raw_ignore.xml"), "<score-partwise/>");
+			await writeFile(join(sourceDir, "raw_ignore.gp5"), "gp5");
+
+			// Add a manual file inside songs/musicxml that must survive pruning
+			await writeFile(
+				join(musicXmlDir, "manual_score.musicxml"),
+				makeScore("Manual Score", "E"),
+			);
+
+			await writeFile(
+				overridesPath,
+				JSON.stringify({
+					alpha_piece: {
+						title: "Curated Alpha",
+						composerOrSource: "Override Composer",
+					},
+					beta_piece: {
+						title: "Curated Beta",
+					},
+				}),
+			);
+			// Sidecar overrides overrides.json, CLI overrides both
+			await writeFile(
+				join(musicXmlDir, "beta_piece.meta.json"),
+				JSON.stringify({ title: "Sidecar Beta" }),
+			);
+
+			const loadedOverrides = await loadCuratedOverrides(overridesPath);
+			const cliResolved = await resolveImportOptions(
+				join(musicXmlDir, "beta_piece.musicxml"),
+				loadedOverrides,
+				{ title: "CLI Beta" },
+			);
+			expect(cliResolved.title).toBe("CLI Beta");
+
+			const sync1 = await syncFromMusicXmlFolder({
+				sourceDir,
+				musicXmlDir,
+				overridesPath,
+				generatedSongsDir: generatedDir,
+				generatedCatalogPath: catalogPath,
+			});
+			expect(sync1.mirror).toEqual({
+				skipped: false,
+				copied: 2,
+				unchanged: 0,
+				pruned: 0,
+			});
+			expect(sync1.ingestedCount).toBe(3);
+			expect(sync1.compiledCount).toBe(3);
+			expect(sync1.cachedCount).toBe(0);
+
+			const mirroredEntries = await readdir(musicXmlDir);
+			expect(mirroredEntries).toContain("alpha_piece.musicxml");
+			expect(mirroredEntries).toContain("beta_piece.musicxml");
+			expect(mirroredEntries).toContain("manual_score.musicxml");
+			expect(mirroredEntries).not.toContain("raw_ignore.mxl");
+			expect(mirroredEntries).not.toContain("raw_ignore.xml");
+			expect(mirroredEntries).not.toContain("raw_ignore.gp5");
+
+			// No-op rerun hits cache completely
+			const sync2 = await syncFromMusicXmlFolder({
+				sourceDir,
+				musicXmlDir,
+				overridesPath,
+				generatedSongsDir: generatedDir,
+				generatedCatalogPath: catalogPath,
+			});
+			expect(sync2.mirror.copied).toBe(0);
+			expect(sync2.mirror.unchanged).toBe(2);
+			expect(sync2.compiledCount).toBe(0);
+			expect(sync2.cachedCount).toBe(3);
+			expect(sync2.catalogUpdated).toBe(false);
+
+			// Delete beta_piece from source -> pruned from musicXmlDir, manual_score kept
+			await rm(join(sourceDir, "beta_piece.musicxml"));
+			const sync3 = await syncFromMusicXmlFolder({
+				sourceDir,
+				musicXmlDir,
+				overridesPath,
+				generatedSongsDir: generatedDir,
+				generatedCatalogPath: catalogPath,
+			});
+			expect(sync3.mirror.pruned).toBe(1);
+			expect(sync3.ingestedCount).toBe(2);
+			expect(sync3.compiledCount).toBe(0);
+			expect(sync3.cachedCount).toBe(2);
+			expect(sync3.removedCount).toBe(1);
+			expect(await readdir(musicXmlDir)).toContain("manual_score.musicxml");
+			expect(await readdir(musicXmlDir)).not.toContain("beta_piece.musicxml");
+
+			// Missing sourceDir gracefully skips mirroring without pruning
+			const skipRes = await mirrorSourceMusicXml(
+				join(tmpRoot, "does-not-exist"),
+				musicXmlDir,
+			);
+			expect(skipRes.skipped).toBe(true);
+			expect(await readdir(musicXmlDir)).toContain("alpha_piece.musicxml");
+		} finally {
+			await rm(tmpRoot, { recursive: true, force: true });
+		}
+	});
+
+	test("synced 11-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
+		expect(SONG_CATALOG).toHaveLength(11);
+		const byInst = {
+			piano: SONG_CATALOG.filter((e) => e.instruments.includes("piano")),
+			guitar: SONG_CATALOG.filter((e) => e.instruments.includes("guitar")),
+			violin: SONG_CATALOG.filter((e) => e.instruments.includes("violin")),
+			cello: SONG_CATALOG.filter((e) => e.instruments.includes("cello")),
+		};
+		expect(byInst.piano).toHaveLength(2);
+		expect(byInst.guitar).toHaveLength(5);
+		expect(byInst.violin).toHaveLength(2);
+		expect(byInst.cello).toHaveLength(2);
+
+		const keyById = Object.fromEntries(
+			SONG_CATALOG.map((e) => [e.id, e.keyLabel]),
+		);
+		expect(keyById["cello-suite-no-1-prelude-bwv-1007-cello"]).toBe("G Major");
+		expect(keyById["prelude-in-c-major-bwv-846-piano"]).toBe("C Major");
+		expect(keyById["prelude-in-c-minor-op-28-no-20-piano"]).toBe("C Minor");
+		expect(keyById["sonata-da-chiesa-op-3-no-1-grave-violin"]).toBe("F Major");
+		expect(keyById["string-quartet-no-3-k-156-ii-adagio-violin"]).toBe(
+			"E Minor",
+		);
+		expect(keyById["le-cygne-the-swan-cello"]).toBe("G Major");
+		expect(keyById["lagrima-guitar"]).toBe("E Major");
+		expect(keyById["classical-gas-guitar"]).toBe("A Minor");
+		expect(keyById["windy-and-warm-guitar"]).toBe("A Minor");
+		expect(keyById["cannonball-rag-guitar"]).toBe("G Major");
+		expect(keyById["etude-no-1-in-e-minor-guitar"]).toBe("E Minor");
+
+		// Lágrima preserves Eadd9
+		const lagrima = await loadSongById("lagrima-guitar");
+		expect(lagrima.steps[0].chordSymbol).toBe("Eadd9");
+
+		// Classical Gas has add9 chords and only note-local palm mutes (not latched for the rest of the score)
+		const classicalGas = await loadSongById("classical-gas-guitar");
+		const cgAllNotes = classicalGas.steps.flatMap((s) =>
+			s.events.flatMap((ev) => ev.notes ?? []),
+		);
+		const cgPalmMuted = cgAllNotes.filter((n) => n.technique === "palmMute");
+		expect(cgPalmMuted.length).toBeGreaterThan(0);
+		expect(cgPalmMuted.length).toBeLessThan(cgAllNotes.length * 0.15);
+		expect(
+			classicalGas.steps.some(
+				(s) =>
+					s.chordSymbol.includes("add9") ||
+					s.subBarChords?.some((sc) => sc.chordSymbol.includes("add9")),
+			),
+		).toBe(true);
+
+		// Windy and Warm preserves unison TAB double-stops (same MIDI played on 2 strings)
+		const windyAndWarm = await loadSongById("windy-and-warm-guitar");
+		const unisonEvents = windyAndWarm.steps.flatMap((s) =>
+			s.events.filter((ev) => {
+				if (!ev.guitarStops || ev.guitarStops.length < 2) return false;
+				return new Set(ev.midi).size < ev.midi.length;
+			}),
+		);
+		expect(unisonEvents.length).toBeGreaterThanOrEqual(4);
 	});
 });

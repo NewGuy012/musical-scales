@@ -57,6 +57,39 @@ export function getCatalogStubSongsForInstrument(
 }
 
 const songCache = new Map<string, Promise<SongExample>>();
+const catalogInvalidationListeners = new Set<() => void>();
+
+export function clearSongCache(): void {
+	songCache.clear();
+	for (const listener of catalogInvalidationListeners) {
+		listener();
+	}
+}
+
+export function subscribeSongCatalogUpdates(listener: () => void): () => void {
+	catalogInvalidationListeners.add(listener);
+	return () => {
+		catalogInvalidationListeners.delete(listener);
+	};
+}
+
+interface BunHotModule {
+	dispose?(cb: () => void): void;
+	on?(event: string, cb: () => void): void;
+}
+
+const hot = (import.meta as ImportMeta & { hot?: BunHotModule }).hot;
+if (hot) {
+	hot.dispose?.(() => {
+		songCache.clear();
+	});
+	hot.on?.("bun:beforeUpdate", () => {
+		songCache.clear();
+	});
+	hot.on?.("bun:afterUpdate", () => {
+		clearSongCache();
+	});
+}
 
 /**
  * Dynamically imports and hydrates a single ingested song on demand so Bun

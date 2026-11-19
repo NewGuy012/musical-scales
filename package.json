@@ -18,9 +18,9 @@
 	],
 	"private": true,
 	"scripts": {
-		"build": "bun check -b && rm -rf dist/client && bun build ./index.html --outdir=dist/client --production --splitting --public-path=/ --asset-naming=assets/[name]-[hash].[ext] --chunk-naming=assets/[name]-[hash].[ext] && cp public/_headers dist/client/_headers",
+		"build": "bun run ingest-songs && bun check -b && rm -rf dist/client && bun build ./index.html --outdir=dist/client --production --splitting --public-path=/ --asset-naming=assets/[name]-[hash].[ext] --chunk-naming=assets/[name]-[hash].[ext] && cp public/_headers dist/client/_headers",
 		"deploy": "wrangler deploy",
-		"dev": "bun --hot ./index.html --port 5173",
+		"dev": "bun scripts/dev.ts",
 		"ingest-songs": "bun scripts/ingest-songs.ts",
 		"lint": "bun check -b && bun fmt --check",
 		"preview": "bun run build && bun scripts/preview.ts",

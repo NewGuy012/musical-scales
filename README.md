@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./public/logo.png" alt="Musical Scales Logo" width="88" />
+  <img src="./public/logo.png" alt="Musical Scales Logo" width="96" height="96" />
   <h1>Musical Scales</h1>
   <p>
     <strong>An interactive music theory studio &amp; multi-instrument companion</strong><br />
@@ -52,7 +52,7 @@
 | **Violin** | 4-string fretless neck (`G3–D4–A4–E5`, up to 24 semitones) with left-hand frames, finger numbers &amp; `Bow Roll`            | Automatic position/finger solving (`0..24` semitones), harmonics, portamento, pizzicato &amp; slurs |
 | **Cello**  | 4-string fretless neck (`C2–G2–D3–A3`, up to 24 semitones / thumb position) with left-hand frames &amp; `Bow Roll`           | Automatic thumb-position &amp; closed-frame fingering, double stops, pizzicato &amp; slurs          |
 
-- Drop MusicXML files into [`songs/musicxml/`](./songs/musicxml/) and run `bun run ingest-songs` to compile lazy-loaded chunks, or drop `.musicxml`/`.xml`/`.mxl` files directly into the **Learn with Real Songs** panel for instant local preview.
+- Drop MusicXML files into [`songs/musicxml/`](./songs/musicxml/) (or set `SONGS_SOURCE_DIR` in `.env` per [`.env.example`](./.env.example)), edit curated metadata in [`songs/overrides.json`](./songs/overrides.json), and run `bun run ingest-songs` (or `bun dev` for live watch + HMR) to compile lazy-loaded chunks — or drop `.musicxml`/`.xml`/`.mxl` files directly into the **Learn with Real Songs** panel for instant local preview.
 
 ---
 
@@ -86,15 +86,15 @@ bun dev       # open http://localhost:5173
 
 | Command                | Description                                                             |
 | :--------------------- | :---------------------------------------------------------------------- |
-| `bun dev`              | Start the Bun client development server                                 |
+| `bun dev`              | Sync MusicXML songs, watch for changes, and start the Bun dev server    |
 | `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests                        |
 | `bun fmt`              | Format codebase with Bun                                                |
 | `bun check -b`         | Typecheck app and Worker projects                                       |
 | `bun lint`             | Run typecheck and format verification                                   |
-| `bun run build`        | Typecheck and build client bundle into `dist/client/`                   |
+| `bun run build`        | Sync songs, typecheck, and build client bundle into `dist/client/`      |
 | `bun run preview`      | Build and preview production bundle locally                             |
 | `bun deploy`           | Deploy client bundle and Hono Worker to Cloudflare Workers via Wrangler |
-| `bun run ingest-songs` | Compile `songs/musicxml/` into lazy `SongDocument` chunks               |
+| `bun run ingest-songs` | Mirror `SONGS_SOURCE_DIR` & compile `songs/musicxml/` chunks            |
 
 - See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, data-flow diagrams, and the complete MusicXML ingestion specification.
 

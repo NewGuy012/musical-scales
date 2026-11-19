@@ -47,6 +47,7 @@ import {
 	getCatalogEntriesForInstrument,
 	getCatalogStubSongsForInstrument,
 	loadSongById,
+	subscribeSongCatalogUpdates,
 } from "./songs/songCatalog";
 import {
 	FlattenedSongStep,
@@ -1441,6 +1442,14 @@ export function App() {
 		}
 		return songsForInstrument[0]?.id ?? null;
 	}, [selectedSongByInstrument, instrumentView, songsForInstrument]);
+
+	useEffect(
+		() =>
+			subscribeSongCatalogUpdates(() => {
+				setLoadedSongsById({});
+			}),
+		[],
+	);
 
 	useEffect(() => {
 		if (
