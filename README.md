@@ -39,7 +39,7 @@
 4. **Chords** — Collapsible theory workspace (collapsed by default) below Neighbors, covering:
    - **Chords & Progressions**: Treble **Key Signature** staff, Relative/Parallel jumps, enharmonic flips (`B/C♭`, `F♯/G♭`, `D♭/C♯`), 7-note scale, Diatonic Major/Minor/Diminished chords (Triads or 7ths, block or Arpeggio), and curated progressions.
    - **Passing & Substitutions**: Interactive chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions.
-5. **Music Teacher → Learn with Real Songs** — Collapsible section (collapsed by default) below the Chords section. Load **MusicXML** (`.musicxml`, `.xml`, `.mxl`) scores via CLI ingestion or instant browser drag-and-drop preview with bar-by-bar harmony, study guides, practice speeds (`0.5x–1.25x`), expressive articulations, and scrubbable transport synced live to the active instrument and Circle of Fifths.
+5. **Music Teacher → Learn with Real Songs** — Collapsible section (collapsed by default) below the Chords section. Load **MusicXML** (`.musicxml`, `.xml`, `.mxl`) scores via CLI ingestion or instant browser drag-and-drop preview with bar-by-bar harmony, study guides, practice speeds (`0.5x–1.5x`), expressive articulations, and scrubbable transport synced live to the active instrument and Circle of Fifths.
 
 ---
 

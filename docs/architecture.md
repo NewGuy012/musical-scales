@@ -141,7 +141,7 @@ flowchart TD
 ### 2. Song Runtime & Catalog (`src/react-app/songs/`, `songs/`)
 
 - **[`songRuntime.ts`](../src/react-app/songs/songRuntime.ts)**:
-  - Hydrates tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) via `hydrateSong()`, and supports practice speed scaling (`0.5x–1.25x`) via `scaleSongExampleSpeed()`.
+  - Hydrates tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) via `hydrateSong()`, and supports practice speed scaling (`0.5x–1.5x`) via `scaleSongExampleSpeed()`.
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 - **[`songCatalog.ts`](../src/react-app/songs/songCatalog.ts)** & **[`songCatalog.generated.ts`](../src/react-app/songs/songCatalog.generated.ts)**:
   - Exposes repertoire metadata generated from `songs/musicxml/` and dynamically loads individual [`SongDocument`](../src/react-app/songs/songRuntime.ts) modules from `src/react-app/songs/generated/` on demand so each piece is code-split out of the initial client bundle.

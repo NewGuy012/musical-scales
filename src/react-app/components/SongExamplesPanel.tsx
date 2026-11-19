@@ -21,6 +21,7 @@ const PRACTICE_SPEED_OPTIONS = [
 	{ value: 0.75, label: "0.75x", title: "Practice speed 0.75x" },
 	{ value: 1, label: "1x", title: "Practice speed 1x" },
 	{ value: 1.25, label: "1.25x", title: "Practice speed 1.25x" },
+	{ value: 1.5, label: "1.5x", title: "Practice speed 1.5x" },
 ] as const;
 
 export interface OtherInstrumentSongCount {

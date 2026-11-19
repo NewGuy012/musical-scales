@@ -174,6 +174,26 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(idleHtml).toContain("0.5x");
 		expect(idleHtml).toContain("0.75x");
 		expect(idleHtml).toContain("1.25x");
+		expect(idleHtml).toContain("1.5x");
+
+		const fastHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={[celloSong]}
+				playingSongId={null}
+				cuedSongId={null}
+				songPositionMs={0}
+				playbackSpeed={1.5}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onChangePlaybackSpeed={noop}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(fastHtml).toContain(
+			'aria-pressed="true" title="Practice speed 1.5x"',
+		);
 
 		const playingHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -237,6 +257,13 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(slowSong.bpm).toBe(Math.round(celloSong.bpm * 0.5));
 		expect(flattenSongPlaybackSteps(slowSong).totalDurationMs).toBeCloseTo(
 			flat.totalDurationMs * 2,
+			-1,
+		);
+
+		const fastSong = scaleSongExampleSpeed(celloSong, 1.5);
+		expect(fastSong.bpm).toBe(Math.round(celloSong.bpm * 1.5));
+		expect(flattenSongPlaybackSteps(fastSong).totalDurationMs).toBeCloseTo(
+			flat.totalDurationMs / 1.5,
 			-1,
 		);
 	});
