@@ -180,6 +180,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(idleHtml).toContain("0.75x");
 		expect(idleHtml).toContain("1.25x");
 		expect(idleHtml).toContain("1.5x");
+		expect(idleHtml).toContain("1.75x");
+		expect(idleHtml).toContain("2x");
 
 		const fastHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -187,7 +189,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 				playingSongId={null}
 				cuedSongId={null}
 				songPositionMs={0}
-				playbackSpeed={1.5}
+				playbackSpeed={2}
 				activeChordStepIndex={null}
 				activeNoteLabel={null}
 				selectedPreviewStepId={null}
@@ -196,8 +198,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 				onSelectSongChordStep={noop}
 			/>,
 		);
-		expect(fastHtml).toContain('title="Practice speed 1.5x"');
-		expect(fastHtml).toContain('<option value="1.5" selected="">1.5x</option>');
+		expect(fastHtml).toContain('title="Practice speed 2x"');
+		expect(fastHtml).toContain('<option value="2" selected="">2x</option>');
 
 		const playingHtml = renderToStaticMarkup(
 			<SongExamplesPanel
@@ -270,6 +272,12 @@ describe("songPlayback helpers and synchronized UI", () => {
 			flat.totalDurationMs / 1.5,
 			-1,
 		);
+
+		const doubleSpeedSong = scaleSongExampleSpeed(celloSong, 2);
+		expect(doubleSpeedSong.bpm).toBe(Math.round(celloSong.bpm * 2));
+		expect(
+			flattenSongPlaybackSteps(doubleSpeedSong).totalDurationMs,
+		).toBeCloseTo(flat.totalDurationMs / 2, -1);
 	});
 
 	test("instrument visualizers render live song-hit markers and halos", () => {
