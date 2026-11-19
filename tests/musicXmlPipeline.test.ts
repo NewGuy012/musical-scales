@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import {
 	encodeWavPcm16,
 	renderTimedSequenceOfflineSamples,
@@ -20,11 +18,6 @@ import {
 	resolveExplicitChordSymbol,
 	solveInstrumentStops,
 } from "../src/react-app/musicxml";
-import {
-	formatSongRegistryText,
-	parseSongRegistryText,
-	syncSongRegistryText,
-} from "../src/react-app/songs/songRegistry";
 import {
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
@@ -125,7 +118,7 @@ async function buildTestMxlArchive(
 	return archive;
 }
 
-describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
+describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 	test("parseXml handles DOCTYPE internal subsets, comments, CDATA, and XML entities", () => {
 		const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd" [
@@ -558,49 +551,6 @@ describe("MusicXML parser, .mxl unpacker, compiler, and registry", () => {
 		expect(formatSongDocumentModule(doc, "FORM_REPEAT_SPEC")).toContain(
 			"export const FORM_REPEAT_SPEC: SongDocument",
 		);
-	});
-
-	test("songs/songs.txt parses cleanly and promotes [PENDING] songs to [INGESTED]", async () => {
-		const registryPath = resolve(import.meta.dir, "../songs/songs.txt");
-		const rawRegistry = await readFile(registryPath, "utf8");
-		const parsed = parseSongRegistryText(rawRegistry);
-		expect(parsed).toHaveLength(7);
-		expect(parsed.every((e) => e.status === "PENDING")).toBe(true);
-		expect(parsed.map((e) => e.id)).toContain("bach-cello-suite-1");
-
-		const synced = syncSongRegistryText(rawRegistry, [
-			{
-				id: "bach-cello-suite-1",
-				instrument: "cello",
-				title: "Cello Suite No. 1 — Prelude (BWV 1007)",
-				composerOrSource: "J.S. Bach",
-				keyLabel: "G Major",
-				timeSignature: "4/4",
-				source: "cello/bach-cello-suite-1.musicxml",
-			},
-			{
-				id: "custom-etude-piano",
-				instrument: "piano",
-				title: "Custom Etude",
-				composerOrSource: "User",
-				keyLabel: "C Major",
-				timeSignature: "4/4",
-				source: "piano/custom-etude.mxl",
-			},
-		]);
-
-		const nextEntries = parseSongRegistryText(synced);
-		expect(nextEntries).toHaveLength(8);
-		const bachEntry = nextEntries.find((e) => e.id === "bach-cello-suite-1");
-		expect(bachEntry?.status).toBe("INGESTED");
-		expect(bachEntry?.source).toBe("cello/bach-cello-suite-1.musicxml");
-		expect(nextEntries.filter((e) => e.status === "PENDING")).toHaveLength(6);
-		expect(nextEntries.find((e) => e.id === "custom-etude-piano")?.status).toBe(
-			"INGESTED",
-		);
-
-		const formattedAgain = formatSongRegistryText(nextEntries);
-		expect(formattedAgain).toBe(synced);
 	});
 
 	test("XML parser and .mxl unpacker reject malformed roots, oversized trees, path escapes, and corrupt EOCD", async () => {

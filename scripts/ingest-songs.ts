@@ -21,10 +21,6 @@ import {
 } from "../src/react-app/musicxml";
 import type { SongCatalogEntry } from "../src/react-app/songs/songCatalog";
 import {
-	type IngestedSongSummary,
-	syncSongRegistryText,
-} from "../src/react-app/songs/songRegistry";
-import {
 	type InstrumentTab,
 	type SongDocument,
 	flattenSongPlaybackSteps,
@@ -37,7 +33,6 @@ const MUSICXML_EXTENSIONS = new Set([".musicxml", ".xml", ".mxl"]);
 
 const REPO_ROOT = resolve(import.meta.dir, "..");
 const MUSICXML_DIR = join(REPO_ROOT, "songs", "musicxml");
-const REGISTRY_TXT_PATH = join(REPO_ROOT, "songs", "songs.txt");
 const GENERATED_SONGS_DIR = join(
 	REPO_ROOT,
 	"src",
@@ -59,13 +54,12 @@ function printUsage(): void {
 	console.log(`Usage: bun run ingest-songs [options]
 
 Without --input, scans songs/musicxml/ for .musicxml/.xml/.mxl files, compiles
-lazy-loaded SongDocument modules, regenerates songCatalog.generated.ts, and syncs
-songs/songs.txt.
+lazy-loaded SongDocument modules, and regenerates songCatalog.generated.ts.
 
 Options:
   -i, --input <path>        Single MusicXML file (.musicxml, .xml, .mxl)
   -l, --list-parts          List parts inside --input and exit
-      --copy                Copy --input into songs/musicxml/ and sync catalog + songs/songs.txt
+      --copy                Copy --input into songs/musicxml/ and sync catalog
       --instrument <type>   piano | guitar | cello | violin (auto-detected if omitted)
       --part <idx-or-id>    Zero-based part index or MusicXML part id (e.g. P1)
       --id <slug>           Override generated song ID
@@ -255,7 +249,6 @@ ${switchCases}
 
 async function syncFromMusicXmlFolder(): Promise<{
 	ingestedCount: number;
-	registryCount: number;
 }> {
 	const files = await collectMusicXmlFiles(MUSICXML_DIR);
 	await mkdir(GENERATED_SONGS_DIR, { recursive: true });
@@ -271,10 +264,8 @@ async function syncFromMusicXmlFolder(): Promise<{
 		moduleFile: string;
 		exportName: string;
 	}> = [];
-	const registrySummaries: IngestedSongSummary[] = [];
 
 	for (const filePath of files) {
-		const relSource = relative(MUSICXML_DIR, filePath).replace(/\\/g, "/");
 		const bytes = new Uint8Array(await readFile(filePath));
 		const meta = await readSidecarMeta(filePath);
 		const fileBase = basename(filePath, extname(filePath));
@@ -336,16 +327,6 @@ async function syncFromMusicXmlFolder(): Promise<{
 			moduleFile: moduleBase,
 			exportName,
 		});
-
-		registrySummaries.push({
-			id: finalDoc.id,
-			instrument: finalDoc.instruments[0] ?? "piano",
-			title: finalDoc.title,
-			composerOrSource: finalDoc.composerOrSource,
-			keyLabel: finalDoc.keyLabel,
-			timeSignature: finalDoc.timeSignature,
-			source: relSource,
-		});
 	}
 
 	for (const entry of existingGen) {
@@ -361,21 +342,8 @@ async function syncFromMusicXmlFolder(): Promise<{
 	const catalogText = formatGeneratedCatalogModule(catalogItems);
 	await writeFile(GENERATED_CATALOG_PATH, catalogText, "utf8");
 
-	let existingRegistry = "";
-	try {
-		existingRegistry = await readFile(REGISTRY_TXT_PATH, "utf8");
-	} catch {
-		existingRegistry = "";
-	}
-	const nextRegistry = syncSongRegistryText(
-		existingRegistry,
-		registrySummaries,
-	);
-	await writeFile(REGISTRY_TXT_PATH, nextRegistry, "utf8");
-
 	return {
 		ingestedCount: catalogItems.length,
-		registryCount: registrySummaries.length,
 	};
 }
 
@@ -412,7 +380,7 @@ async function main(): Promise<void> {
 	if (!inputPath) {
 		const summary = await syncFromMusicXmlFolder();
 		console.error(
-			`Synced ${summary.ingestedCount} MusicXML song(s) from songs/musicxml/ -> songCatalog.generated.ts & songs/songs.txt`,
+			`Synced ${summary.ingestedCount} MusicXML song(s) from songs/musicxml/ -> songCatalog.generated.ts`,
 		);
 		return;
 	}

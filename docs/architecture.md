@@ -27,7 +27,6 @@ musical-scales/
 │   ├── favicon.svg
 │   └── logo.png                      # App brand icon
 ├── songs/
-│   ├── songs.txt                     # Plain-text song registry ([PENDING] backlog & [INGESTED] songs)
 │   └── musicxml/                     # Drop .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
 │   ├── ingest-songs.ts               # CLI MusicXML folder sync, single-file import & WAV preview
@@ -66,7 +65,6 @@ musical-scales/
 │   │   │   ├── songRuntime.ts        # SongDocument hydrator, speed clamping/scaler & playback flattener
 │   │   │   ├── songCatalog.ts        # Repertoire metadata lookup & lazy chunk loader
 │   │   │   ├── songCatalog.generated.ts # Auto-generated catalog & dynamic import() switch
-│   │   │   ├── songRegistry.ts       # Parser/formatter/sync logic for songs/songs.txt
 │   │   │   └── generated/            # Auto-generated SongDocument TS chunks from songs/musicxml/
 │   │   └── theory/
 │   │       ├── circleOfFifths.ts     # Note tables, scales, signatures, diatonic chords, progressions
@@ -138,15 +136,13 @@ flowchart TD
   - Shares `getBowedFifthsVoicings()` and `getBowedVoicings()` across 4-string fifths-tuned instruments (`CELLO_TUNING`: `C2–G2–D3–A3`, `VIOLIN_TUNING`: `G3–D4–A4–E5`) over `MAX_BOWED_SEMITONE = 14` (`MAX_SONG_BOWED_SEMITONE = 24`).
   - Generates playable 3- and 4-string stops across all 13 chord qualities constrained to a closed 3-semitone left-hand frame (`fingers 1–4`, `0` for open string).
 
-### 2. Song Runtime, Catalog & Plain-Text Registry (`src/react-app/songs/`, `songs/`)
+### 2. Song Runtime & Catalog (`src/react-app/songs/`, `songs/`)
 
 - **[`songRuntime.ts`](../src/react-app/songs/songRuntime.ts)**:
   - Hydrates tick-based [`SongDocument`](../src/react-app/songs/songRuntime.ts) (`version: 2`, `tpq`, `tempoMap`, normalized `chords` palette, `form` bar reuse, unified stops, piano `"rh" | "lh"` hand tags) via `hydrateSong()`, and supports practice speed scaling (`0.5x–1.25x`) via `scaleSongExampleSpeed()`.
   - Flattens bar events via `flattenSongPlaybackSteps()` and supports timeline lookup/formatting via `findPlaybackEventAtTime()` and `getSongBarStartTimes()`.
 - **[`songCatalog.ts`](../src/react-app/songs/songCatalog.ts)** & **[`songCatalog.generated.ts`](../src/react-app/songs/songCatalog.generated.ts)**:
   - Exposes repertoire metadata generated from `songs/musicxml/` and dynamically loads individual [`SongDocument`](../src/react-app/songs/songRuntime.ts) modules from `src/react-app/songs/generated/` on demand so each piece is code-split out of the initial client bundle.
-- **[`songRegistry.ts`](../src/react-app/songs/songRegistry.ts)** & **[`songs/songs.txt`](../songs/songs.txt)**:
-  - Persists a plain-text pipe-delimited registry of all songs: `[PENDING]` marks backlog entries awaiting MusicXML ingestion, and `[INGESTED]` tracks active scores compiled from `songs/musicxml/`. Matching `[PENDING]` entries promote automatically to `[INGESTED]` on `bun run ingest-songs`.
 
 ---
 
@@ -160,8 +156,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
          ├──▶ Offline CLI (`bun run ingest-songs`)
          │      ├── Scans `songs/musicxml/` (+ optional `.meta.json` sidecars)
          │      ├── Compiles `src/react-app/songs/generated/<id>.ts`
-         │      ├── Regenerates `src/react-app/songs/songCatalog.generated.ts`
-         │      └── Syncs `songs/songs.txt` ([PENDING] -> [INGESTED])
+         │      └── Regenerates `src/react-app/songs/songCatalog.generated.ts`
          │
          └──▶ In-Browser Upload / Drop (Music Teacher -> Learn with Real Songs)
                 ├── Lazy-loads `src/react-app/musicxml/` (~14 KB gzipped on demand)
@@ -251,5 +246,5 @@ Run via `bun test`:
 - **[`chromaticHarmony.test.ts`](../tests/chromaticHarmony.test.ts)**: Validates chromatic passing slides, symmetric `dim7` families, secondary dominants, and tritone substitutions across all 12 Circle slots in Major and Minor modes.
 - **[`guitarFretboard.test.ts`](../tests/guitarFretboard.test.ts)** & **[`celloFingerboard.test.ts`](../tests/celloFingerboard.test.ts)**: Exhaustively validate that all 15 roots × 13 chord qualities produce at least 3 playable voicings within hand-span limits (guitar, cello, and violin), plus guitar pentatonic/passing guides.
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, safe handling of invalid MIDI inputs, and offline renderer duration/sample-rate clamping.
-- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs, numeric entity bounds, multi-root & `250k`-node cap rejection), compressed `.mxl` roundtrips and path-escape/EOCD rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, offline WAV synthesis, and `songs/songs.txt` registry synchronization.
+- **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs, numeric entity bounds, multi-root & `250k`-node cap rejection), compressed `.mxl` roundtrips and path-escape/EOCD rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, and offline WAV synthesis.
 - **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including polyphonic custom tunings, capo, harmonic stops, and mixed-stop onset alignment), transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, `Music Teacher -> Learn with Real Songs` section layout, and Hono Worker security headers / `404` / `405` routing.
