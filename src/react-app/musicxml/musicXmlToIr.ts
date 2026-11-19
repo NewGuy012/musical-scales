@@ -1,5 +1,6 @@
 import {
 	type InstrumentTab,
+	type SongCategory,
 	type SongDocument,
 	type SongNoteTechnique,
 	slugifyId,
@@ -131,6 +132,7 @@ export interface MusicXmlImportOptions {
 	partId?: string;
 	instrument?: InstrumentTab;
 	preferredInstrument?: InstrumentTab;
+	category?: SongCategory;
 	id?: string;
 	title?: string;
 	composerOrSource?: string;

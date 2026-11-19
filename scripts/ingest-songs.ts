@@ -24,15 +24,18 @@ import {
 import type { SongCatalogEntry } from "../src/react-app/songs/songCatalog";
 import {
 	type InstrumentTab,
+	type SongCategory,
 	type SongDocument,
+	compareSongCatalogOrder,
 	flattenSongPlaybackSteps,
 	hydrateSong,
 	isInstrumentTab,
+	isSongCategory,
 	slugifyId,
 } from "../src/react-app/songs/songRuntime";
 
 const MUSICXML_EXTENSIONS = new Set([".musicxml", ".xml", ".mxl"]);
-const COMPILER_FORMAT_VERSION = "ingest-v2";
+const COMPILER_FORMAT_VERSION = "ingest-v3";
 const WATCH_DEBOUNCE_MS = 250;
 
 const REPO_ROOT = resolve(import.meta.dir, "..");
@@ -116,6 +119,7 @@ Options:
       --source <dir>        External directory of *.musicxml scores to mirror (or SONGS_SOURCE_DIR)
       --watch               Watch source dir, songs/musicxml/, and songs/overrides.json for live sync
       --instrument <type>   piano | guitar | cello | violin (auto-detected if omitted)
+      --category <type>     classical | modern (for catalog ordering)
       --part <idx-or-id>    Zero-based part index or MusicXML part id (e.g. P1)
       --id <slug>           Override generated song ID
       --title <text>        Override song title
@@ -244,6 +248,12 @@ function parseInstrumentFlag(
 	);
 }
 
+function parseCategoryFlag(raw: string | undefined): SongCategory | undefined {
+	if (raw === undefined) return undefined;
+	if (isSongCategory(raw)) return raw;
+	throw new Error(`Invalid --category "${raw}". Expected classical or modern.`);
+}
+
 function parsePartFlag(raw: string | undefined): {
 	partIndex?: number;
 	partId?: string;
@@ -274,6 +284,12 @@ function validateImportOptionsObject(
 			throw new Error(`Invalid preferredInstrument in "${sourceLabel}".`);
 		}
 		parseInstrumentFlag(meta.preferredInstrument);
+	}
+	if (meta.category !== undefined) {
+		if (typeof meta.category !== "string") {
+			throw new Error(`Invalid category in "${sourceLabel}".`);
+		}
+		parseCategoryFlag(meta.category);
 	}
 	for (const strKey of [
 		"id",
@@ -723,6 +739,7 @@ export async function syncFromMusicXmlFolder(options?: {
 			composerOrSource: finalDoc.composerOrSource,
 			subtitle: hydrated.subtitle,
 			instruments: finalDoc.instruments,
+			...(meta.category ? { category: meta.category } : {}),
 			keySlot: finalDoc.keySlot,
 			keyMode: finalDoc.keyMode,
 			keyLabel: finalDoc.keyLabel,
@@ -760,6 +777,8 @@ export async function syncFromMusicXmlFolder(options?: {
 			removedCount++;
 		}
 	}
+
+	catalogItems.sort((a, b) => compareSongCatalogOrder(a.entry, b.entry));
 
 	const catalogText = formatWithBunFmt(
 		formatGeneratedCatalogModule(catalogItems),
@@ -935,6 +954,7 @@ async function main(): Promise<void> {
 			watch: { type: "boolean" },
 			"skip-initial": { type: "boolean" },
 			instrument: { type: "string" },
+			category: { type: "string" },
 			part: { type: "string" },
 			id: { type: "string" },
 			title: { type: "string" },
@@ -989,6 +1009,7 @@ async function main(): Promise<void> {
 	}
 
 	const instrument = parseInstrumentFlag(values.instrument);
+	const category = parseCategoryFlag(values.category);
 	const { partIndex, partId } = parsePartFlag(values.part);
 	const quantizeSubdivision =
 		values.quantize !== undefined
@@ -1002,6 +1023,7 @@ async function main(): Promise<void> {
 		partIndex,
 		partId,
 		instrument,
+		category,
 		id: values.id,
 		title: values.title,
 		composerOrSource: values.composer,
@@ -1041,6 +1063,7 @@ async function main(): Promise<void> {
 			values.subtitle ||
 			values.key ||
 			values.instrument ||
+			values.category ||
 			values.part ||
 			values.quantize ||
 			values["split-chords"];

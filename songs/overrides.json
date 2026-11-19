@@ -1,56 +1,79 @@
 {
 	"bach_bwv1007_cello_suite_1_prelude_cello": {
 		"instrument": "cello",
+		"category": "classical",
 		"title": "Cello Suite No. 1 — Prelude (BWV 1007)",
 		"composerOrSource": "J.S. Bach"
 	},
 	"bach_wtc1_prelude_01_c_major_piano": {
 		"instrument": "piano",
+		"category": "classical",
 		"title": "Prelude in C Major (BWV 846)",
 		"composerOrSource": "J.S. Bach · WTC Book I"
 	},
+	"bee_gees_how_deep_is_your_love_guitar_both": {
+		"category": "modern"
+	},
 	"chopin_prelude_op28_no20_c_minor_piano": {
 		"instrument": "piano",
+		"category": "classical",
 		"title": "Prelude in C Minor, Op. 28 No. 20",
 		"composerOrSource": "Frédéric Chopin"
 	},
 	"corelli_op3_no1_grave_violin": {
 		"instrument": "violin",
+		"category": "classical",
 		"title": "Sonata da Chiesa, Op. 3 No. 1 — Grave",
 		"composerOrSource": "Arcangelo Corelli"
 	},
+	"massenet_thais_meditation_violin": {
+		"category": "classical"
+	},
 	"mozart_k156_mvt2_adagio_violin": {
 		"instrument": "violin",
+		"category": "classical",
 		"title": "String Quartet No. 3 (K. 156) — II. Adagio",
 		"composerOrSource": "W.A. Mozart"
 	},
 	"saint_saens_le_cygne_the_swan_cello": {
 		"instrument": "cello",
+		"category": "classical",
 		"title": "Le Cygne (The Swan)",
 		"composerOrSource": "Camille Saint-Saëns · Carnival of the Animals"
 	},
+	"schubert_moments_musicaux_op94_no3_d780_piano": {
+		"category": "classical"
+	},
 	"tarrega_lagrima_guitar_both": {
 		"instrument": "guitar",
+		"category": "classical",
 		"title": "Lágrima",
 		"composerOrSource": "Francisco Tárrega"
 	},
+	"tommy_emmanuel_amazing_grace_guitar_both": {
+		"category": "modern"
+	},
 	"tommy-emmanuel-classical_gas_both": {
 		"instrument": "guitar",
+		"category": "modern",
 		"title": "Classical Gas",
 		"composerOrSource": "Mason Williams · arr. Tommy Emmanuel"
 	},
 	"tommy-emmanuel-windy_and_warm_both": {
 		"instrument": "guitar",
+		"category": "modern",
 		"title": "Windy and Warm",
 		"composerOrSource": "John D. Loudermilk · arr. Tommy Emmanuel"
 	},
 	"travis-cannonball_rag_both": {
 		"instrument": "guitar",
+		"category": "modern",
 		"title": "Cannonball Rag",
 		"composerOrSource": "Merle Travis"
 	},
 	"villa_lobos_etude_1_guitar_both": {
 		"instrument": "guitar",
+		"category": "classical",
 		"title": "Étude No. 1 in E Minor",
 		"composerOrSource": "Heitor Villa-Lobos"
 	}

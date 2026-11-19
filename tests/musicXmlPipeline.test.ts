@@ -27,8 +27,13 @@ import {
 	resolveExplicitChordSymbol,
 	solveInstrumentStops,
 } from "../src/react-app/musicxml";
-import { SONG_CATALOG, loadSongById } from "../src/react-app/songs/songCatalog";
 import {
+	SONG_CATALOG,
+	getCatalogEntriesForInstrument,
+	loadSongById,
+} from "../src/react-app/songs/songCatalog";
+import {
+	compareSongCatalogOrder,
 	flattenSongPlaybackSteps,
 	getSongBarStartTimes,
 	hydrateSong,
@@ -970,18 +975,134 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		}
 	});
 
-	test("synced 14-song catalog preserves curated metadata, keys, add9 harmonies, per-onset P.M., and unison TAB stops", async () => {
-		expect(SONG_CATALOG).toHaveLength(14);
+	test("syncFromMusicXmlFolder sorts classical before modern descending by bar count and validates category overrides", async () => {
+		const tmpRoot = await mkdtemp(join(tmpdir(), "musicxml-order-test-"));
+		try {
+			const musicXmlDir = join(tmpRoot, "songs", "musicxml");
+			const overridesPath = join(tmpRoot, "songs", "overrides.json");
+			const generatedDir = join(tmpRoot, "generated");
+			const catalogPath = join(tmpRoot, "songCatalog.generated.ts");
+			await mkdir(musicXmlDir, { recursive: true });
+
+			const makeMultiBarScore = (title: string, bars: number) => {
+				const measures = Array.from({ length: bars }, (_, idx) => {
+					const attrs =
+						idx === 0
+							? `<attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>`
+							: "";
+					return `<measure number="${idx + 1}">${attrs}<note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration></note></measure>`;
+				}).join("");
+				return `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>${title}</work-title></work>
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1">${measures}</part>
+</score-partwise>`;
+			};
+
+			await writeFile(
+				join(musicXmlDir, "a_short_classical.musicxml"),
+				makeMultiBarScore("Short Classical", 2),
+			);
+			await writeFile(
+				join(musicXmlDir, "b_long_modern.musicxml"),
+				makeMultiBarScore("Long Modern", 8),
+			);
+			await writeFile(
+				join(musicXmlDir, "c_long_classical.musicxml"),
+				makeMultiBarScore("Long Classical", 5),
+			);
+			await writeFile(
+				join(musicXmlDir, "d_short_modern.musicxml"),
+				makeMultiBarScore("Short Modern", 3),
+			);
+			await writeFile(
+				join(musicXmlDir, "e_uncategorized.musicxml"),
+				makeMultiBarScore("Uncategorized", 4),
+			);
+
+			await writeFile(
+				overridesPath,
+				JSON.stringify({
+					a_short_classical: { category: "classical" },
+					b_long_modern: { category: "modern" },
+					c_long_classical: { category: "classical" },
+					d_short_modern: { category: "modern" },
+				}),
+			);
+
+			await syncFromMusicXmlFolder({
+				sourceDir: "",
+				musicXmlDir,
+				overridesPath,
+				generatedSongsDir: generatedDir,
+				generatedCatalogPath: catalogPath,
+			});
+
+			const generatedCatalogText = await Bun.file(catalogPath).text();
+			const ids = [...generatedCatalogText.matchAll(/id:\s*"([^"]+)"/g)].map(
+				(m) => m[1],
+			);
+			expect(ids).toEqual([
+				"long-classical-piano",
+				"short-classical-piano",
+				"long-modern-piano",
+				"uncategorized-piano",
+				"short-modern-piano",
+			]);
+
+			const badOverridesPath = join(tmpRoot, "songs", "bad-overrides.json");
+			await writeFile(
+				badOverridesPath,
+				JSON.stringify({ bad: { category: "baroque" } }),
+			);
+			await expect(loadCuratedOverrides(badOverridesPath)).rejects.toThrow(
+				/Invalid --category "baroque"/,
+			);
+		} finally {
+			await rm(tmpRoot, { recursive: true, force: true });
+		}
+	});
+
+	test("synced 15-song catalog orders classical before modern descending by bar count and preserves metadata & harmonies", async () => {
+		expect(SONG_CATALOG).toHaveLength(15);
 		const byInst = {
-			piano: SONG_CATALOG.filter((e) => e.instruments.includes("piano")),
-			guitar: SONG_CATALOG.filter((e) => e.instruments.includes("guitar")),
-			violin: SONG_CATALOG.filter((e) => e.instruments.includes("violin")),
-			cello: SONG_CATALOG.filter((e) => e.instruments.includes("cello")),
+			piano: getCatalogEntriesForInstrument("piano"),
+			guitar: getCatalogEntriesForInstrument("guitar"),
+			violin: getCatalogEntriesForInstrument("violin"),
+			cello: getCatalogEntriesForInstrument("cello"),
 		};
 		expect(byInst.piano).toHaveLength(3);
-		expect(byInst.guitar).toHaveLength(6);
+		expect(byInst.guitar).toHaveLength(7);
 		expect(byInst.violin).toHaveLength(3);
 		expect(byInst.cello).toHaveLength(2);
+
+		expect(byInst.guitar.map((e) => [e.id, e.category, e.barCount])).toEqual([
+			["etude-no-1-in-e-minor-guitar", "classical", 61],
+			["lagrima-guitar", "classical", 32],
+			["classical-gas-guitar", "modern", 165],
+			["cannonball-rag-guitar", "modern", 113],
+			["windy-and-warm-guitar", "modern", 84],
+			["amazing-grace-guitar", "modern", 77],
+			["how-deep-is-your-love-guitar", "modern", 74],
+		]);
+		expect(byInst.piano.map((e) => [e.id, e.category, e.barCount])).toEqual([
+			["moment-musicaux-no-3-op-94-d-780-piano", "classical", 78],
+			["prelude-in-c-major-bwv-846-piano", "classical", 35],
+			["prelude-in-c-minor-op-28-no-20-piano", "classical", 13],
+		]);
+		expect(byInst.violin.map((e) => [e.id, e.category, e.barCount])).toEqual([
+			["string-quartet-no-3-k-156-ii-adagio-violin", "classical", 88],
+			["meditation-from-thais-violin", "classical", 71],
+			["sonata-da-chiesa-op-3-no-1-grave-violin", "classical", 19],
+		]);
+		expect(byInst.cello.map((e) => [e.id, e.category, e.barCount])).toEqual([
+			["cello-suite-no-1-prelude-bwv-1007-cello", "classical", 42],
+			["le-cygne-the-swan-cello", "classical", 27],
+		]);
+		expect(SONG_CATALOG).toEqual(
+			[...SONG_CATALOG].sort(compareSongCatalogOrder),
+		);
 
 		const keyById = Object.fromEntries(
 			SONG_CATALOG.map((e) => [e.id, e.keyLabel]),
@@ -997,7 +1118,8 @@ describe("MusicXML parser, .mxl unpacker, and compiler", () => {
 		);
 		expect(keyById["le-cygne-the-swan-cello"]).toBe("G Major");
 		expect(keyById["lagrima-guitar"]).toBe("E Major");
-		expect(keyById["amazing-grace-seoul-2009-guitar"]).toBe("E Major");
+		expect(keyById["amazing-grace-guitar"]).toBe("E Major");
+		expect(keyById["how-deep-is-your-love-guitar"]).toBe("B Major");
 		expect(keyById["classical-gas-guitar"]).toBe("A Minor");
 		expect(keyById["windy-and-warm-guitar"]).toBe("A Minor");
 		expect(keyById["cannonball-rag-guitar"]).toBe("G Major");

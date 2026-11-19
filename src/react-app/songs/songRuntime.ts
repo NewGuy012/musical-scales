@@ -21,6 +21,38 @@ export function isInstrumentTab(raw: string): raw is InstrumentTab {
 	return INSTRUMENT_TABS.includes(raw as InstrumentTab);
 }
 
+export const SONG_CATEGORIES = ["classical", "modern"] as const;
+export type SongCategory = (typeof SONG_CATEGORIES)[number];
+
+export function isSongCategory(raw: string): raw is SongCategory {
+	return SONG_CATEGORIES.includes(raw as SongCategory);
+}
+
+function songCategoryRank(category?: SongCategory): number {
+	return category === "classical" ? 0 : 1;
+}
+
+/**
+ * Sorts catalog songs with classical pieces first, followed by modern pieces,
+ * each group ordered descending by total bar count.
+ */
+export function compareSongCatalogOrder(
+	a: { category?: SongCategory; barCount: number; title: string; id: string },
+	b: { category?: SongCategory; barCount: number; title: string; id: string },
+): number {
+	const categoryDiff =
+		songCategoryRank(a.category) - songCategoryRank(b.category);
+	if (categoryDiff !== 0) return categoryDiff;
+
+	const barDiff = b.barCount - a.barCount;
+	if (barDiff !== 0) return barDiff;
+
+	const titleDiff = a.title.localeCompare(b.title);
+	if (titleDiff !== 0) return titleDiff;
+
+	return a.id.localeCompare(b.id);
+}
+
 export type SongNoteTechnique =
 	| "normal"
 	| "harmonic"
@@ -120,6 +152,7 @@ export interface SongExample {
 	composerOrSource: string;
 	subtitle: string;
 	instruments: InstrumentTab[];
+	category?: SongCategory;
 	keySlot: number;
 	keyMode: KeyMode;
 	keyLabel: string;

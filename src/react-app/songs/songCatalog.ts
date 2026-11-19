@@ -3,7 +3,12 @@ import {
 	GENERATED_SONG_CATALOG,
 	loadGeneratedSongById,
 } from "./songCatalog.generated";
-import type { InstrumentTab, SongExample } from "./songRuntime";
+import {
+	type InstrumentTab,
+	type SongCategory,
+	type SongExample,
+	compareSongCatalogOrder,
+} from "./songRuntime";
 
 export interface SongCatalogEntry {
 	id: string;
@@ -11,6 +16,7 @@ export interface SongCatalogEntry {
 	composerOrSource: string;
 	subtitle: string;
 	instruments: InstrumentTab[];
+	category?: SongCategory;
 	keySlot: number;
 	keyMode: KeyMode;
 	keyLabel: string;
@@ -27,7 +33,9 @@ export const SONG_CATALOG: SongCatalogEntry[] = GENERATED_SONG_CATALOG;
 export function getCatalogEntriesForInstrument(
 	instrument: InstrumentTab,
 ): SongCatalogEntry[] {
-	return SONG_CATALOG.filter((entry) => entry.instruments.includes(instrument));
+	return SONG_CATALOG.filter((entry) =>
+		entry.instruments.includes(instrument),
+	).sort(compareSongCatalogOrder);
 }
 
 export function createCatalogStubSong(entry: SongCatalogEntry): SongExample {
@@ -37,6 +45,7 @@ export function createCatalogStubSong(entry: SongCatalogEntry): SongExample {
 		composerOrSource: entry.composerOrSource,
 		subtitle: entry.subtitle,
 		instruments: entry.instruments,
+		...(entry.category ? { category: entry.category } : {}),
 		keySlot: entry.keySlot,
 		keyMode: entry.keyMode,
 		keyLabel: entry.keyLabel,

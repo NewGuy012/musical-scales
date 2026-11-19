@@ -107,8 +107,15 @@ describe("Musical Scales UI rendering", () => {
 		expect(html).toContain("songs-instrument-bar");
 		expect(html).toContain('id="songs-tab-piano"');
 		expect(html).toContain("Synced with Piano above");
+		expect(html).toContain("Moment Musicaux No. 3, Op. 94 (D. 780)");
 		expect(html).toContain("Prelude in C Major (BWV 846)");
 		expect(html).toContain("Prelude in C Minor, Op. 28 No. 20");
+		const schubertIdx = html.indexOf("Moment Musicaux No. 3, Op. 94 (D. 780)");
+		const bachIdx = html.indexOf("Prelude in C Major (BWV 846)");
+		const chopinIdx = html.indexOf("Prelude in C Minor, Op. 28 No. 20");
+		expect(schubertIdx).toBeGreaterThan(-1);
+		expect(bachIdx).toBeGreaterThan(schubertIdx);
+		expect(chopinIdx).toBeGreaterThan(bachIdx);
 		expect(html).not.toContain("Load MusicXML File");
 		expect(html).not.toContain("Piano Repertoire");
 	});

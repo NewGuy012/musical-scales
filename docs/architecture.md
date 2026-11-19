@@ -27,7 +27,7 @@ musical-scales/
 │   ├── favicon.svg
 │   └── logo.png                      # App brand icon
 ├── songs/
-│   ├── overrides.json                # Centralized curated title/composer/instrument/key overrides
+│   ├── overrides.json                # Centralized curated title/composer/instrument/category/key overrides
 │   └── musicxml/                     # Mirrored & local .musicxml / .xml / .mxl scores (+ optional .meta.json)
 ├── scripts/
 │   ├── dev.ts                        # Initial song sync + --watch + Bun --hot dev server
@@ -191,7 +191,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 ### CLI Ingestion Workflow (`scripts/ingest-songs.ts`)
 
-1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run (`slugifyId`, sidecar schema/instrument validation, and filesystem containment enforce valid inputs and keep writes within `songs/musicxml/` and `src/react-app/songs/generated/`):
+1. Drop `.musicxml`, `.xml`, or `.mxl` files into `songs/musicxml/` (optionally alongside a `<name>.meta.json` sidecar with `{ id, title, composerOrSource, subtitle, instrument, category, partId, partIndex, quantizeSubdivision, splitHalfBarHarmony, studyGuide }`) and run (`slugifyId`, sidecar schema/instrument validation, and filesystem containment enforce valid inputs and keep writes within `songs/musicxml/` and `src/react-app/songs/generated/`):
 
    ```bash
    bun run ingest-songs

@@ -635,6 +635,42 @@ describe("songPlayback helpers and synchronized UI", () => {
 		});
 		expect(stub.barCount).toBe(16);
 		expect(stub.steps).toEqual([]);
+
+		const guitarStubs = getCatalogEntriesForInstrument("guitar").map(
+			createCatalogStubSong,
+		);
+		const guitarSelectHtml = renderToStaticMarkup(
+			<SongExamplesPanel
+				songs={guitarStubs}
+				playingSongId={null}
+				activeChordStepIndex={null}
+				activeNoteLabel={null}
+				selectedPreviewStepId={null}
+				onTogglePlaySong={noop}
+				onSelectSongChordStep={noop}
+			/>,
+		);
+		expect(guitarSelectHtml).toContain(
+			"1. Étude No. 1 in E Minor — Heitor Villa-Lobos (E Minor · 4/4 · 61 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"2. Lágrima — Francisco Tárrega (E Major · 3/4 · 32 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"3. Classical Gas — Mason Williams (A Minor · 4/4 · 165 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"4. Cannonball Rag — Merle Travis (G Major · 4/4 · 113 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"5. Windy and Warm — John D. Loudermilk (A Minor · 4/4 · 84 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"6. Amazing Grace — John Newton (Arr. Tommy Emmanuel) (E Major · 9/8 · 77 bars)",
+		);
+		expect(guitarSelectHtml).toContain(
+			"7. How Deep Is Your Love — Bee Gees (Arr. Den Vichakyothin) (B Major · 4/4 · 74 bars)",
+		);
 	});
 
 	test("invalidates song cache cleanly and compiles direct Bun HMR calls without indirectHot access", async () => {

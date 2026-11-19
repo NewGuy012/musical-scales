@@ -1,10 +1,10 @@
 import type { SongDocument } from "../songRuntime";
 
-export const AMAZING_GRACE_SEOUL_2009_GUITAR_SPEC: SongDocument = {
+export const AMAZING_GRACE_GUITAR_SPEC: SongDocument = {
 	version: 2,
-	id: "amazing-grace-seoul-2009-guitar",
+	id: "amazing-grace-guitar",
 	idPrefix: "amazin",
-	title: "Amazing Grace (Seoul 2009)",
+	title: "Amazing Grace",
 	composerOrSource: "John Newton (Arr. Tommy Emmanuel)",
 	subtitle: "E Major (9/8) · guitar MusicXML",
 	instruments: ["guitar"],
@@ -18,7 +18,7 @@ export const AMAZING_GRACE_SEOUL_2009_GUITAR_SPEC: SongDocument = {
 		"Ingested from MusicXML in E Major (9/8, 78 BPM) with polyphonic timing, dynamics, and ergonomic guitar fingerings.",
 	studyGuide: {
 		vibeAndSound:
-			"MusicXML guitar arrangement of Amazing Grace (Seoul 2009) in E Major with polyphonic timing, dynamics, and instrument fingerings.",
+			"MusicXML guitar arrangement of Amazing Grace in E Major with polyphonic timing, dynamics, and instrument fingerings.",
 		harmonyHook:
 			"Tracks E Major harmony bar-by-bar against the Circle of Fifths.",
 		practiceTips: [
