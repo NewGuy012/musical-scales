@@ -216,10 +216,28 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(playingHtml).toContain("Bar 5/16");
 		expect(playingHtml).toContain("Note: D3 (Open II)");
 		expect(playingHtml).toContain("song-live-coach");
-		expect(playingHtml).toContain("Hide Theory");
-		expect(playingHtml).toContain("What it&#x27;s doing");
-		expect(playingHtml).toContain("Bigger picture");
-		expect(playingHtml).toContain("Why it works");
+		expect(playingHtml).toContain("song-live-coach is-collapsed");
+		expect(playingHtml).toContain("Show Theory");
+		expect(playingHtml).toContain('aria-expanded="false"');
+		expect(playingHtml).not.toContain("What it&#x27;s doing");
+		expect(playingHtml).not.toContain("Bigger picture");
+		expect(playingHtml).not.toContain("Why it works");
+
+		const expandedPlayingHtml = renderSongPanel({
+			songs: [celloSong],
+			playingSongId: celloSong.id,
+			cuedSongId: celloSong.id,
+			songPositionMs: barStarts[4],
+			activeChordStepIndex: 4,
+			activeNoteLabel: "D3 (Open II)",
+			initialCoachCollapsed: false,
+		});
+		expect(expandedPlayingHtml).toContain("Hide Theory");
+		expect(expandedPlayingHtml).toContain('aria-expanded="true"');
+		expect(expandedPlayingHtml).not.toContain("song-live-coach is-collapsed");
+		expect(expandedPlayingHtml).toContain("What it&#x27;s doing");
+		expect(expandedPlayingHtml).toContain("Bigger picture");
+		expect(expandedPlayingHtml).toContain("Why it works");
 
 		const pausedHtml = renderSongPanel({
 			songs: [celloSong],
@@ -232,7 +250,8 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(pausedHtml).toContain("▶ Resume");
 		expect(pausedHtml).toContain("Paused");
 		expect(pausedHtml).toContain("Bar 9/16");
-		expect(pausedHtml).toContain("song-live-coach");
+		expect(pausedHtml).toContain("song-live-coach is-paused is-collapsed");
+		expect(pausedHtml).toContain("Show Theory");
 
 		const previewHtml = renderSongPanel({
 			songs: [celloSong],
@@ -246,9 +265,22 @@ describe("songPlayback helpers and synchronized UI", () => {
 		expect(previewHtml).toContain("Sound &amp; Feel");
 		expect(previewHtml).toContain("Harmony Hook");
 		expect(previewHtml).toContain("Practice Tips");
-		expect(previewHtml).toContain("What it&#x27;s doing");
-		expect(previewHtml).toContain("Jump to Bar 2");
-		expect(previewHtml).toContain("Jump to Bar 4");
+		expect(previewHtml).toContain("Show Theory");
+		expect(previewHtml).not.toContain("What it&#x27;s doing");
+		expect(previewHtml).not.toContain("Jump to Bar 2");
+
+		const expandedPreviewHtml = renderSongPanel({
+			songs: [celloSong],
+			cuedSongId: null,
+			songPositionMs: 0,
+			selectedPreviewStepId: celloSong.steps[2].id,
+			initialCoachCollapsed: false,
+			onPlayFromSongBar: noop,
+		});
+		expect(expandedPreviewHtml).toContain("Hide Theory");
+		expect(expandedPreviewHtml).toContain("What it&#x27;s doing");
+		expect(expandedPreviewHtml).toContain("Jump to Bar 2");
+		expect(expandedPreviewHtml).toContain("Jump to Bar 4");
 
 		const chopinSong = await loadSongById(
 			"prelude-in-c-minor-op-28-no-20-piano",
@@ -262,6 +294,7 @@ describe("songPlayback helpers and synchronized UI", () => {
 			songPositionMs: chopinBeat3Ms,
 			activeChordStepIndex: 0,
 			activeNoteLabel: "G4",
+			initialCoachCollapsed: false,
 		});
 		expect(chopinHtml).toContain("Inside this bar:");
 		expect(chopinHtml).toContain('coach-subbar-chip is-current-sub">G (V)');

@@ -39,6 +39,7 @@ export interface SongExamplesPanelProps {
 	activeChordStepIndex: number | null;
 	activeNoteLabel: string | null;
 	selectedPreviewStepId: string | null;
+	initialCoachCollapsed?: boolean;
 	onSelectSong?: (songId: string) => void;
 	onSelectInstrument?: (
 		instrument: InstrumentTab,
@@ -83,6 +84,7 @@ function SongCard({
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	initialCoachCollapsed = true,
 	onRemoveLocalPreview,
 	onChangePlaybackSpeed,
 	onTogglePlaySong,
@@ -101,7 +103,7 @@ function SongCard({
 	const scrubCleanupRef = useRef<(() => void) | null>(null);
 	const [studyGuideOpen, setStudyGuideOpen] = useState(false);
 	const [tipsOpen, setTipsOpen] = useState(false);
-	const [coachCollapsed, setCoachCollapsed] = useState(false);
+	const [coachCollapsed, setCoachCollapsed] = useState(initialCoachCollapsed);
 
 	const playbackPlan = useMemo(() => flattenSongPlaybackSteps(song), [song]);
 	const barStartTimes = useMemo(() => getSongBarStartTimes(song), [song]);
@@ -237,9 +239,9 @@ function SongCard({
 
 	useEffect(() => {
 		if (!hasStatusStep) {
-			setCoachCollapsed(false);
+			setCoachCollapsed(initialCoachCollapsed);
 		}
-	}, [hasStatusStep]);
+	}, [hasStatusStep, initialCoachCollapsed]);
 
 	const prevStatusStep =
 		statusStep && activeStatusIndex > 0
@@ -777,6 +779,7 @@ export function SongExamplesPanel({
 	activeChordStepIndex,
 	activeNoteLabel,
 	selectedPreviewStepId,
+	initialCoachCollapsed = true,
 	onSelectSong,
 	onSelectInstrument,
 	onRemoveLocalPreview,
@@ -875,6 +878,7 @@ export function SongExamplesPanel({
 				activeChordStepIndex={activeChordStepIndex}
 				activeNoteLabel={activeNoteLabel}
 				selectedPreviewStepId={selectedPreviewStepId}
+				initialCoachCollapsed={initialCoachCollapsed}
 				onRemoveLocalPreview={onRemoveLocalPreview}
 				onChangePlaybackSpeed={onChangePlaybackSpeed}
 				onTogglePlaySong={onTogglePlaySong}

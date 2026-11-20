@@ -3535,6 +3535,10 @@
 	margin-left: auto;
 }
 
+.song-live-coach:not(.is-collapsed) .song-coach-actions .drawer-toggle-btn svg {
+	transform: rotate(180deg);
+}
+
 .song-live-dot {
 	flex-shrink: 0;
 	width: 8px;
