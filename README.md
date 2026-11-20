@@ -70,7 +70,7 @@
 
 ## Run Locally
 
-Requires [Bun](https://bun.sh/) (`bun@1.4.4` recommended).
+Requires [Bun](https://bun.sh/) (`bun@1.4.5` recommended).
 
 ```bash
 git clone https://github.com/NewGuy012/musical-scales.git
