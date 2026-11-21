@@ -1,40 +1,50 @@
-import { Hono } from "hono";
-import { secureHeaders } from "hono/secure-headers";
+const SECURITY_HEADERS: Readonly<Record<string, string>> = {
+	"Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+	"X-Content-Type-Options": "nosniff",
+	"X-Frame-Options": "DENY",
+	"X-Permitted-Cross-Domain-Policies": "none",
+	"Referrer-Policy": "strict-origin-when-cross-origin",
+	"Cross-Origin-Opener-Policy": "same-origin",
+	"Cross-Origin-Resource-Policy": "same-origin",
+	"Origin-Agent-Cluster": "?1",
+	"X-DNS-Prefetch-Control": "off",
+	"X-Download-Options": "noopen",
+	"X-XSS-Protection": "0",
+	"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+	"Content-Security-Policy":
+		"default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+};
 
-const app = new Hono();
-
-app.use(
-	"*",
-	secureHeaders({
-		strictTransportSecurity: "max-age=63072000; includeSubDomains; preload",
-		xFrameOptions: "DENY",
-		referrerPolicy: "strict-origin-when-cross-origin",
-		permissionsPolicy: {
-			camera: [],
-			microphone: [],
-			geolocation: [],
+function jsonError(
+	request: Request,
+	status: number,
+	error: string,
+	extraHeaders?: Record<string, string>,
+): Response {
+	const body = request.method === "HEAD" ? null : JSON.stringify({ error });
+	return new Response(body, {
+		status,
+		headers: {
+			...SECURITY_HEADERS,
+			"Cache-Control": "no-store",
+			"Content-Type": "application/json; charset=utf-8",
+			...extraHeaders,
 		},
-		contentSecurityPolicy: {
-			defaultSrc: ["'none'"],
-			baseUri: ["'none'"],
-			formAction: ["'none'"],
-			frameAncestors: ["'none'"],
-		},
-	}),
-);
+	});
+}
 
-app.all("/api/*", (c) => {
-	c.header("Cache-Control", "no-store");
-	if (c.req.method !== "GET" && c.req.method !== "HEAD") {
-		c.header("Allow", "GET, HEAD");
-		return c.json({ error: "Method not allowed" }, 405);
-	}
-	return c.json({ error: "Not found" }, 404);
-});
-
-app.notFound((c) => {
-	c.header("Cache-Control", "no-store");
-	return c.json({ error: "Not found" }, 404);
-});
-
-export default app;
+export default {
+	fetch(request: Request): Response {
+		const { pathname } = new URL(request.url);
+		if (
+			(pathname === "/api" || pathname.startsWith("/api/")) &&
+			request.method !== "GET" &&
+			request.method !== "HEAD"
+		) {
+			return jsonError(request, 405, "Method not allowed", {
+				Allow: "GET, HEAD",
+			});
+		}
+		return jsonError(request, 404, "Not found");
+	},
+};

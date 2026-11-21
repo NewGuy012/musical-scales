@@ -537,7 +537,7 @@ describe("Musical Scales UI rendering", () => {
 			for (const token of expected) expect(html).toContain(token);
 		}
 
-		const getRes = await workerApp.request("/api/unknown");
+		const getRes = workerApp.fetch(new Request("http://localhost/api/unknown"));
 		expect(getRes.status).toBe(404);
 		expect(getRes.headers.get("Cache-Control")).toBe("no-store");
 		expect(getRes.headers.get("X-Frame-Options")).toBe("DENY");
@@ -545,9 +545,19 @@ describe("Musical Scales UI rendering", () => {
 		expect(getRes.headers.get("Content-Security-Policy")).toContain(
 			"default-src 'none'",
 		);
+		expect(await getRes.json()).toEqual({ error: "Not found" });
 
-		const postRes = await workerApp.request("/api/unknown", { method: "POST" });
+		const headRes = workerApp.fetch(
+			new Request("http://localhost/api/unknown", { method: "HEAD" }),
+		);
+		expect(headRes.status).toBe(404);
+		expect(await headRes.text()).toBe("");
+
+		const postRes = workerApp.fetch(
+			new Request("http://localhost/api/unknown", { method: "POST" }),
+		);
 		expect(postRes.status).toBe(405);
 		expect(postRes.headers.get("Allow")).toBe("GET, HEAD");
+		expect(await postRes.json()).toEqual({ error: "Method not allowed" });
 	});
 });

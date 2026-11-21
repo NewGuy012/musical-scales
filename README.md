@@ -84,17 +84,17 @@ bun dev       # open http://localhost:5173
 
 <br />
 
-| Command                | Description                                                             |
-| :--------------------- | :---------------------------------------------------------------------- |
-| `bun dev`              | Sync MusicXML songs, watch for changes, and start the Bun dev server    |
-| `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests                        |
-| `bun fmt`              | Format codebase with Bun                                                |
-| `bun check -b`         | Typecheck app and Worker projects                                       |
-| `bun lint`             | Run typecheck and format verification                                   |
-| `bun run build`        | Sync songs, typecheck, and build client bundle into `dist/client/`      |
-| `bun run preview`      | Build and preview production bundle locally                             |
-| `bun deploy`           | Deploy client bundle and Hono Worker to Cloudflare Workers via Wrangler |
-| `bun run ingest-songs` | Mirror `SONGS_SOURCE_DIR` & compile `songs/musicxml/` chunks            |
+| Command                | Description                                                          |
+| :--------------------- | :------------------------------------------------------------------- |
+| `bun dev`              | Sync MusicXML songs, watch for changes, and start the Bun dev server |
+| `bun test`             | Run unit, voicing, audio, MusicXML, and UI tests                     |
+| `bun fmt`              | Format codebase with Bun                                             |
+| `bun check -b`         | Typecheck app and Worker projects                                    |
+| `bun lint`             | Run typecheck and format verification                                |
+| `bun run build`        | Sync songs, typecheck, and build client bundle into `dist/client/`   |
+| `bun run preview`      | Build and preview production bundle locally                          |
+| `bun deploy`           | Deploy client bundle and Cloudflare Worker via Wrangler              |
+| `bun run ingest-songs` | Mirror `SONGS_SOURCE_DIR` & compile `songs/musicxml/` chunks         |
 
 - See [`docs/architecture.md`](./docs/architecture.md) for module details, Karplus-Strong guitar DSP notes, data-flow diagrams, and the complete MusicXML ingestion specification.
 

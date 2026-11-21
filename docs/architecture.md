@@ -1,6 +1,6 @@
 # Architecture & MusicXML Ingestion Overview
 
-**Musical Scales** (`musical-scales`) is an interactive music theory, chord voicing, synthesis, and MusicXML repertoire studio built with React 19, TypeScript, Bun, Web Audio API, and Cloudflare Workers (Hono).
+**Musical Scales** (`musical-scales`) is an interactive music theory, chord voicing, synthesis, and MusicXML repertoire studio built with React 19, TypeScript, Bun, Web Audio API, and Cloudflare Workers.
 
 ---
 
@@ -9,7 +9,7 @@
 - **Frontend**: React 19, TypeScript, custom SVG visualizers, CSS variables (dark/light themes)
 - **Audio**: Native browser Web Audio API (zero external sample files)
 - **Score Standard**: Zero-dependency isomorphic MusicXML (`.musicxml`, `.xml`, `.mxl`) parser & compiler
-- **Edge Runtime**: Cloudflare Workers + Hono (`src/worker/index.ts`)
+- **Edge Runtime**: Cloudflare Workers (`src/worker/index.ts`)
 - **Runtime, Package Manager, Bundler & Tooling**: Bun (`bun install`, `bun dev`, `bun build`, `bun test`, `bun check`, `bun fmt`, `bun lint`), Wrangler
 
 ---
@@ -76,7 +76,7 @@ musical-scales/
 │   │       ├── guitarFretboard.ts    # Tuning, 13 chord variations, CAGED voicings, pentatonic/passing guides
 │   │       └── celloFingerboard.ts   # Bowed fifths voicing engine, Cello & Violin tunings
 │   └── worker/
-│       └── index.ts                  # Hono worker with CSP/COOP/CORP headers, 405 & 404 JSON
+│       └── index.ts                  # Cloudflare Worker with CSP/COOP/CORP headers, 405 & 404 JSON
 ├── tests/                            # Bun test suite (theory, harmony, voicings, MusicXML, DSP, UI)
 └── bunfig.toml                       # Bun formatter configuration
 ```
@@ -238,7 +238,7 @@ External Python Pipeline (Video / Audio / Sheet Music)
 
 ### 5. Edge Worker & Security (`src/worker/index.ts`, `public/_headers`)
 
-- **[`src/worker/index.ts`](../src/worker/index.ts)** uses Hono's `secureHeaders` middleware to attach `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-Permitted-Cross-Domain-Policies: none`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
+- **[`src/worker/index.ts`](../src/worker/index.ts)** is a zero-dependency Cloudflare Worker `fetch` handler that attaches `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-Permitted-Cross-Domain-Policies: none`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, `Permissions-Policy`, and strict API `Content-Security-Policy` (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-ancestors 'none'`).
 - All `/api/*` and unknown routes return `Cache-Control: no-store` with JSON `405` (with `Allow: GET, HEAD` for non-`GET`/`HEAD` on `/api/*`) or `404` responses.
 - **[`public/_headers`](../public/_headers)** applies matching `HSTS`, `COOP`/`CORP`, framing, `X-Permitted-Cross-Domain-Policies`, and strict `Content-Security-Policy` headers (`style-src 'self'`, `script-src 'self'`, `img-src 'self'`, `base-uri 'none'`) to static client assets served by Cloudflare.
 - **Parser & Tooling Safety**: Browser MusicXML uploads are capped at `10 MB`, `.mxl`/XML/repeat/offline-render bounds enforce entry/depth/node/bar/duration caps and null-prototype attribute/table lookups (`Object.hasOwn`), generated TS export identifiers are regex-validated, `.meta.json` sidecars & CLI flags are schema-validated, and CLI file outputs check path containment.
@@ -255,4 +255,4 @@ Run via `bun test`:
 - **[`synth.test.ts`](../tests/synth.test.ts)**: Verifies `A4 = 440 Hz` tuning, autocorrelation pitch accuracy and decay envelope of the Karplus-Strong guitar model across `E2–E5`, safe handling of invalid MIDI inputs, and offline renderer duration/sample-rate clamping + WAV encoding.
 - **[`musicXmlPipeline.test.ts`](../tests/musicXmlPipeline.test.ts)**: Tests pure-TS XML parsing (null-prototype attrs, numeric entity bounds, multi-root, unknown `<!...` declaration & `250k`-node cap rejection), compressed `.mxl` roundtrips and path-escape/EOCD rejection, `score-partwise` & `score-timewise`, transposition, pickups, repeats/voltas, grand-staff piano & pedal extension, Drop-D guitar TAB, Viterbi non-TAB cello stops, key/harmony analysis, and CLI mirroring/caching/validation.
 - **[`barTheoryAnalyzer.test.ts`](../tests/barTheoryAnalyzer.test.ts)**: Verifies contextual bar-by-bar theory across the catalog (contiguous sections, non-redundant cues, Roman numeral alignment) plus curated landmark scores and zero-annotation local MusicXML imports.
-- **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including polyphonic custom tunings, capo, speed clamping, sub-bar chord lookup, harmonic stops, and mixed-stop onset alignment), transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, `Music Teacher -> Learn with Real Songs` section layout, and Hono Worker security headers / `404` / `405` routing.
+- **[`songPlayback.test.tsx`](../tests/songPlayback.test.tsx)** & **[`appRender.test.tsx`](../tests/appRender.test.tsx)**: Verify `SongDocument` hydration (including polyphonic custom tunings, capo, speed clamping, sub-bar chord lookup, harmonic stops, and mixed-stop onset alignment), transport scrubber & empty-state UI, lookahead playback timing, live visualizer halos, `Music Teacher -> Learn with Real Songs` section layout, and Worker security headers / `404` / `405` routing.
